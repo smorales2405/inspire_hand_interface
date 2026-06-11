@@ -120,6 +120,18 @@ class HandConnection:
             print(f"[HandConnection] set_speed error: {e}")
             return False
 
+    def read_forces(self):
+        """Read FORCE_ACT for all 6 DOFs. Returns list[int] in grams, or None."""
+        if not self.connected:
+            return None
+        try:
+            with self._lock:
+                result = self._read_shorts(1582, 6)
+            return result or [0] * 6
+        except Exception as e:
+            print(f"[HandConnection] read_forces error: {e}")
+            return None
+
     def clear_errors(self):
         if not self.connected or self.client is None:
             return

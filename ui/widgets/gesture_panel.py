@@ -1,21 +1,26 @@
 from PyQt5.QtWidgets import (
     QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QSlider
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal
 from PyQt5.QtGui import QFont
 
-# Register values per gesture: [little, ring, middle, index, thumb_bend, thumb_rot]
-#   0 = fully open / extended
-#   1000 = fully closed / bent
+# Each entry: (name, [step1, step2, ...])
+# step = [little, ring, middle, index, thumb_flex, thumb_rot]
+# register 0  → max angle → fully closed (max flexion)
+# register 1000 → min angle → fully open (extended)
+#
+# Pinza DOF values derived from target degrees:
+#   index  100° → reg 486   range [19, 176.7]
+#   t.flex  15° → reg 580   range [-13, 53.6]
+#   t.rot  155° → reg 133   range [90, 165]
 GESTURES = [
-    ("Abierta",        [   0,    0,    0,    0,    0,  500]),
-    ("Puno",           [1000, 1000, 1000, 1000, 1000,  500]),
-    ("Senyalar",       [1000, 1000, 1000,    0, 1000,  500]),
-    ("Tijeras",        [1000, 1000,    0,    0, 1000,  500]),
-    ("Tres dedos",     [1000,    0,    0,    0, 1000,  500]),
-    ("Pinza",          [1000, 1000, 1000,  500,  600,  300]),
-    ("OK",             [   0,    0,    0,  700,  600,  300]),
-    ("Pulgar arriba",  [1000, 1000, 1000, 1000,    0,  500]),
+    ("Abrir",         [[1000, 1000, 1000, 1000, 1000, 1000]]),
+    ("Cerrar",        [[   0,    0,    0,    0, 1000, 1000],   # 4 fingers close first
+                       [   0,    0,    0,    0,    0, 1000]]), # then thumb flex closes
+    ("Señalar",       [[   0,    0,    0, 1000,    0,  500]]),
+    ("Pinza",         [[1000, 1000, 1000,  486,  580,  133]]),
+
+    ("Pulgar arriba", [[   0,    0,    0,    0, 1000, 1000]]),
 ]
 
 _BTN_STYLE = (
@@ -29,6 +34,8 @@ _BTN_STYLE = (
     "QPushButton:hover  { background-color: #BBDEFB; }"
     "QPushButton:pressed{ background-color: #64B5F6; }"
 )
+
+_STEP_DELAY_MS = 800  # ms between sequential gesture steps
 
 
 class GesturePanel(QFrame):
@@ -52,19 +59,28 @@ class GesturePanel(QFrame):
         title.setStyleSheet("background: transparent;")
         layout.addWidget(title)
 
-        for name, values in GESTURES:
+        for name, steps in GESTURES:
             btn = QPushButton(name)
             btn.setMinimumHeight(34)
             btn.setFont(QFont('Arial', 10))
             btn.setCursor(Qt.PointingHandCursor)
             btn.setStyleSheet(_BTN_STYLE)
             btn.clicked.connect(
-                lambda _checked, v=values: self.gesture_selected.emit(list(v))
+                lambda _checked, s=steps: self._emit_steps(s)
             )
             layout.addWidget(btn)
 
         layout.addStretch()
         layout.addWidget(self._build_speed_section())
+
+    def _emit_steps(self, steps):
+        """Emit step 0 immediately; schedule subsequent steps with a fixed delay."""
+        self.gesture_selected.emit(list(steps[0]))
+        for i, step in enumerate(steps[1:], start=1):
+            QTimer.singleShot(
+                i * _STEP_DELAY_MS,
+                lambda s=step: self.gesture_selected.emit(list(s))
+            )
 
     def _build_speed_section(self):
         frame = QFrame()

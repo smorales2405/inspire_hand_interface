@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
+    QWidget, QHBoxLayout, QVBoxLayout, QGroupBox
 )
-from PyQt5.QtCore import QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtGui import QFont
 
 from core.tactile_zones import N_ZONES
@@ -60,12 +60,6 @@ class TactileTab(QWidget):
         self._overview = TactileOverviewWidget()
         self._overview.zone_clicked.connect(self._on_zone_clicked)
         ov_lay.addWidget(self._overview)
-
-        hint = QLabel("Haga clic en una zona para ver detalle")
-        hint.setAlignment(__import__('PyQt5.QtCore', fromlist=['Qt']).Qt.AlignCenter)
-        hint.setFont(QFont('Arial', 9))
-        hint.setStyleSheet("color: #9E9E9E;")
-        ov_lay.addWidget(hint)
 
         root.addWidget(ov_grp, stretch=2)
 

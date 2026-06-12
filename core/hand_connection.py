@@ -132,6 +132,35 @@ class HandConnection:
             print(f"[HandConnection] read_forces error: {e}")
             return None
 
+    def read_tactile_zone(self, zone_index):
+        """Read one tactile zone. Returns list[int] (signed 16-bit taxel values) or None."""
+        from core.tactile_zones import ZONES
+        if not self.connected:
+            return None
+        _, addr, n_regs, _ = ZONES[zone_index]
+        try:
+            with self._lock:
+                return self._read_shorts(addr, n_regs)
+        except Exception as e:
+            print(f"[HandConnection] read_tactile_zone({zone_index}) error: {e}")
+            return None
+
+    def read_all_tactile_zones(self):
+        """Read all 17 tactile zones sequentially. Returns list[list[int]] or None."""
+        from core.tactile_zones import ZONES
+        if not self.connected:
+            return None
+        results = []
+        try:
+            for _, addr, n_regs, _ in ZONES:
+                with self._lock:
+                    data = self._read_shorts(addr, n_regs)
+                results.append(data if data is not None else [0] * n_regs)
+            return results
+        except Exception as e:
+            print(f"[HandConnection] read_all_tactile_zones error: {e}")
+            return None
+
     def clear_errors(self):
         if not self.connected or self.client is None:
             return

@@ -1,10 +1,10 @@
-from PyQt5.QtWidgets import QMainWindow, QTabWidget, QLabel
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMainWindow, QTabWidget
 from PyQt5.QtGui import QFont
 
 from core.hand_connection import HandConnection
 from ui.tabs.control_tab import ControlTab
 from ui.tabs.force_tab import ForceTab
+from ui.tabs.tactile_tab import TactileTab
 
 
 class MainWindow(QMainWindow):
@@ -28,11 +28,9 @@ class MainWindow(QMainWindow):
         self._force_tab = ForceTab(self.hand)
         self._tabs.addTab(self._force_tab, "Lectura Fuerzas")
 
-        # Placeholder for phase 3
-        lbl = QLabel("  Sensores Tactiles  —  próxima fase")
-        lbl.setAlignment(Qt.AlignCenter)
-        lbl.setStyleSheet("color: #9E9E9E; font-size: 14pt;")
-        self._tabs.addTab(lbl, "Sensores Tactiles")
+        # Phase 3: tactile sensor anatomical layout + detail view
+        self._tactile_tab = TactileTab(self.hand)
+        self._tabs.addTab(self._tactile_tab, "Sensores Tactiles")
 
         self.setCentralWidget(self._tabs)
         self.statusBar().showMessage(

@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
 
         # Phase 2: force heatmap + bars + temporal curves
         self._force_tab = ForceTab(self.hand)
-        self._tabs.addTab(self._force_tab, "Fuerzas y Silueta")
+        self._tabs.addTab(self._force_tab, "Lectura Fuerzas")
 
         # Placeholder for phase 3
         lbl = QLabel("  Sensores Tactiles  —  próxima fase")

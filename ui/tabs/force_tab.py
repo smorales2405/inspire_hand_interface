@@ -37,15 +37,14 @@ class ForceTab(QWidget):
         top.addWidget(sil_grp, stretch=3)
 
         bars_grp = QGroupBox("FORCE_ACT por DOF")
-        bars_lay = QVBoxLayout(bars_grp)
+        bars_lay = QHBoxLayout(bars_grp)
         bars_lay.setContentsMargins(8, 10, 8, 8)
-        bars_lay.setSpacing(10)
+        bars_lay.setSpacing(6)
         self._bars: list[ForceBarWidget] = []
         for i, name in enumerate(DOF_NAMES):
             fb = ForceBarWidget(i, name)
-            bars_lay.addWidget(fb)
+            bars_lay.addWidget(fb, stretch=1)
             self._bars.append(fb)
-        bars_lay.addStretch()
         top.addWidget(bars_grp, stretch=2)
 
         root.addLayout(top, stretch=3)

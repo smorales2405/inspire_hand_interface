@@ -6,23 +6,28 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPainter, QColor, QPen, QFont
 
 DOF_COLORS  = ['#E91E63', '#9C27B0', '#2196F3', '#009688', '#FF5722', '#795548']
-FORCE_MAX_G = 1000
+FORCE_MAX_G = 3000
 WINDOW_S    = 20.0   # seconds of history shown
 MAX_SAMPLES = 500
 
-_ML, _MR, _MT, _MB = 52, 98, 14, 34   # plot margins (px)
+_ML, _MR, _MT, _MB = 62, 148, 16, 44   # plot margins (px)
 
-_LEGEND_SHORT = ["Men.", "Anu.", "Med.", "Índ.", "P.fl.", "P.rot"]
+_LEGEND_NAMES = ["Meñique", "Anular", "Medio", "Índice",
+                 "Pulgar (flex.)", "Pulgar (rot.)"]
 
 
 class ForcePlotWidget(QWidget):
-    """Scrolling time-series of FORCE_ACT for all 6 DOFs (QPainter-based)."""
+    """Scrolling time-series of FORCE_ACT for all 6 DOFs (QPainter-based).
+
+    X axis: 0 s (oldest sample in window) → 20 s (current sample).
+    Y axis: 0 g → FORCE_MAX_G.
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._buf = deque(maxlen=MAX_SAMPLES)   # (monotonic_t, [6 floats])
-        self.setMinimumHeight(145)
-        self.setMinimumWidth(360)
+        self.setMinimumHeight(150)
+        self.setMinimumWidth(380)
 
     def push_sample(self, forces):
         self._buf.append((time.monotonic(), list(forces)))
@@ -50,23 +55,23 @@ class ForcePlotWidget(QWidget):
         p.fillRect(_ML, _MT, pw, ph, QColor('#FFFFFF'))
 
         # ── Horizontal grid + Y labels ───────────────────────────────────
-        p.setFont(QFont('Consolas', 8))
+        p.setFont(QFont('Consolas', 10))
         for i in range(5):
             gy = _MT + int(i * ph / 4)
             p.setPen(QPen(QColor('#EEEEEE'), 1))
             p.drawLine(_ML, gy, _ML + pw, gy)
             g_val = int(FORCE_MAX_G * (1 - i / 4))
-            p.setPen(QColor('#546E7A'))
-            p.drawText(0, gy - 8, _ML - 4, 16,
+            p.setPen(QColor('#37474F'))
+            p.drawText(0, gy - 10, _ML - 5, 20,
                        Qt.AlignRight | Qt.AlignVCenter, str(g_val))
 
         # ── Y-axis label ─────────────────────────────────────────────────
         p.save()
-        p.setPen(QColor('#546E7A'))
-        p.setFont(QFont('Arial', 8))
-        p.translate(9, _MT + ph // 2)
+        p.setPen(QColor('#37474F'))
+        p.setFont(QFont('Arial', 10, QFont.Bold))
+        p.translate(11, _MT + ph // 2)
         p.rotate(-90)
-        p.drawText(-24, -6, 48, 13, Qt.AlignCenter, "fuerza (g)")
+        p.drawText(-32, -7, 64, 14, Qt.AlignCenter, "fuerza (g)")
         p.restore()
 
         # ── Plot border ──────────────────────────────────────────────────
@@ -76,7 +81,7 @@ class ForcePlotWidget(QWidget):
         # ── No-data placeholder ──────────────────────────────────────────
         if len(self._buf) < 2:
             p.setPen(QColor('#9E9E9E'))
-            p.setFont(QFont('Arial', 9))
+            p.setFont(QFont('Arial', 11))
             p.drawText(_ML, _MT, pw, ph, Qt.AlignCenter,
                        "Sin datos — conecte la mano")
             self._draw_legend(p, W)
@@ -104,25 +109,29 @@ class ForcePlotWidget(QWidget):
                 if _ML <= x1 <= _ML + pw:
                     p.drawLine(x0, y0, x1, y1)
 
-        # ── X-axis labels ────────────────────────────────────────────────
-        p.setFont(QFont('Consolas', 8))
-        p.setPen(QColor('#546E7A'))
+        # ── X-axis labels: 0 s (oldest) → 20 s (current) ────────────────
+        p.setFont(QFont('Consolas', 10))
+        p.setPen(QColor('#37474F'))
         for i in range(5):
             tx  = _ML + int(i / 4 * pw)
-            rel = int(-WINDOW_S * (1 - i / 4))
-            lbl = f"{rel}s" if rel != 0 else "0s"
-            p.drawText(tx - 18, _MT + ph + 4, 36, _MB - 6,
+            lbl = f"{int(WINDOW_S * i / 4)}s"
+            p.drawText(tx - 20, _MT + ph + 5, 40, _MB - 8,
                        Qt.AlignCenter, lbl)
+
+        # ── X-axis label ─────────────────────────────────────────────────
+        p.setFont(QFont('Arial', 10, QFont.Bold))
+        p.drawText(_ML, _MT + ph + 5, pw, _MB - 8, Qt.AlignCenter,
+                   "tiempo (s)")
 
         self._draw_legend(p, W)
 
     def _draw_legend(self, p: QPainter, W: int):
-        lx = W - _MR + 6
-        p.setFont(QFont('Arial', 8))
+        lx = W - _MR + 8
+        p.setFont(QFont('Arial', 10))
         for dof in range(6):
-            ly = _MT + dof * 20
+            ly = _MT + dof * 22
             p.setPen(QPen(QColor(DOF_COLORS[dof]), 2))
-            p.drawLine(lx, ly + 8, lx + 14, ly + 8)
+            p.drawLine(lx, ly + 9, lx + 16, ly + 9)
             p.setPen(QColor('#37474F'))
-            p.drawText(lx + 17, ly, _MR - 24, 16,
-                       Qt.AlignLeft | Qt.AlignVCenter, _LEGEND_SHORT[dof])
+            p.drawText(lx + 20, ly, _MR - 30, 18,
+                       Qt.AlignLeft | Qt.AlignVCenter, _LEGEND_NAMES[dof])

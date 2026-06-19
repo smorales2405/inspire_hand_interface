@@ -40,27 +40,26 @@ No se requieren `numpy`, `pyqtgraph` ni ningún middleware DDS.
 
 ---
 
-## Instalación
+## Instalación y ejecución
 
 ```bash
-# Clonar el repositorio
+# 1. Clonar el repositorio
 git clone https://github.com/smorales2405/inspire_hand_interface.git
 cd inspire_hand_interface
 
-# Instalar dependencias
-pip install PyQt5>=5.15 pymodbus==3.6.9 pyserial>=3.5
+# 2. Crear el entorno virtual e instalar dependencias (solo la primera vez)
+./setup.sh
+
+# 3. Activar el entorno virtual
+source .venv/bin/activate
+
+# 4. Ejecutar la interfaz
+python3 main.py
 ```
 
----
+> **Windows:** en el paso 3 usa `.venv\Scripts\activate` en lugar de `source .venv/bin/activate`.
 
-## Uso
-
-Ejecutar desde la carpeta `inspire_hand_interface/`:
-
-```bash
-cd inspire_hand_interface
-python main.py
-```
+El script `setup.sh` crea automáticamente el entorno `.venv/` dentro de la misma carpeta e instala los paquetes de `requirements.txt`. Las siguientes veces solo es necesario activar el entorno y correr `python3 main.py`.
 
 La interfaz se abre sin necesidad de conectar la mano; las secciones de lectura simplemente no mostrarán datos hasta que se establezca la conexión.
 

@@ -72,3 +72,74 @@ Usa el intérprete del venv del proyecto (ya trae pymodbus 3.6.9):
 
 Pega la salida completa de consola (y adjunta el CSV si lo generaste). Con eso
 confirmamos el baseline y recién ahí pasamos al Exp 1.
+
+---
+
+## Exp 1 — Respuesta al escalón (espacio libre) (`exp1_step_response.py`)
+
+Implementa el Exp 1 del `PROTOCOL_...md`: el dedo se mueve **en el aire** (sin
+objeto). Escalón de `ANGLE_SET` de abierto (1000) a un objetivo **sin contacto**;
+`FORCE_SET=3000` para que el umbral de fuerza nunca dispare (movimiento puro).
+Mide latencia comando→sensor, subida y establecimiento sobre `POS_ACT`.
+
+Un solo proceso/hilo/cliente (helper `hand_modbus.py`). Lazo intercalado: se
+escribe el escalón una vez y se lee `POS_ACT` en lazo cerrado con
+`perf_counter()`. **Para al asentar `POS_ACT`** (sin cambio > `--settle-pos-band`
+durante `--settle-hold-s`), con tope máximo `--window-s` — así los trials lentos
+no se truncan. Al salir (fin, Ctrl-C o aborto) **abre todos los dedos**.
+
+Nota de hardware: `FORCE_ACT` tiene un **offset en reposo** (p. ej. ~206 g en el
+índice abierto), no es cero. El contacto se juzga por **desvío sobre el baseline
+en reposo** (`--contact-delta-g`), no por valor absoluto.
+
+**Muestreo** (desviación deliberada del ejemplo del protocolo, que leía 3
+bloques/iter → ~33 Hz):
+- `--read pos` (def): solo `POS_ACT` (~87–98 Hz) + chequeo de `FORCE_ACT` cada
+  `--safety-every` iters. Mejor resolución de latencia.
+- `--read full`: `POS_ACT`+`FORCE_ACT`+`CURRENT` por muestra (~33 Hz).
+
+### ⚠ Validar ANTES de la campaña
+
+Un `--target-angle` mal elegido puede chocar el dedo contra la palma u otros
+dedos. Corre **un solo trial** lento y confirma que no hay contacto:
+
+```bash
+.venv/bin/python characterization/exp1_step_response.py \
+    --transport serial --serial-port /dev/ttyUSB1 \
+    --single --speed 100 --read full
+```
+
+Revisa en la salida `|FORCE_ACT|max` ≈ 0 (sin contacto). Ajusta `--target-angle`
+(y/o `--dof`) hasta que el dedo se mueva libre en el aire sin tocar nada.
+
+### Campaña completa (protocolo)
+
+```bash
+.venv/bin/python characterization/exp1_step_response.py \
+    --transport serial --serial-port /dev/ttyUSB1 --outdir exp1_out
+```
+
+Barre `--speeds 100,250,500,750,1000` × `--trials 20`, en **orden aleatorio**
+(`--seed`). Genera una serie CSV por trial + `index.csv` con metadatos y métrica
+rápida (latencia, Δpos, tasa) por trial. El análisis fino (onset, subida,
+establecimiento, R², figuras) se hace **offline** sobre esos CSV, después.
+
+### Parámetros clave
+
+| Flag | Def | Nota |
+|---|---|---|
+| `--dof` | 3 | 3 = índice (empieza aquí por el paper) |
+| `--target-angle` | 300 | **objetivo SIN contacto — verifica en tu montaje** |
+| `--force-set` | 3000 | alto, para movimiento puro |
+| `--speeds` | 100,250,500,750,1000 | barrido de `SPEED_SET` |
+| `--trials` | 20 | por velocidad |
+| `--read` | pos | `pos` (~90 Hz) o `full` (~33 Hz) |
+| `--safety-force-g` | 1800 | techo `|FORCE_ACT|` absoluto → aborta y abre |
+| `--window-s` | 10.0 | ventana **máxima** (para al asentar `POS_ACT`) |
+| `--settle-pos-band` | 8 | rango de `POS_ACT` (counts) para dar por asentado |
+| `--settle-hold-s` | 0.3 | tiempo sin movimiento para declarar asentado |
+| `--contact-delta-g` | 150 | desvío de fuerza sobre baseline que sugiere contacto |
+| `--single --speed V` | — | corre un trial (validación) |
+
+Repite la campaña (2 pasadas) para verificar repetibilidad; registra la
+temperatura por bloque e intercala descansos si sube (deriva térmica).

@@ -187,3 +187,28 @@ al salir.
 
 Manda el CSV del sondeo para caracterizar la curva libre `F(POS)` + el onset y
 diseñar el grid.
+
+---
+
+## Resultados y figuras
+
+Interpretación por experimento:
+- `exp0_results.md` — baseline de muestreo (98.3 Hz).
+- `exp1_results.md` — respuesta al escalón (deadtime ~64 ms, pendiente ∝ velocidad).
+- `exp2_results.md` — sobreimpulso de fuerza (dominado por velocidad; mitigación híbrida).
+
+Figuras (autocontenidas, se abren en cualquier navegador) en `figures/`:
+- `exp1_step_response.html` · `exp2_force_overshoot.html`
+- SVG por gráfico (vector, para embeber en la tesis/LaTeX): `exp1_overlay_pos_vs_t.svg`,
+  `exp1_slope_vs_speed.svg`, `exp1_latency_vs_speed.svg`, `exp2_overshoot_bars.svg`,
+  `exp2_hybrid_comparison.svg`.
+
+Regenerar todo desde los CSV (correr desde la raíz del repo):
+
+```bash
+.venv/bin/python characterization/exp1_analyze.py
+.venv/bin/python characterization/exp1_make_figure.py
+.venv/bin/python characterization/exp2_analyze.py --base exp2_out --override exp2_out_slow
+.venv/bin/python characterization/exp2_make_figure.py
+.venv/bin/python characterization/figures_to_svg.py       # extrae los SVG standalone
+```

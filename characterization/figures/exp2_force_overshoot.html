@@ -1,0 +1,222 @@
+<title>Exp 2 — Sobreimpulso de fuerza en contacto · RH56DFTP</title>
+<style>
+  :root{--ink:#12181f;--muted:#5a6472;--hair:#dbe2ec;--accent:#285F97;--amber:#B4740F;--bg:#f6f8fb;--panel:#fff;}
+  *{box-sizing:border-box;}
+  .wrap{max-width:900px;margin:0 auto;padding:44px 24px 64px;color:var(--ink);background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+  .b{font-weight:600;} .ey{letter-spacing:.14em;text-transform:uppercase;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+  h1{font-size:30px;line-height:1.15;margin:.35rem 0 .5rem;text-wrap:balance;letter-spacing:-.01em;}
+  .dek{color:var(--muted);font-size:16.5px;max-width:64ch;margin:0;}
+  .rule{height:1px;background:var(--hair);border:0;margin:26px 0;}
+  .panel{background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:18px 18px 12px;box-shadow:0 1px 2px rgba(18,24,31,.04);}
+  .cap{font-size:12px;color:var(--muted);margin:2px 2px 14px;} .cap b{color:var(--ink);}
+  figure{margin:0;}
+  .legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 2px 12px;font-size:12.5px;}
+  .legend .ll{color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-size:11px;}
+  .legend .li{display:inline-flex;align-items:center;gap:6px;color:var(--ink);}
+  .legend .sw{width:22px;height:10px;border-radius:2px;display:inline-block;}
+  svg{width:100%;height:auto;display:block;}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 4px;}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:14px 16px;}
+  .kpi .n{font-size:24px;font-weight:600;letter-spacing:-.01em;} .kpi .n .u{font-size:14px;color:var(--muted);font-weight:500;}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:right;padding:7px 10px;border-bottom:1px solid var(--hair);}
+  th:first-child,td:first-child{text-align:left;}
+  th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .pm{color:var(--amber);font-size:10.5px;margin-left:3px;}
+  .foot{font-size:12.5px;color:var(--muted);margin-top:22px;}
+  .foot code{font-family:ui-monospace,Menlo,monospace;color:var(--ink);background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px;}
+  .tag{display:inline-block;font-size:11px;color:var(--muted);border:1px solid var(--hair);border-radius:20px;padding:2px 10px;}
+</style>
+<div class="wrap">
+  <div class="eyebrow">Experimento 2 · Sobreimpulso de fuerza en contacto</div>
+  <h1>Cerrar rápido dispara un sobreimpulso de fuerza que llega a triplicar el setpoint</h1>
+  <p class="dek">Inspire RH56DFTP, DOF&nbsp;3, yema contra bloque rígido. Sensor calibrado (<span class="mono">forceClb</span>) ⇒ <span class="mono">FORCE_ACT</span> ≈ fuerza externa. Modo A (velocidad constante), piloto de 5 trials/celda; barra = mediana, bigote = IQR.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">~3300<span class="u"> g</span></div><div class="l">sobreimpulso máx (v=1000, Fset=250) — el momento del impacto</div></div>
+    <div class="kpi"><div class="n">≤36<span class="u"> g</span></div><div class="l">sobreimpulso con Fset=100 a TODA velocidad — setpoint seguro</div></div>
+    <div class="kpi"><div class="n">~68&times;<span class="u"> menor</span></div><div class="l">sobreimpulso del modo B híbrido vs modo A rápido (ΔF ≤ 92 g, 0 aborts)</div></div>
+  </div>
+
+  <hr class="rule">
+  <figure class="panel">
+    <div class="legend"><span class="ll">Fset (g) &rarr;</span><span class="li"><span class="sw" style="background:#9FC2E0"></span>100</span><span class="li"><span class="sw" style="background:#6FA3D2"></span>250</span><span class="li"><span class="sw" style="background:#4682BE"></span>500</span><span class="li"><span class="sw" style="background:#285F97"></span>750</span><span class="li"><span class="sw" style="background:#123F63"></span>1000</span><span class="li" style="margin-left:6px"><span style="color:#B4740F">▲</span>&nbsp;impacto &gt; techo (abort)</span></div>
+    <svg viewBox="0 0 770 430" role="img" aria-label="Sobreimpulso de fuerza vs velocidad, agrupado por Fset">
+<line x1="64" y1="376.0" x2="752" y2="376.0" stroke="#eef2f7"/>
+<text x="56" y="380.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="64" y1="326.7" x2="752" y2="326.7" stroke="#eef2f7"/>
+<text x="56" y="330.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">500</text>
+<line x1="64" y1="277.4" x2="752" y2="277.4" stroke="#eef2f7"/>
+<text x="56" y="281.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<line x1="64" y1="228.1" x2="752" y2="228.1" stroke="#eef2f7"/>
+<text x="56" y="232.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1500</text>
+<line x1="64" y1="178.7" x2="752" y2="178.7" stroke="#eef2f7"/>
+<text x="56" y="182.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2000</text>
+<line x1="64" y1="129.4" x2="752" y2="129.4" stroke="#eef2f7"/>
+<text x="56" y="133.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2500</text>
+<line x1="64" y1="80.1" x2="752" y2="80.1" stroke="#eef2f7"/>
+<text x="56" y="84.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3000</text>
+<line x1="64" y1="159.0" x2="752" y2="159.0" stroke="#B4740F" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+<text x="752" y="154.0" fill="#B4740F" font-size="10.5" text-anchor="end" class="mono">techo seguridad 2200 g</text>
+<path d="M74.8 376.0 L74.8 376.0 Q74.8 375.3 75.5 375.3 L87.9 375.3 Q88.6 375.3 88.6 376.0 L88.6 376.0 Z" fill="#9FC2E0"/>
+<line x1="81.7" y1="375.9" x2="81.7" y2="375.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M90.6 376.0 L90.6 376.0 Q90.6 373.1 93.4 373.1 L101.4 373.1 Q104.3 373.1 104.3 376.0 L104.3 376.0 Z" fill="#6FA3D2"/>
+<line x1="97.4" y1="373.7" x2="97.4" y2="372.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M106.3 376.0 L106.3 372.7 Q106.3 369.7 109.3 369.7 L117.0 369.7 Q120.0 369.7 120.0 372.7 L120.0 376.0 Z" fill="#4682BE"/>
+<line x1="113.1" y1="371.8" x2="113.1" y2="304.7" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M122.0 376.0 L122.0 371.8 Q122.0 368.8 125.0 368.8 L132.7 368.8 Q135.7 368.8 135.7 371.8 L135.7 376.0 Z" fill="#285F97"/>
+<line x1="128.9" y1="371.3" x2="128.9" y2="367.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M137.7 376.0 L137.7 372.2 Q137.7 369.2 140.7 369.2 L148.5 369.2 Q151.5 369.2 151.5 372.2 L151.5 376.0 Z" fill="#123F63"/>
+<line x1="144.6" y1="370.6" x2="144.6" y2="367.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="113.1" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">25</text>
+<path d="M173.1 376.0 L173.1 376.0 Q173.1 374.5 174.6 374.5 L185.4 374.5 Q186.8 374.5 186.8 376.0 L186.8 376.0 Z" fill="#9FC2E0"/>
+<line x1="180.0" y1="375.9" x2="180.0" y2="373.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M188.8 376.0 L188.8 371.0 Q188.8 368.0 191.8 368.0 L199.6 368.0 Q202.6 368.0 202.6 371.0 L202.6 376.0 Z" fill="#6FA3D2"/>
+<line x1="195.7" y1="376.0" x2="195.7" y2="365.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M204.6 376.0 L204.6 368.0 Q204.6 365.0 207.6 365.0 L215.3 365.0 Q218.3 365.0 218.3 368.0 L218.3 376.0 Z" fill="#4682BE"/>
+<line x1="211.4" y1="367.5" x2="211.4" y2="364.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M220.3 376.0 L220.3 369.1 Q220.3 366.1 223.3 366.1 L231.0 366.1 Q234.0 366.1 234.0 369.1 L234.0 376.0 Z" fill="#285F97"/>
+<line x1="227.2" y1="376.0" x2="227.2" y2="365.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="227.2" y="362.1" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M236.0 376.0 L236.0 367.0 Q236.0 364.0 239.0 364.0 L246.7 364.0 Q249.7 364.0 249.7 367.0 L249.7 376.0 Z" fill="#123F63"/>
+<line x1="242.9" y1="369.2" x2="242.9" y2="360.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="211.4" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">50</text>
+<path d="M271.4 376.0 L271.4 376.0 Q271.4 375.5 271.9 375.5 L284.6 375.5 Q285.1 375.5 285.1 376.0 L285.1 376.0 Z" fill="#9FC2E0"/>
+<line x1="278.3" y1="375.6" x2="278.3" y2="374.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M287.1 376.0 L287.1 365.3 Q287.1 362.3 290.1 362.3 L297.9 362.3 Q300.9 362.3 300.9 365.3 L300.9 376.0 Z" fill="#6FA3D2"/>
+<line x1="294.0" y1="366.7" x2="294.0" y2="358.4" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M302.9 376.0 L302.9 359.1 Q302.9 356.1 305.9 356.1 L313.6 356.1 Q316.6 356.1 316.6 359.1 L316.6 376.0 Z" fill="#4682BE"/>
+<line x1="309.7" y1="359.9" x2="309.7" y2="354.7" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M318.6 376.0 L318.6 340.3 Q318.6 337.3 321.6 337.3 L329.3 337.3 Q332.3 337.3 332.3 340.3 L332.3 376.0 Z" fill="#285F97"/>
+<line x1="325.4" y1="349.9" x2="325.4" y2="320.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M334.3 376.0 L334.3 335.7 Q334.3 332.7 337.3 332.7 L345.0 332.7 Q348.0 332.7 348.0 335.7 L348.0 376.0 Z" fill="#123F63"/>
+<line x1="341.2" y1="335.6" x2="341.2" y2="329.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="309.7" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">100</text>
+<path d="M369.7 376.0 L369.7 375.4 Q369.7 372.4 372.7 372.4 L380.4 372.4 Q383.4 372.4 383.4 375.4 L383.4 376.0 Z" fill="#9FC2E0"/>
+<line x1="376.5" y1="373.5" x2="376.5" y2="371.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M385.4 376.0 L385.4 345.9 Q385.4 342.9 388.4 342.9 L396.1 342.9 Q399.1 342.9 399.1 345.9 L399.1 376.0 Z" fill="#6FA3D2"/>
+<line x1="392.3" y1="373.7" x2="392.3" y2="335.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M401.1 376.0 L401.1 316.2 Q401.1 313.2 404.1 313.2 L411.9 313.2 Q414.9 313.2 414.9 316.2 L414.9 376.0 Z" fill="#4682BE"/>
+<line x1="408.0" y1="355.4" x2="408.0" y2="302.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M416.9 376.0 L416.9 269.7 Q416.9 266.7 419.9 266.7 L427.6 266.7 Q430.6 266.7 430.6 269.7 L430.6 376.0 Z" fill="#285F97"/>
+<line x1="423.7" y1="306.2" x2="423.7" y2="205.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="423.7" y="262.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M432.6 376.0 L432.6 217.3 Q432.6 214.3 435.6 214.3 L443.3 214.3 Q446.3 214.3 446.3 217.3 L446.3 376.0 Z" fill="#123F63"/>
+<line x1="439.5" y1="300.3" x2="439.5" y2="199.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="439.5" y="210.3" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="408.0" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">250</text>
+<path d="M468.0 376.0 L468.0 376.0 Q468.0 373.6 470.3 373.6 L479.3 373.6 Q481.7 373.6 481.7 376.0 L481.7 376.0 Z" fill="#9FC2E0"/>
+<line x1="474.8" y1="375.4" x2="474.8" y2="373.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M483.7 376.0 L483.7 220.8 Q483.7 217.8 486.7 217.8 L494.4 217.8 Q497.4 217.8 497.4 220.8 L497.4 376.0 Z" fill="#6FA3D2"/>
+<line x1="490.6" y1="308.1" x2="490.6" y2="147.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="490.6" y="213.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M499.4 376.0 L499.4 135.8 Q499.4 132.8 502.4 132.8 L510.1 132.8 Q513.1 132.8 513.1 135.8 L513.1 376.0 Z" fill="#4682BE"/>
+<line x1="506.3" y1="184.3" x2="506.3" y2="127.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="506.3" y="128.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M515.1 376.0 L515.1 162.6 Q515.1 159.6 518.1 159.6 L525.9 159.6 Q528.9 159.6 528.9 162.6 L528.9 376.0 Z" fill="#285F97"/>
+<line x1="522.0" y1="162.9" x2="522.0" y2="153.6" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="522.0" y="155.6" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M530.9 376.0 L530.9 179.7 Q530.9 176.7 533.9 176.7 L541.6 176.7 Q544.6 176.7 544.6 179.7 L544.6 376.0 Z" fill="#123F63"/>
+<line x1="537.7" y1="182.3" x2="537.7" y2="173.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="537.7" y="172.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="506.3" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">500</text>
+<path d="M566.3 376.0 L566.3 376.0 Q566.3 373.2 569.0 373.2 L577.2 373.2 Q580.0 373.2 580.0 376.0 L580.0 376.0 Z" fill="#9FC2E0"/>
+<line x1="573.1" y1="374.9" x2="573.1" y2="372.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M582.0 376.0 L582.0 82.6 Q582.0 79.6 585.0 79.6 L592.7 79.6 Q595.7 79.6 595.7 82.6 L595.7 376.0 Z" fill="#6FA3D2"/>
+<line x1="588.8" y1="83.2" x2="588.8" y2="43.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="588.8" y="75.6" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M597.7 376.0 L597.7 73.7 Q597.7 70.7 600.7 70.7 L608.4 70.7 Q611.4 70.7 611.4 73.7 L611.4 376.0 Z" fill="#4682BE"/>
+<line x1="604.6" y1="71.7" x2="604.6" y2="67.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="604.6" y="66.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M613.4 376.0 L613.4 110.1 Q613.4 107.1 616.4 107.1 L624.2 107.1 Q627.2 107.1 627.2 110.1 L627.2 376.0 Z" fill="#285F97"/>
+<line x1="620.3" y1="119.8" x2="620.3" y2="101.4" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="620.3" y="103.1" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M629.2 376.0 L629.2 154.8 Q629.2 151.8 632.2 151.8 L639.9 151.8 Q642.9 151.8 642.9 154.8 L642.9 376.0 Z" fill="#123F63"/>
+<line x1="636.0" y1="155.4" x2="636.0" y2="128.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="636.0" y="147.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="604.6" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">750</text>
+<path d="M664.5 376.0 L664.5 375.4 Q664.5 372.4 667.5 372.4 L675.3 372.4 Q678.3 372.4 678.3 375.4 L678.3 376.0 Z" fill="#9FC2E0"/>
+<line x1="671.4" y1="373.0" x2="671.4" y2="359.6" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M680.3 376.0 L680.3 57.2 Q680.3 54.2 683.3 54.2 L691.0 54.2 Q694.0 54.2 694.0 57.2 L694.0 376.0 Z" fill="#6FA3D2"/>
+<line x1="687.1" y1="66.7" x2="687.1" y2="41.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="687.1" y="50.2" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M696.0 376.0 L696.0 91.3 Q696.0 88.3 699.0 88.3 L706.7 88.3 Q709.7 88.3 709.7 91.3 L709.7 376.0 Z" fill="#4682BE"/>
+<line x1="702.9" y1="110.3" x2="702.9" y2="64.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="702.9" y="84.3" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M711.7 376.0 L711.7 96.4 Q711.7 93.4 714.7 93.4 L722.4 93.4 Q725.4 93.4 725.4 96.4 L725.4 376.0 Z" fill="#285F97"/>
+<line x1="718.6" y1="234.0" x2="718.6" y2="90.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="718.6" y="89.4" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M727.4 376.0 L727.4 132.2 Q727.4 129.2 730.4 129.2 L738.2 129.2 Q741.2 129.2 741.2 132.2 L741.2 376.0 Z" fill="#123F63"/>
+<line x1="734.3" y1="150.5" x2="734.3" y2="122.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="734.3" y="125.2" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="702.9" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">1000</text>
+<line x1="64" y1="376.0" x2="752" y2="376.0" stroke="#dbe2ec"/>
+<line x1="64" y1="22" x2="64" y2="376.0" stroke="#dbe2ec"/>
+<text x="408" y="424" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">SPEED_SET (velocidad de cierre)</text>
+<text transform="translate(15,199) rotate(-90)" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">sobreimpulso  ΔF = F_max − Fset  (g)</text>
+</svg>
+    <figcaption class="cap"><b>Figura 2.</b> Sobreimpulso <span class="mono">ΔF = F_max − Fset</span> por celda (v, Fset). Crece de forma dramática con la velocidad de cierre y satura ~v=750 por el impacto de la yema (efecto de momento, casi independiente de Fset). Con <span class="mono">Fset=100</span> el firmware frena antes de golpear y el sobreimpulso queda plano y bajo. ▲ marca celdas cuyo pico superó el techo de seguridad de 2200 g.</figcaption>
+  </figure>
+
+  <hr class="rule">
+  <figure class="panel">
+    <svg viewBox="0 0 770 330" role="img" aria-label="Comparación de sobreimpulso: modo A rápido, A lento y B híbrido vs Fset">
+<line x1="64" y1="280.0" x2="638" y2="280.0" stroke="#eef2f7"/>
+<text x="56" y="284.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="64" y1="208.3" x2="638" y2="208.3" stroke="#eef2f7"/>
+<text x="56" y="212.3" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<line x1="64" y1="136.6" x2="638" y2="136.6" stroke="#eef2f7"/>
+<text x="56" y="140.6" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2000</text>
+<line x1="64" y1="64.9" x2="638" y2="64.9" stroke="#eef2f7"/>
+<text x="56" y="68.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3000</text>
+<text x="64.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="207.5" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="351.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="494.5" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="638.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<polyline points="64.0,277.4 207.5,46.1 351.0,70.9 494.5,74.6 638.0,100.6" fill="none" stroke="#B4740F" stroke-width="2.4"/>
+<circle cx="64.0" cy="277.4" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="46.1" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="70.9" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="74.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="100.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="104.6" fill="#B4740F" font-size="12" class="mono b">A · v=1000 (rápido)</text>
+<polyline points="64.0,279.5 207.5,277.9 351.0,275.4 494.5,274.8 638.0,275.1" fill="none" stroke="#6FA3D2" stroke-width="2.4"/>
+<circle cx="64.0" cy="279.5" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="277.9" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="275.4" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="274.8" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="275.1" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="279.1" fill="#6FA3D2" font-size="12" class="mono b">A · v=25 (lento)</text>
+<polyline points="64.0,279.9 207.5,278.2 351.0,277.2 494.5,274.9 638.0,273.4" fill="none" stroke="#285F97" stroke-width="2.4"/>
+<circle cx="64.0" cy="279.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="278.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="277.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="274.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="273.4" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="277.4" fill="#285F97" font-size="12" class="mono b">B · híbrido</text>
+<line x1="64" y1="280.0" x2="638" y2="280.0" stroke="#dbe2ec"/>
+<line x1="64" y1="18" x2="64" y2="280.0" stroke="#dbe2ec"/>
+<text x="351" y="324" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">FORCE_SET (g)</text>
+<text transform="translate(15,149) rotate(-90)" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">sobreimpulso ΔF (g)</text>
+</svg>
+    <figcaption class="cap"><b>Figura 3 · La mitigación.</b> Con el modo B (híbrido: aproximación rápida hasta el borde del contacto, luego cierre lento) el sobreimpulso <span class="mono">ΔF</span> se <b>colapsa</b> al nivel del modo A lento (v=25) para todo Fset, mientras el modo A rápido (v=1000) dispara el impacto. El híbrido alcanza el setpoint con sobreimpulso mínimo y sin aborts.</figcaption>
+  </figure>
+
+  <hr class="rule">
+  <div class="panel" style="padding-bottom:6px">
+    <div style="font-weight:600;font-size:13.5px;margin:2px 2px 12px">ΔF mediana (g) por celda — modo A <span class="tag">N=5 · ▲ = nº de aborts</span></div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>v \ Fset</th><th>100</th><th>250</th><th>500</th><th>750</th><th>1000</th></tr></thead>
+      <tbody><tr><td class="mono b">25</td><td class="mono">7</td><td class="mono">29</td><td class="mono">64</td><td class="mono">73</td><td class="mono">69</td></tr><tr><td class="mono b">50</td><td class="mono">15</td><td class="mono">81</td><td class="mono">112</td><td class="mono">100<span class="pm">▲1</span></td><td class="mono">122</td></tr><tr><td class="mono b">100</td><td class="mono">5</td><td class="mono">139</td><td class="mono">202</td><td class="mono">392</td><td class="mono">439</td></tr><tr><td class="mono b">250</td><td class="mono">36</td><td class="mono">336</td><td class="mono">637</td><td class="mono">1108<span class="pm">▲1</span></td><td class="mono">1640<span class="pm">▲3</span></td></tr><tr><td class="mono b">500</td><td class="mono">24</td><td class="mono">1604<span class="pm">▲1</span></td><td class="mono">2466<span class="pm">▲4</span></td><td class="mono">2194<span class="pm">▲5</span></td><td class="mono">2021<span class="pm">▲5</span></td></tr><tr><td class="mono b">750</td><td class="mono">28</td><td class="mono">3005<span class="pm">▲5</span></td><td class="mono">3096<span class="pm">▲5</span></td><td class="mono">2726<span class="pm">▲5</span></td><td class="mono">2273<span class="pm">▲5</span></td></tr><tr><td class="mono b">1000</td><td class="mono">36</td><td class="mono">3263<span class="pm">▲5</span></td><td class="mono">2917<span class="pm">▲5</span></td><td class="mono">2865<span class="pm">▲4</span></td><td class="mono">2502<span class="pm">▲5</span></td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <p class="foot">En modo A el firmware NO sostiene el setpoint tras el impacto: sobrepasa y se relaja a un contacto pasivo por debajo de Fset; a alta velocidad el pico es puro momento de la yema. El <b>modo B (híbrido)</b> lo resuelve (0 aborts). 59 impactos del modo A superaron el techo de 2200 g. Datos: <code>exp2_out/</code>, <code>exp2_out_slow/</code>, <code>exp2_out_hybrid/</code>. Análisis: <code>exp2_analyze.py</code> (Python puro).</p>
+</div>

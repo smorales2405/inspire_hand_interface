@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="372" height="288" viewBox="0 0 372 288" role="img" aria-label="pendiente lineal (counts/s) vs SPEED_SET (comando)"><style>text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;}.b{font-weight:600;}.ey{letter-spacing:.14em;}</style>
+<line x1="56" y1="242.0" x2="352" y2="242.0" stroke="#eef2f7"/>
+<text x="48" y="246.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="56" y1="187.0" x2="352" y2="187.0" stroke="#eef2f7"/>
+<text x="48" y="191.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">825</text>
+<line x1="56" y1="132.0" x2="352" y2="132.0" stroke="#eef2f7"/>
+<text x="48" y="136.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1650</text>
+<line x1="56" y1="77.0" x2="352" y2="77.0" stroke="#eef2f7"/>
+<text x="48" y="81.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2475</text>
+<line x1="56" y1="22.0" x2="352" y2="22.0" stroke="#eef2f7"/>
+<text x="48" y="26.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3300</text>
+<text x="83.4" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="124.5" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="193.0" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="261.6" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="330.1" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<line x1="56.0" y1="242.0" x2="352.0" y2="27.6" stroke="#285F97" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.55"/>
+<polyline points="83.4,221.7 124.5,191.3 193.0,140.6 261.6,90.0 330.1,47.2" fill="none" stroke="#285F97" stroke-width="1.6" opacity="0.35"/>
+<circle cx="83.4" cy="221.7" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="124.5" cy="191.3" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="193.0" cy="140.6" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="261.6" cy="90.0" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="330.1" cy="47.2" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<text x="352" y="28" fill="#285F97" font-size="12" text-anchor="end" class="mono b">≈ 2.98 × v</text>
+<line x1="56" y1="242" x2="352" y2="242" stroke="#dbe2ec"/>
+<line x1="56" y1="22" x2="56" y2="242" stroke="#dbe2ec"/>
+<text x="204" y="282" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">SPEED_SET (comando)</text>
+<text transform="translate(14,132) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">pendiente lineal (counts/s)</text>
+</svg>

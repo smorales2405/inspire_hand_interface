@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="372" height="288" viewBox="0 0 372 288" role="img" aria-label="latencia L_band (ms) vs SPEED_SET (comando)"><style>text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;}.b{font-weight:600;}.ey{letter-spacing:.14em;}</style>
+<line x1="56" y1="242.0" x2="352" y2="242.0" stroke="#eef2f7"/>
+<text x="48" y="246.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="56" y1="187.0" x2="352" y2="187.0" stroke="#eef2f7"/>
+<text x="48" y="191.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">26</text>
+<line x1="56" y1="132.0" x2="352" y2="132.0" stroke="#eef2f7"/>
+<text x="48" y="136.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">52</text>
+<line x1="56" y1="77.0" x2="352" y2="77.0" stroke="#eef2f7"/>
+<text x="48" y="81.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">79</text>
+<line x1="56" y1="22.0" x2="352" y2="22.0" stroke="#eef2f7"/>
+<text x="48" y="26.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">105</text>
+<text x="83.4" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="124.5" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="193.0" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="261.6" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="330.1" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<line x1="83.4" y1="140.8" x2="83.4" y2="70.2" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="124.5" y1="113.5" x2="124.5" y2="40.7" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="193.0" y1="135.1" x2="193.0" y2="66.1" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="261.6" y1="127.3" x2="261.6" y2="60.5" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="330.1" y1="124.1" x2="330.1" y2="90.4" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<polyline points="83.4,105.5 124.5,77.1 193.0,100.6 261.6,93.9 330.1,107.3" fill="none" stroke="#B4740F" stroke-width="1.6" opacity="0.35"/>
+<circle cx="83.4" cy="105.5" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="124.5" cy="77.1" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="193.0" cy="100.6" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="261.6" cy="93.9" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="330.1" cy="107.3" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<text x="352" y="28" fill="#B4740F" font-size="12" text-anchor="end" class="mono b">deadtime ~64 ms</text>
+<line x1="56" y1="242" x2="352" y2="242" stroke="#dbe2ec"/>
+<line x1="56" y1="22" x2="56" y2="242" stroke="#dbe2ec"/>
+<text x="204" y="282" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">SPEED_SET (comando)</text>
+<text transform="translate(14,132) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">latencia L_band (ms)</text>
+</svg>

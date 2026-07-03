@@ -51,4 +51,8 @@ inspire_hand_interface/
 Cada `exp*/results.md` tiene la interpretación; las figuras (`exp*/figures/`)
 están en HTML autocontenido + SVG para embeber en la tesis.
 
+**Documento-resumen** (para asesor/jurado): `Caracterizacion/RESUMEN_caracterizacion.html`
+— abstract, método, resultados con figuras y tablas de métricas. Reproducible con
+`python Caracterizacion/make_summary.py`.
+
 Hardware: Inspire Hand RH56DFTP. Manuales en `Documentation/`.

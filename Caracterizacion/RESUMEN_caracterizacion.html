@@ -1,0 +1,412 @@
+<title>Caracterización dinámica RH56DFTP — Resultados iniciales</title>
+<style>
+  :root{--ink:#12181f;--muted:#5a6472;--hair:#dbe2ec;--acc:#285F97;--amber:#B4740F;
+    --bg:#f6f8fb;--panel:#ffffff;--soft:#eef2f7;}
+  *{box-sizing:border-box;}
+  .wrap{max-width:880px;margin:0 auto;padding:52px 26px 72px;color:var(--ink);background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.62;
+    font-size:16px;}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+  .b{font-weight:600;} .ey{letter-spacing:.14em;text-transform:uppercase;}
+  .eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);font-weight:600;}
+  h1{font-size:33px;line-height:1.12;margin:.5rem 0 .4rem;letter-spacing:-.015em;text-wrap:balance;max-width:20ch;}
+  .byline{color:var(--muted);font-size:14px;margin:0 0 22px;}
+  .byline .mono{color:var(--ink);}
+  .abstract{font-size:17px;max-width:64ch;margin:0;color:#333b45;}
+  .abstract b{color:var(--ink);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;
+    margin:0 0 4px;display:flex;align-items:baseline;gap:10px;}
+  h2 .tag{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);
+    letter-spacing:0;text-transform:none;border:1px solid var(--hair);border-radius:20px;padding:1px 8px;}
+  h3{font-size:20px;margin:.1rem 0 .5rem;letter-spacing:-.01em;text-wrap:balance;}
+  section{margin:30px 0;}
+  p{margin:.5rem 0;}
+  .rule{height:1px;background:var(--hair);border:0;margin:30px 0;}
+  .lead{font-size:16.5px;}
+  ul{margin:.5rem 0;padding-left:1.1rem;} li{margin:.28rem 0;}
+  strong,b{font-weight:600;}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0 4px;}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr);}}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:11px;padding:15px 15px 13px;}
+  .kpi .n{font-size:23px;font-weight:600;letter-spacing:-.015em;line-height:1.1;}
+  .kpi .n .u{font-size:13px;color:var(--muted);font-weight:500;}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.35;}
+  .method{background:var(--soft);border:1px solid var(--hair);border-radius:11px;padding:16px 18px;
+    font-size:14px;color:#3a434e;}
+  .method .h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px;}
+  .method code,.foot code,p code,li code{font-family:ui-monospace,Menlo,monospace;font-size:.86em;
+    background:var(--soft);padding:1px 5px;border-radius:4px;color:var(--ink);}
+  figure{margin:20px 0 6px;background:var(--panel);border:1px solid var(--hair);border-radius:11px;padding:16px 16px 8px;}
+  figure.pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:none;border:0;padding:0;}
+  figure.pair > div{background:var(--panel);border:1px solid var(--hair);border-radius:11px;padding:14px 14px 8px;}
+  @media(max-width:600px){figure.pair{grid-template-columns:1fr;}}
+  svg{width:100%;height:auto;display:block;}
+  figcaption{font-size:12.5px;color:var(--muted);margin-top:10px;}
+  figcaption b{color:var(--ink);}
+  .foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--hair);margin-top:34px;padding-top:16px;}
+  a{color:var(--acc);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0;}
+  caption{caption-side:top;text-align:left;font-size:12.5px;color:var(--muted);margin-bottom:9px;line-height:1.5;}
+  caption b{color:var(--ink);}
+  th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--hair);}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .tbl-wrap{overflow-x:auto;margin:18px 0 6px;}
+  .pm{color:var(--muted);font-size:.8em;margin-left:1px;}
+  .ab{color:var(--amber);margin-left:1px;}
+</style>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Trabajo de tesis · Resultados iniciales</div>
+    <h1>Caracterización dinámica de la mano robótica Inspire RH56DFTP</h1>
+    <p class="byline"><span class="mono">S. Morales</span> · Universidad de Ingeniería y Tecnología (UTEC) · Julio 2026 · <span class="ey" style="font-size:11px">documento de trabajo</span></p>
+    <p class="abstract">Se caracterizó experimentalmente la respuesta dinámica de la mano robótica Inspire RH56DFTP (comunicación Modbus RTU a 115 200 baud) con experimentos de <b>hardware en el lazo</b>. El hallazgo central: el <b>sobreimpulso de fuerza</b> al cerrar los dedos está dominado por la velocidad de cierre —llega a <b>triplicar la fuerza deseada</b>— y una estrategia de aproximación <b>híbrida</b> (rápida hasta el borde del contacto, luego lenta) lo reduce <b>~68×</b>. Se cuantificaron además la latencia comando→sensor, la respuesta al escalón y la repetibilidad del contacto para fijar los parámetros de dicha estrategia.</p>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">98.3<span class="u"> Hz</span></div><div class="l">realimentación de fuerza sostenida (0 errores)</div></div>
+    <div class="kpi"><div class="n">~64<span class="u"> ms</span></div><div class="l">latencia comando→sensor (indep. de la velocidad)</div></div>
+    <div class="kpi"><div class="n">~3300<span class="u"> g</span></div><div class="l">sobreimpulso de fuerza al cerrar rápido</div></div>
+    <div class="kpi"><div class="n">~68<span class="u">×</span></div><div class="l">reducción del sobreimpulso con la política híbrida</div></div>
+  </div>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Contexto y objetivo</h2>
+    <p class="lead">La RH56DFTP es una mano de 6 grados de libertad con sensores de fuerza en cada dedo, controlada por Modbus sin middleware. Para diseñar un <b>controlador de agarre híbrido</b> —que aproxime rápido y toque suave, evitando dañar objetos delicados— hace falta caracterizar tres propiedades del hardware: la <b>latencia</b> comando→sensor, la <b>dinámica de movimiento</b>, y el <b>sobreimpulso de fuerza</b> en el impacto. Este documento resume esos resultados iniciales, obtenidos sobre la mano física.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Método</h2>
+    <h3>Protocolo experimental y definición de métricas</h3>
+    <p><b>Adquisición.</b> Comunicación Modbus RTU a 115 200 baud (RS-485), un solo proceso/hilo/cliente con <b>lazo intercalado</b> (el comando se inyecta en el mismo lazo que lee, sin hilos separados), y marcas de tiempo con <code>time.perf_counter()</code> (reloj monotónico). Registros usados: <code>FORCE_ACT</code> (fuerza, g), <code>POS_ACT</code> (posición del actuador, 0–2000), <code>ANGLE_SET/ANGLE_ACT</code> (0–1000), <code>FORCE_SET</code> y <code>CURRENT</code>. La fuerza se tara con <code>forceClb</code> (palma abierta), dejando <code>FORCE_ACT</code> ≈ <b>fuerza externa real</b>. Todo corre fuera de la interfaz gráfica y es reproducible desde los CSV crudos.</p>
+    <p><b>Exp 0 · muestreo.</b> Lectura del bloque de 6 <code>FORCE_ACT</code> en lazo cerrado (3×2000 lecturas); se registra el periodo <code>dt</code> de cada muestra y se reporta la tasa media y percentiles.</p>
+    <p><b>Exp 1 · escalón en espacio libre.</b> Índice (DOF 3) en el aire; escalón de <code>ANGLE_SET</code> con <code>FORCE_SET</code> alto (para no limitar por fuerza); 5 velocidades × 20 repeticiones en orden aleatorio; muestreo de <code>POS_ACT</code> a ~90 Hz.</p>
+    <p><b>Exp 2 · fuerza en contacto.</b> Yema del índice contra un bloque rígido; <code>forceClb</code> al inicio y recalibración periódica; barrido velocidad × <code>FORCE_SET</code> (5 réplicas por celda, orden aleatorio); se usa la <b>mediana</b> (robusta a outliers/aborts); seguridad por techo de fuerza (2200 g) y vigilancia de <code>CURRENT</code>. El modo <b>híbrido</b> aproxima rápido al borde del contacto y luego cierra lento.</p>
+    <p><b>Sub-experimento · onset.</b> 50 toques suaves a velocidad máxima; la posición de primer contacto se detecta con un <b>baseline de fuerza propio de cada toque</b> (inmune a la deriva del sensor) y se retrae al detectar; se reporta σ robusta.</p>
+    <div class="method">
+      <div class="h">Definición de métricas</div>
+      <b>Latencia</b>: del comando al primer movimiento detectable de <code>POS_ACT</code>. &nbsp;·&nbsp; <b>Tiempo de subida</b>: 10 %→90 % del desplazamiento final. &nbsp;·&nbsp; <b>Establecimiento</b>: entrada permanente en ±2 % del valor final. &nbsp;·&nbsp; <b>Pendiente / R²</b>: ajuste lineal del tramo 20–80 % (velocidad del actuador). &nbsp;·&nbsp; <b>ΔF (sobreimpulso)</b>: F_max − F_set. &nbsp;·&nbsp; <b>q_sw</b>: margen de conmutación = ceil(3.3·σ) del onset.
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Exp 0 <span class="tag">baseline de muestreo</span></h2>
+    <h3>La plataforma sostiene ≥ 98 Hz de realimentación</h3>
+    <p>Se leyó el bloque de los 6 registros de fuerza en lazo cerrado (3×2000 lecturas). Tasa media <b>98.3 Hz</b> con <b>0 errores</b> en 6000 lecturas. El techo lo impone el firmware de la mano y el bus, no el software. Esto fija la <b>resolución temporal (~10 ms)</b> de todo lo demás y confirma que la plataforma es adecuada para el control propuesto.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Exp 1 <span class="tag">respuesta al escalón · espacio libre</span></h2>
+    <h3>Movimiento lineal con la velocidad y retardo fijo, sin sobreimpulso de posición</h3>
+    <p>El dedo índice ejecuta un escalón de posición <b>en el aire</b> (sin objeto), a cinco velocidades × 20 repeticiones, muestreando la posición del actuador a ~90 Hz. Resultados: (i) el <b>retardo comando→sensor es ≈ 64 ms e independiente de la velocidad</b>; (ii) la velocidad del dedo <b>escala linealmente con el setpoint</b> (pendiente ≈ <span class="mono">2.98 × v</span>, <span class="mono">R² ≥ 0.98</span>), es decir, crecimiento lineal sin deceleración; (iii) el <b>sobreimpulso de posición es ≈ 0</b>.</p>
+    <figure>
+      <svg viewBox="0 0 760 400" role="img" aria-label="POS_ACT normalizada vs tiempo desde el comando, por velocidad">
+<line x1="87.8" y1="20" x2="87.8" y2="354" stroke="#eef2f7"/>
+<text x="87.8" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">0.0</text>
+<line x1="212.1" y1="20" x2="212.1" y2="354" stroke="#eef2f7"/>
+<text x="212.1" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">0.5</text>
+<line x1="336.4" y1="20" x2="336.4" y2="354" stroke="#eef2f7"/>
+<text x="336.4" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">1.0</text>
+<line x1="460.6" y1="20" x2="460.6" y2="354" stroke="#eef2f7"/>
+<text x="460.6" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">1.5</text>
+<line x1="584.9" y1="20" x2="584.9" y2="354" stroke="#eef2f7"/>
+<text x="584.9" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">2.0</text>
+<line x1="709.1" y1="20" x2="709.1" y2="354" stroke="#eef2f7"/>
+<text x="709.1" y="372" fill="#5a6472" font-size="12" text-anchor="middle" class="mono">2.5</text>
+<line x1="58" y1="339.2" x2="734" y2="339.2" stroke="#eef2f7"/>
+<text x="50" y="343.2" fill="#5a6472" font-size="12" text-anchor="end" class="mono">0.00</text>
+<line x1="58" y1="265.3" x2="734" y2="265.3" stroke="#eef2f7"/>
+<text x="50" y="269.3" fill="#5a6472" font-size="12" text-anchor="end" class="mono">0.25</text>
+<line x1="58" y1="191.4" x2="734" y2="191.4" stroke="#eef2f7"/>
+<text x="50" y="195.4" fill="#5a6472" font-size="12" text-anchor="end" class="mono">0.50</text>
+<line x1="58" y1="117.5" x2="734" y2="117.5" stroke="#eef2f7"/>
+<text x="50" y="121.5" fill="#5a6472" font-size="12" text-anchor="end" class="mono">0.75</text>
+<line x1="58" y1="43.6" x2="734" y2="43.6" stroke="#eef2f7"/>
+<text x="50" y="47.6" fill="#5a6472" font-size="12" text-anchor="end" class="mono">1.00</text>
+<line x1="87.8" y1="20" x2="87.8" y2="354" stroke="#12181f" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+<text x="92.8" y="33" fill="#12181f" font-size="11" class="ey">comando</text>
+<path d="M 63.0 339.2 L 65.5 339.2 L 67.9 339.2 L 70.4 339.2 L 72.9 339.2 L 75.4 339.2 L 77.9 339.2 L 80.4 339.2 L 82.9 339.2 L 85.3 339.2 L 87.8 339.2 L 90.3 339.2 L 92.8 339.2 L 95.3 339.2 L 97.8 338.9 L 100.2 338.8 L 102.7 338.1 L 105.2 337.1 L 107.7 336.7 L 110.2 336.3 L 112.7 335.7 L 115.2 335.4 L 117.6 335.1 L 120.1 334.6 L 122.6 334.4 L 125.1 333.9 L 127.6 332.8 L 130.1 332.0 L 132.6 330.9 L 135.0 329.7 L 137.5 329.1 L 140.0 328.3 L 142.5 327.4 L 145.0 326.7 L 147.5 325.9 L 150.0 325.1 L 152.4 324.5 L 154.9 324.0 L 157.4 323.5 L 159.9 322.8 L 162.4 322.2 L 164.9 321.4 L 167.4 320.7 L 169.8 320.0 L 172.3 319.2 L 174.8 318.5 L 177.3 317.9 L 179.8 317.3 L 182.3 316.9 L 184.8 316.2 L 187.2 315.6 L 189.7 315.2 L 192.2 314.4 L 194.7 313.8 L 197.2 313.2 L 199.7 312.4 L 202.1 311.5 L 204.6 310.8 L 207.1 310.2 L 209.6 309.6 L 212.1 309.0 L 214.6 308.2 L 217.1 307.6 L 219.5 307.1 L 222.0 306.3 L 224.5 305.8 L 227.0 305.2 L 229.5 304.2 L 232.0 303.5 L 234.5 302.8 L 236.9 302.3 L 239.4 301.7 L 241.9 300.8 L 244.4 299.9 L 246.9 299.0 L 249.4 298.5 L 251.9 297.8 L 254.3 297.3 L 256.8 296.6 L 259.3 295.7 L 261.8 295.3 L 264.3 295.0 L 266.8 294.4 L 269.2 293.8 L 271.7 293.2 L 274.2 292.1 L 276.7 291.7 L 279.2 291.1 L 281.7 290.3 L 284.2 289.6 L 286.6 288.9 L 289.1 288.3 L 291.6 287.6 L 294.1 286.8 L 296.6 286.0 L 299.1 285.4 L 301.6 284.9 L 304.0 284.4 L 306.5 283.8 L 309.0 283.0 L 311.5 282.2 L 314.0 281.5 L 316.5 280.7 L 319.0 280.0 L 321.4 279.1 L 323.9 278.5 L 326.4 277.9 L 328.9 277.2 L 331.4 276.6 L 333.9 276.0 L 336.4 275.5 L 338.8 274.5 L 341.3 273.5 L 343.8 273.0 L 346.3 272.5 L 348.8 272.1 L 351.3 271.4 L 353.7 270.6 L 356.2 270.0 L 358.7 269.1 L 361.2 268.2 L 363.7 267.6 L 366.2 266.8 L 368.7 266.1 L 371.1 265.5 L 373.6 265.0 L 376.1 264.3 L 378.6 263.8 L 381.1 263.2 L 383.6 262.4 L 386.1 261.8 L 388.5 261.1 L 391.0 260.6 L 393.5 259.7 L 396.0 259.1 L 398.5 258.3 L 401.0 257.5 L 403.5 256.9 L 405.9 256.3 L 408.4 255.7 L 410.9 255.2 L 413.4 254.7 L 415.9 254.4 L 418.4 253.9 L 420.9 253.0 L 423.3 252.5 L 425.8 251.9 L 428.3 251.0 L 430.8 250.4 L 433.3 249.8 L 435.8 249.1 L 438.2 248.6 L 440.7 247.9 L 443.2 247.3 L 445.7 246.5 L 448.2 245.6 L 450.7 244.6 L 453.2 243.8 L 455.6 243.1 L 458.1 242.3 L 460.6 241.6 L 463.1 241.0 L 465.6 240.4 L 468.1 239.5 L 470.6 238.6 L 473.0 237.9 L 475.5 237.2 L 478.0 236.5 L 480.5 235.7 L 483.0 235.1 L 485.5 234.5 L 488.0 233.7 L 490.4 233.2 L 492.9 232.5 L 495.4 232.0 L 497.9 231.7 L 500.4 231.1 L 502.9 230.5 L 505.4 229.9 L 507.8 229.4 L 510.3 229.0 L 512.8 228.3 L 515.3 227.4 L 517.8 226.7 L 520.3 225.9 L 522.8 225.1 L 525.2 224.5 L 527.7 223.9 L 530.2 223.2 L 532.7 222.7 L 535.2 222.3 L 537.7 221.5 L 540.1 221.0 L 542.6 220.6 L 545.1 219.7 L 547.6 218.9 L 550.1 218.2 L 552.6 217.4 L 555.1 216.6 L 557.5 216.1 L 560.0 215.4 L 562.5 214.9 L 565.0 214.1 L 567.5 213.2 L 570.0 212.6 L 572.5 211.7 L 574.9 210.4 L 577.4 209.7 L 579.9 208.9 L 582.4 207.8 L 584.9 207.2 L 587.4 206.7 L 589.9 206.0 L 592.3 205.5 L 594.8 205.1 L 597.3 204.5 L 599.8 203.7 L 602.3 203.1 L 604.8 202.5 L 607.2 202.0 L 609.7 201.4 L 612.2 200.6 L 614.7 200.2 L 617.2 199.6 L 619.7 199.2 L 622.2 198.6 L 624.6 198.2 L 627.1 197.6 L 629.6 197.1 L 632.1 196.4 L 634.6 195.6 L 637.1 195.1 L 639.6 194.1 L 642.0 193.3 L 644.5 192.7 L 647.0 192.2 L 649.5 191.6 L 652.0 191.2 L 654.5 190.2 L 657.0 189.5 L 659.4 188.9 L 661.9 188.2 L 664.4 187.7 L 666.9 187.0 L 669.4 186.3 L 671.9 185.8 L 674.4 184.9 L 676.8 183.9 L 679.3 183.2 L 681.8 182.6 L 684.3 181.5 L 686.8 180.8 L 689.3 180.0 L 691.8 179.1 L 694.2 178.6 L 696.7 178.0 L 699.2 177.4 L 701.7 176.9 L 704.2 176.5 L 706.7 175.8 L 709.1 175.0 L 711.6 174.4 L 714.1 173.4 L 716.6 172.6 L 719.1 171.9 L 721.6 170.9 L 724.1 170.4 L 726.5 169.9 L 729.0 169.2 L 731.5 168.8 L 734.0 168.3" fill="none" stroke="#9FC2E0" stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="734.0" cy="168.3" r="3.2" fill="#9FC2E0"/>
+<path d="M 63.0 339.2 L 65.5 339.2 L 67.9 339.2 L 70.4 339.2 L 72.9 339.2 L 75.4 339.2 L 77.9 339.2 L 80.4 339.2 L 82.9 339.2 L 85.3 339.2 L 87.8 339.2 L 90.3 339.2 L 92.8 339.2 L 95.3 339.2 L 97.8 339.2 L 100.2 339.0 L 102.7 338.1 L 105.2 337.4 L 107.7 336.5 L 110.2 335.0 L 112.7 333.6 L 115.2 332.2 L 117.6 330.5 L 120.1 328.1 L 122.6 326.0 L 125.1 324.5 L 127.6 322.8 L 130.1 320.7 L 132.6 319.2 L 135.0 317.8 L 137.5 315.6 L 140.0 314.1 L 142.5 312.8 L 145.0 310.9 L 147.5 309.5 L 150.0 307.9 L 152.4 306.1 L 154.9 304.1 L 157.4 302.5 L 159.9 301.3 L 162.4 299.1 L 164.9 297.0 L 167.4 296.0 L 169.8 294.3 L 172.3 292.9 L 174.8 291.7 L 177.3 289.6 L 179.8 287.4 L 182.3 285.5 L 184.8 284.6 L 187.2 283.1 L 189.7 281.1 L 192.2 279.4 L 194.7 278.0 L 197.2 275.8 L 199.7 274.4 L 202.1 273.1 L 204.6 270.8 L 207.1 268.8 L 209.6 267.4 L 212.1 266.0 L 214.6 264.0 L 217.1 262.5 L 219.5 260.7 L 222.0 258.7 L 224.5 257.2 L 227.0 255.6 L 229.5 254.3 L 232.0 252.6 L 234.5 250.8 L 236.9 249.8 L 239.4 248.4 L 241.9 246.0 L 244.4 244.7 L 246.9 242.5 L 249.4 240.0 L 251.9 238.4 L 254.3 236.9 L 256.8 234.7 L 259.3 233.2 L 261.8 232.1 L 264.3 230.4 L 266.8 228.8 L 269.2 227.5 L 271.7 226.1 L 274.2 224.2 L 276.7 222.4 L 279.2 221.0 L 281.7 219.4 L 284.2 217.3 L 286.6 215.8 L 289.1 214.4 L 291.6 212.1 L 294.1 210.1 L 296.6 208.2 L 299.1 205.8 L 301.6 204.4 L 304.0 203.2 L 306.5 201.5 L 309.0 199.9 L 311.5 199.1 L 314.0 197.7 L 316.5 195.3 L 319.0 193.4 L 321.4 192.5 L 323.9 190.8 L 326.4 189.3 L 328.9 188.3 L 331.4 185.9 L 333.9 184.2 L 336.4 182.2 L 338.8 180.6 L 341.3 178.9 L 343.8 176.8 L 346.3 175.4 L 348.8 174.0 L 351.3 171.8 L 353.7 170.4 L 356.2 169.2 L 358.7 167.2 L 361.2 165.5 L 363.7 164.0 L 366.2 162.0 L 368.7 160.4 L 371.1 159.2 L 373.6 157.6 L 376.1 156.0 L 378.6 154.0 L 381.1 152.0 L 383.6 150.5 L 386.1 148.6 L 388.5 146.9 L 391.0 145.4 L 393.5 143.9 L 396.0 141.9 L 398.5 140.6 L 401.0 139.0 L 403.5 136.4 L 405.9 135.2 L 408.4 133.7 L 410.9 131.8 L 413.4 130.2 L 415.9 129.3 L 418.4 127.6 L 420.9 125.5 L 423.3 124.1 L 425.8 122.5 L 428.3 120.3 L 430.8 118.4 L 433.3 117.0 L 435.8 115.3 L 438.2 113.2 L 440.7 111.8 L 443.2 110.4 L 445.7 108.1 L 448.2 106.6 L 450.7 105.2 L 453.2 103.5 L 455.6 102.0 L 458.1 100.6 L 460.6 98.5 L 463.1 96.2 L 465.6 94.7 L 468.1 93.5 L 470.6 91.9 L 473.0 90.5 L 475.5 89.4 L 478.0 87.5 L 480.5 85.9 L 483.0 84.6 L 485.5 82.0 L 488.0 80.3 L 490.4 78.3 L 492.9 77.0 L 495.4 75.3 L 497.9 73.3 L 500.4 72.0 L 502.9 70.6 L 505.4 68.2 L 507.8 67.1 L 510.3 65.9 L 512.8 63.9 L 515.3 62.0 L 517.8 60.4 L 520.3 58.9 L 522.8 57.2 L 525.2 55.3 L 527.7 53.1 L 530.2 51.4 L 532.7 49.9 L 535.2 48.5 L 537.7 47.1 L 540.1 45.5 L 542.6 45.3 L 545.1 45.2 L 547.6 44.9 L 550.1 44.7 L 552.6 44.6 L 555.1 44.5 L 557.5 44.2 L 560.0 44.0 L 562.5 44.0 L 565.0 43.8 L 567.5 43.8 L 570.0 43.7 L 572.5 43.6 L 574.9 43.6 L 577.4 43.6 L 579.9 43.6 L 582.4 43.6 L 584.9 43.6 L 587.4 43.6 L 589.9 43.6 L 592.3 43.6 L 594.8 43.6 L 597.3 43.6 L 599.8 43.6 L 602.3 43.6 L 604.8 43.6 L 607.2 43.6 L 609.7 43.6 L 612.2 43.7 L 614.7 43.7 L 617.2 43.7 L 619.7 43.7 L 622.2 43.6" fill="none" stroke="#6FA3D2" stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="622.2" cy="43.6" r="3.2" fill="#6FA3D2"/>
+<path d="M 63.0 339.2 L 65.5 339.2 L 67.9 339.2 L 70.4 339.2 L 72.9 339.2 L 75.4 339.2 L 77.9 339.2 L 80.4 339.2 L 82.9 339.2 L 85.3 339.2 L 87.8 339.2 L 90.3 339.2 L 92.8 339.2 L 95.3 339.1 L 97.8 339.0 L 100.2 338.4 L 102.7 338.0 L 105.2 336.7 L 107.7 335.2 L 110.2 333.9 L 112.7 331.7 L 115.2 328.5 L 117.6 325.8 L 120.1 322.4 L 122.6 318.4 L 125.1 315.6 L 127.6 312.6 L 130.1 308.8 L 132.6 305.6 L 135.0 302.5 L 137.5 298.4 L 140.0 295.2 L 142.5 292.8 L 145.0 289.2 L 147.5 285.3 L 150.0 282.2 L 152.4 278.7 L 154.9 275.1 L 157.4 271.6 L 159.9 267.9 L 162.4 266.0 L 164.9 262.0 L 167.4 257.8 L 169.8 255.8 L 172.3 253.2 L 174.8 248.8 L 177.3 245.8 L 179.8 242.3 L 182.3 236.8 L 184.8 235.3 L 187.2 232.4 L 189.7 227.2 L 192.2 225.3 L 194.7 222.3 L 197.2 218.9 L 199.7 215.6 L 202.1 211.7 L 204.6 207.8 L 207.1 205.1 L 209.6 200.4 L 212.1 196.7 L 214.6 194.2 L 217.1 190.7 L 219.5 186.9 L 222.0 184.3 L 224.5 180.8 L 227.0 176.8 L 229.5 174.8 L 232.0 171.2 L 234.5 166.9 L 236.9 164.8 L 239.4 160.9 L 241.9 157.4 L 244.4 154.4 L 246.9 151.3 L 249.4 148.3 L 251.9 145.4 L 254.3 140.0 L 256.8 137.1 L 259.3 133.8 L 261.8 130.7 L 264.3 128.6 L 266.8 125.0 L 269.2 121.3 L 271.7 118.5 L 274.2 114.7 L 276.7 109.9 L 279.2 107.1 L 281.7 104.3 L 284.2 100.4 L 286.6 97.5 L 289.1 94.6 L 291.6 90.7 L 294.1 87.4 L 296.6 84.3 L 299.1 80.4 L 301.6 76.6 L 304.0 73.4 L 306.5 70.5 L 309.0 67.3 L 311.5 63.7 L 314.0 60.0 L 316.5 57.5 L 319.0 55.1 L 321.4 51.1 L 323.9 50.6 L 326.4 47.5 L 328.9 45.8 L 331.4 45.4 L 333.9 44.9 L 336.4 44.5 L 338.8 44.4 L 341.3 44.2 L 343.8 44.0 L 346.3 43.9 L 348.8 43.7 L 351.3 43.7 L 353.7 43.6 L 356.2 43.6 L 358.7 43.6 L 361.2 43.6 L 363.7 43.6 L 366.2 43.6 L 368.7 43.6 L 371.1 43.6 L 373.6 43.6 L 376.1 43.6 L 378.6 43.7 L 381.1 43.7 L 383.6 43.7 L 386.1 43.7 L 388.5 43.7 L 391.0 43.7 L 393.5 43.7 L 396.0 43.7 L 398.5 43.7 L 401.0 43.7 L 403.5 43.7 L 405.9 43.6 L 408.4 43.7 L 410.9 43.7 L 413.4 43.8 L 415.9 43.8" fill="none" stroke="#4682BE" stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="415.9" cy="43.8" r="3.2" fill="#4682BE"/>
+<path d="M 63.0 339.2 L 65.5 339.2 L 67.9 339.2 L 70.4 339.2 L 72.9 339.2 L 75.4 339.2 L 77.9 339.2 L 80.4 339.2 L 82.9 339.2 L 85.3 339.2 L 87.8 339.2 L 90.3 339.2 L 92.8 339.2 L 95.3 339.2 L 97.8 339.2 L 100.2 338.7 L 102.7 337.6 L 105.2 336.8 L 107.7 335.1 L 110.2 333.3 L 112.7 332.0 L 115.2 328.8 L 117.6 325.1 L 120.1 322.6 L 122.6 319.2 L 125.1 315.7 L 127.6 312.7 L 130.1 307.1 L 132.6 301.1 L 135.0 296.1 L 137.5 290.4 L 140.0 285.5 L 142.5 282.0 L 145.0 275.4 L 147.5 269.4 L 150.0 265.6 L 152.4 259.4 L 154.9 255.2 L 157.4 251.5 L 159.9 243.8 L 162.4 238.3 L 164.9 236.0 L 167.4 227.6 L 169.8 224.0 L 172.3 220.9 L 174.8 213.8 L 177.3 208.2 L 179.8 203.7 L 182.3 197.9 L 184.8 193.8 L 187.2 188.9 L 189.7 183.2 L 192.2 179.1 L 194.7 173.4 L 197.2 167.2 L 199.7 162.9 L 202.1 158.4 L 204.6 152.5 L 207.1 148.8 L 209.6 143.6 L 212.1 136.5 L 214.6 132.8 L 217.1 129.4 L 219.5 122.0 L 222.0 117.7 L 224.5 115.0 L 227.0 111.0 L 229.5 105.0 L 232.0 100.0 L 234.5 92.2 L 236.9 86.8 L 239.4 83.4 L 241.9 78.0 L 244.4 73.4 L 246.9 68.4 L 249.4 63.3 L 251.9 60.7 L 254.3 57.2 L 256.8 54.1 L 259.3 52.3 L 261.8 48.2 L 264.3 46.2 L 266.8 45.3 L 269.2 44.9 L 271.7 44.5 L 274.2 44.3 L 276.7 44.2 L 279.2 44.0 L 281.7 43.8 L 284.2 43.7 L 286.6 43.6 L 289.1 43.6 L 291.6 43.6 L 294.1 43.6 L 296.6 43.6 L 299.1 43.6 L 301.6 43.6 L 304.0 43.6 L 306.5 43.6 L 309.0 43.6 L 311.5 43.6 L 314.0 43.7 L 316.5 43.7 L 319.0 43.7 L 321.4 43.7 L 323.9 43.7 L 326.4 43.7 L 328.9 43.7 L 331.4 43.7 L 333.9 43.7 L 336.4 43.7 L 338.8 43.7 L 341.3 43.7" fill="none" stroke="#285F97" stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="341.3" cy="43.7" r="3.2" fill="#285F97"/>
+<path d="M 63.0 339.2 L 65.5 339.2 L 67.9 339.2 L 70.4 339.2 L 72.9 339.2 L 75.4 339.2 L 77.9 339.2 L 80.4 339.2 L 82.9 339.2 L 85.3 339.2 L 87.8 339.2 L 90.3 339.2 L 92.8 339.2 L 95.3 339.2 L 97.8 339.1 L 100.2 338.8 L 102.7 337.1 L 105.2 336.0 L 107.7 334.4 L 110.2 332.4 L 112.7 330.9 L 115.2 328.9 L 117.6 325.2 L 120.1 321.7 L 122.6 318.3 L 125.1 314.0 L 127.6 310.0 L 130.1 305.0 L 132.6 299.9 L 135.0 294.6 L 137.5 288.5 L 140.0 281.7 L 142.5 275.9 L 145.0 270.8 L 147.5 264.6 L 150.0 260.7 L 152.4 254.1 L 154.9 244.2 L 157.4 236.7 L 159.9 230.5 L 162.4 220.4 L 164.9 216.6 L 167.4 210.1 L 169.8 201.6 L 172.3 198.6 L 174.8 191.3 L 177.3 183.5 L 179.8 178.5 L 182.3 171.3 L 184.8 163.6 L 187.2 158.3 L 189.7 151.0 L 192.2 143.1 L 194.7 139.1 L 197.2 131.5 L 199.7 125.4 L 202.1 121.0 L 204.6 112.8 L 207.1 105.4 L 209.6 98.9 L 212.1 89.8 L 214.6 84.1 L 217.1 81.4 L 219.5 76.1 L 222.0 69.6 L 224.5 66.0 L 227.0 62.1 L 229.5 57.6 L 232.0 56.0 L 234.5 52.2 L 236.9 49.1 L 239.4 47.6 L 241.9 46.2 L 244.4 45.2 L 246.9 44.7 L 249.4 44.4 L 251.9 44.3 L 254.3 44.1 L 256.8 43.9 L 259.3 43.7 L 261.8 43.7 L 264.3 43.7 L 266.8 43.6 L 269.2 43.6 L 271.7 43.6 L 274.2 43.6 L 276.7 43.6 L 279.2 43.6 L 281.7 43.6 L 284.2 43.6 L 286.6 43.7 L 289.1 43.7 L 291.6 43.7 L 294.1 43.7 L 296.6 43.7 L 299.1 43.7 L 301.6 43.6 L 304.0 43.6 L 306.5 43.6 L 309.0 43.6 L 311.5 43.7 L 314.0 43.7 L 316.5 43.7 L 319.0 43.7 L 321.4 43.6 L 323.9 43.6 L 326.4 43.6" fill="none" stroke="#123F63" stroke-width="2.4" stroke-linejoin="round"/>
+<circle cx="326.4" cy="43.6" r="3.2" fill="#123F63"/>
+<line x1="58" y1="354" x2="734" y2="354" stroke="#dbe2ec"/>
+<line x1="58" y1="20" x2="58" y2="354" stroke="#dbe2ec"/>
+<text x="396" y="394" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">tiempo desde el comando  (s)</text>
+<text transform="translate(15,187) rotate(-90)" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">POS_ACT normalizada  (0 = abierto · 1 = final)</text>
+</svg>
+      <figcaption><b>Figura 1.</b> Trayectorias medias de posición normalizada, alineadas al instante del comando, por velocidad de cierre. El arranque común confirma un retardo independiente de la velocidad; el abanico de pendientes, el escalado lineal.</figcaption>
+    </figure>
+    <figure class="pair">
+      <div><svg viewBox="0 0 372 288" role="img" aria-label="pendiente lineal (counts/s) vs SPEED_SET (comando)">
+<line x1="56" y1="242.0" x2="352" y2="242.0" stroke="#eef2f7"/>
+<text x="48" y="246.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="56" y1="187.0" x2="352" y2="187.0" stroke="#eef2f7"/>
+<text x="48" y="191.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">825</text>
+<line x1="56" y1="132.0" x2="352" y2="132.0" stroke="#eef2f7"/>
+<text x="48" y="136.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1650</text>
+<line x1="56" y1="77.0" x2="352" y2="77.0" stroke="#eef2f7"/>
+<text x="48" y="81.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2475</text>
+<line x1="56" y1="22.0" x2="352" y2="22.0" stroke="#eef2f7"/>
+<text x="48" y="26.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3300</text>
+<text x="83.4" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="124.5" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="193.0" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="261.6" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="330.1" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<line x1="56.0" y1="242.0" x2="352.0" y2="27.6" stroke="#285F97" stroke-width="1.4" stroke-dasharray="4 3" opacity="0.55"/>
+<polyline points="83.4,221.7 124.5,191.3 193.0,140.6 261.6,90.0 330.1,47.2" fill="none" stroke="#285F97" stroke-width="1.6" opacity="0.35"/>
+<circle cx="83.4" cy="221.7" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="124.5" cy="191.3" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="193.0" cy="140.6" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="261.6" cy="90.0" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<circle cx="330.1" cy="47.2" r="4.2" fill="#285F97" stroke="#fff" stroke-width="1.5"/>
+<text x="352" y="28" fill="#285F97" font-size="12" text-anchor="end" class="mono b">≈ 2.98 × v</text>
+<line x1="56" y1="242" x2="352" y2="242" stroke="#dbe2ec"/>
+<line x1="56" y1="22" x2="56" y2="242" stroke="#dbe2ec"/>
+<text x="204" y="282" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">SPEED_SET (comando)</text>
+<text transform="translate(14,132) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">pendiente lineal (counts/s)</text>
+</svg><figcaption>Pendiente ∝ velocidad comandada (ajuste por el origen).</figcaption></div>
+      <div><svg viewBox="0 0 372 288" role="img" aria-label="latencia L_band (ms) vs SPEED_SET (comando)">
+<line x1="56" y1="242.0" x2="352" y2="242.0" stroke="#eef2f7"/>
+<text x="48" y="246.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="56" y1="187.0" x2="352" y2="187.0" stroke="#eef2f7"/>
+<text x="48" y="191.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">26</text>
+<line x1="56" y1="132.0" x2="352" y2="132.0" stroke="#eef2f7"/>
+<text x="48" y="136.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">52</text>
+<line x1="56" y1="77.0" x2="352" y2="77.0" stroke="#eef2f7"/>
+<text x="48" y="81.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">79</text>
+<line x1="56" y1="22.0" x2="352" y2="22.0" stroke="#eef2f7"/>
+<text x="48" y="26.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">105</text>
+<text x="83.4" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="124.5" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="193.0" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="261.6" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="330.1" y="259" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<line x1="83.4" y1="140.8" x2="83.4" y2="70.2" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="124.5" y1="113.5" x2="124.5" y2="40.7" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="193.0" y1="135.1" x2="193.0" y2="66.1" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="261.6" y1="127.3" x2="261.6" y2="60.5" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<line x1="330.1" y1="124.1" x2="330.1" y2="90.4" stroke="#B4740F" stroke-width="1.4" opacity="0.5"/>
+<polyline points="83.4,105.5 124.5,77.1 193.0,100.6 261.6,93.9 330.1,107.3" fill="none" stroke="#B4740F" stroke-width="1.6" opacity="0.35"/>
+<circle cx="83.4" cy="105.5" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="124.5" cy="77.1" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="193.0" cy="100.6" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="261.6" cy="93.9" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<circle cx="330.1" cy="107.3" r="4.2" fill="#B4740F" stroke="#fff" stroke-width="1.5"/>
+<text x="352" y="28" fill="#B4740F" font-size="12" text-anchor="end" class="mono b">deadtime ~64 ms</text>
+<line x1="56" y1="242" x2="352" y2="242" stroke="#dbe2ec"/>
+<line x1="56" y1="22" x2="56" y2="242" stroke="#dbe2ec"/>
+<text x="204" y="282" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">SPEED_SET (comando)</text>
+<text transform="translate(14,132) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">latencia L_band (ms)</text>
+</svg><figcaption>Latencia ~plana con la velocidad (barras = ±1σ).</figcaption></div>
+    </figure>
+    <div class="tbl-wrap"><table><caption><b>Tabla 1.</b> Respuesta al escalón (Exp 1): métricas por velocidad de cierre (media ± σ, N=20 por fila).</caption><thead><tr><th>SPEED_SET</th><th>Latencia (ms)</th><th>Subida 10–90% (ms)</th><th>Estab. ±2% (ms)</th><th>Pendiente (counts/s)</th><th>R²</th></tr></thead><tbody><tr><td class="mono b">100</td><td class="mono">65<span class="pm">±17</span></td><td class="mono">3519<span class="pm">±7</span></td><td class="mono">4366<span class="pm">±20</span></td><td class="mono">304</td><td class="mono">1.000</td></tr><tr><td class="mono b">250</td><td class="mono">79<span class="pm">±17</span></td><td class="mono">1413<span class="pm">±9</span></td><td class="mono">1793<span class="pm">±14</span></td><td class="mono">760</td><td class="mono">0.999</td></tr><tr><td class="mono b">500</td><td class="mono">67<span class="pm">±16</span></td><td class="mono">696<span class="pm">±10</span></td><td class="mono">945<span class="pm">±12</span></td><td class="mono">1521</td><td class="mono">0.995</td></tr><tr><td class="mono b">750</td><td class="mono">71<span class="pm">±16</span></td><td class="mono">467<span class="pm">±12</span></td><td class="mono">676<span class="pm">±11</span></td><td class="mono">2280</td><td class="mono">0.991</td></tr><tr><td class="mono b">1000</td><td class="mono">64<span class="pm">±8</span></td><td class="mono">376<span class="pm">±11</span></td><td class="mono">587<span class="pm">±9</span></td><td class="mono">2922</td><td class="mono">0.980</td></tr></tbody></table></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Exp 2 <span class="tag">sobreimpulso de fuerza · en contacto</span></h2>
+    <h3>El sobreimpulso lo domina la velocidad de cierre — y la estrategia híbrida lo elimina</h3>
+    <p>La yema del índice cierra contra un <b>bloque rígido</b>; se mide el sobreimpulso <span class="mono">ΔF = F_max − Fset</span> en función de la velocidad y del setpoint de fuerza (5 réplicas por celda). Resultados: (i) el sobreimpulso <b>crece dramáticamente con la velocidad</b> — a alta velocidad el impacto de la yema alcanza <b>~3300 g (≈33 N)</b>, casi independiente del setpoint, superando el techo de seguridad; (ii) con un <b>setpoint bajo</b> (100 g) el firmware frena antes de golpear y el sobreimpulso queda <b>≤ 36 g</b> a toda velocidad; (iii) la <b>política híbrida</b> —aproximación rápida hasta el borde del contacto y luego cierre lento— <b>colapsa el sobreimpulso ~68×</b>, al nivel del cierre lento, alcanzando el setpoint sin impactos.</p>
+    <figure>
+      <svg viewBox="0 0 770 430" role="img" aria-label="Sobreimpulso de fuerza vs velocidad, agrupado por Fset">
+<line x1="64" y1="376.0" x2="752" y2="376.0" stroke="#eef2f7"/>
+<text x="56" y="380.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="64" y1="326.7" x2="752" y2="326.7" stroke="#eef2f7"/>
+<text x="56" y="330.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">500</text>
+<line x1="64" y1="277.4" x2="752" y2="277.4" stroke="#eef2f7"/>
+<text x="56" y="281.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<line x1="64" y1="228.1" x2="752" y2="228.1" stroke="#eef2f7"/>
+<text x="56" y="232.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1500</text>
+<line x1="64" y1="178.7" x2="752" y2="178.7" stroke="#eef2f7"/>
+<text x="56" y="182.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2000</text>
+<line x1="64" y1="129.4" x2="752" y2="129.4" stroke="#eef2f7"/>
+<text x="56" y="133.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2500</text>
+<line x1="64" y1="80.1" x2="752" y2="80.1" stroke="#eef2f7"/>
+<text x="56" y="84.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3000</text>
+<line x1="64" y1="159.0" x2="752" y2="159.0" stroke="#B4740F" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+<text x="752" y="154.0" fill="#B4740F" font-size="10.5" text-anchor="end" class="mono">techo seguridad 2200 g</text>
+<path d="M74.8 376.0 L74.8 376.0 Q74.8 375.3 75.5 375.3 L87.9 375.3 Q88.6 375.3 88.6 376.0 L88.6 376.0 Z" fill="#9FC2E0"/>
+<line x1="81.7" y1="375.9" x2="81.7" y2="375.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M90.6 376.0 L90.6 376.0 Q90.6 373.1 93.4 373.1 L101.4 373.1 Q104.3 373.1 104.3 376.0 L104.3 376.0 Z" fill="#6FA3D2"/>
+<line x1="97.4" y1="373.7" x2="97.4" y2="372.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M106.3 376.0 L106.3 372.7 Q106.3 369.7 109.3 369.7 L117.0 369.7 Q120.0 369.7 120.0 372.7 L120.0 376.0 Z" fill="#4682BE"/>
+<line x1="113.1" y1="371.8" x2="113.1" y2="304.7" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M122.0 376.0 L122.0 371.8 Q122.0 368.8 125.0 368.8 L132.7 368.8 Q135.7 368.8 135.7 371.8 L135.7 376.0 Z" fill="#285F97"/>
+<line x1="128.9" y1="371.3" x2="128.9" y2="367.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M137.7 376.0 L137.7 372.2 Q137.7 369.2 140.7 369.2 L148.5 369.2 Q151.5 369.2 151.5 372.2 L151.5 376.0 Z" fill="#123F63"/>
+<line x1="144.6" y1="370.6" x2="144.6" y2="367.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="113.1" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">25</text>
+<path d="M173.1 376.0 L173.1 376.0 Q173.1 374.5 174.6 374.5 L185.4 374.5 Q186.8 374.5 186.8 376.0 L186.8 376.0 Z" fill="#9FC2E0"/>
+<line x1="180.0" y1="375.9" x2="180.0" y2="373.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M188.8 376.0 L188.8 371.0 Q188.8 368.0 191.8 368.0 L199.6 368.0 Q202.6 368.0 202.6 371.0 L202.6 376.0 Z" fill="#6FA3D2"/>
+<line x1="195.7" y1="376.0" x2="195.7" y2="365.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M204.6 376.0 L204.6 368.0 Q204.6 365.0 207.6 365.0 L215.3 365.0 Q218.3 365.0 218.3 368.0 L218.3 376.0 Z" fill="#4682BE"/>
+<line x1="211.4" y1="367.5" x2="211.4" y2="364.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M220.3 376.0 L220.3 369.1 Q220.3 366.1 223.3 366.1 L231.0 366.1 Q234.0 366.1 234.0 369.1 L234.0 376.0 Z" fill="#285F97"/>
+<line x1="227.2" y1="376.0" x2="227.2" y2="365.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="227.2" y="362.1" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M236.0 376.0 L236.0 367.0 Q236.0 364.0 239.0 364.0 L246.7 364.0 Q249.7 364.0 249.7 367.0 L249.7 376.0 Z" fill="#123F63"/>
+<line x1="242.9" y1="369.2" x2="242.9" y2="360.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="211.4" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">50</text>
+<path d="M271.4 376.0 L271.4 376.0 Q271.4 375.5 271.9 375.5 L284.6 375.5 Q285.1 375.5 285.1 376.0 L285.1 376.0 Z" fill="#9FC2E0"/>
+<line x1="278.3" y1="375.6" x2="278.3" y2="374.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M287.1 376.0 L287.1 365.3 Q287.1 362.3 290.1 362.3 L297.9 362.3 Q300.9 362.3 300.9 365.3 L300.9 376.0 Z" fill="#6FA3D2"/>
+<line x1="294.0" y1="366.7" x2="294.0" y2="358.4" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M302.9 376.0 L302.9 359.1 Q302.9 356.1 305.9 356.1 L313.6 356.1 Q316.6 356.1 316.6 359.1 L316.6 376.0 Z" fill="#4682BE"/>
+<line x1="309.7" y1="359.9" x2="309.7" y2="354.7" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M318.6 376.0 L318.6 340.3 Q318.6 337.3 321.6 337.3 L329.3 337.3 Q332.3 337.3 332.3 340.3 L332.3 376.0 Z" fill="#285F97"/>
+<line x1="325.4" y1="349.9" x2="325.4" y2="320.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M334.3 376.0 L334.3 335.7 Q334.3 332.7 337.3 332.7 L345.0 332.7 Q348.0 332.7 348.0 335.7 L348.0 376.0 Z" fill="#123F63"/>
+<line x1="341.2" y1="335.6" x2="341.2" y2="329.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="309.7" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">100</text>
+<path d="M369.7 376.0 L369.7 375.4 Q369.7 372.4 372.7 372.4 L380.4 372.4 Q383.4 372.4 383.4 375.4 L383.4 376.0 Z" fill="#9FC2E0"/>
+<line x1="376.5" y1="373.5" x2="376.5" y2="371.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M385.4 376.0 L385.4 345.9 Q385.4 342.9 388.4 342.9 L396.1 342.9 Q399.1 342.9 399.1 345.9 L399.1 376.0 Z" fill="#6FA3D2"/>
+<line x1="392.3" y1="373.7" x2="392.3" y2="335.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M401.1 376.0 L401.1 316.2 Q401.1 313.2 404.1 313.2 L411.9 313.2 Q414.9 313.2 414.9 316.2 L414.9 376.0 Z" fill="#4682BE"/>
+<line x1="408.0" y1="355.4" x2="408.0" y2="302.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M416.9 376.0 L416.9 269.7 Q416.9 266.7 419.9 266.7 L427.6 266.7 Q430.6 266.7 430.6 269.7 L430.6 376.0 Z" fill="#285F97"/>
+<line x1="423.7" y1="306.2" x2="423.7" y2="205.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="423.7" y="262.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M432.6 376.0 L432.6 217.3 Q432.6 214.3 435.6 214.3 L443.3 214.3 Q446.3 214.3 446.3 217.3 L446.3 376.0 Z" fill="#123F63"/>
+<line x1="439.5" y1="300.3" x2="439.5" y2="199.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="439.5" y="210.3" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="408.0" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">250</text>
+<path d="M468.0 376.0 L468.0 376.0 Q468.0 373.6 470.3 373.6 L479.3 373.6 Q481.7 373.6 481.7 376.0 L481.7 376.0 Z" fill="#9FC2E0"/>
+<line x1="474.8" y1="375.4" x2="474.8" y2="373.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M483.7 376.0 L483.7 220.8 Q483.7 217.8 486.7 217.8 L494.4 217.8 Q497.4 217.8 497.4 220.8 L497.4 376.0 Z" fill="#6FA3D2"/>
+<line x1="490.6" y1="308.1" x2="490.6" y2="147.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="490.6" y="213.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M499.4 376.0 L499.4 135.8 Q499.4 132.8 502.4 132.8 L510.1 132.8 Q513.1 132.8 513.1 135.8 L513.1 376.0 Z" fill="#4682BE"/>
+<line x1="506.3" y1="184.3" x2="506.3" y2="127.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="506.3" y="128.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M515.1 376.0 L515.1 162.6 Q515.1 159.6 518.1 159.6 L525.9 159.6 Q528.9 159.6 528.9 162.6 L528.9 376.0 Z" fill="#285F97"/>
+<line x1="522.0" y1="162.9" x2="522.0" y2="153.6" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="522.0" y="155.6" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M530.9 376.0 L530.9 179.7 Q530.9 176.7 533.9 176.7 L541.6 176.7 Q544.6 176.7 544.6 179.7 L544.6 376.0 Z" fill="#123F63"/>
+<line x1="537.7" y1="182.3" x2="537.7" y2="173.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="537.7" y="172.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="506.3" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">500</text>
+<path d="M566.3 376.0 L566.3 376.0 Q566.3 373.2 569.0 373.2 L577.2 373.2 Q580.0 373.2 580.0 376.0 L580.0 376.0 Z" fill="#9FC2E0"/>
+<line x1="573.1" y1="374.9" x2="573.1" y2="372.8" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M582.0 376.0 L582.0 82.6 Q582.0 79.6 585.0 79.6 L592.7 79.6 Q595.7 79.6 595.7 82.6 L595.7 376.0 Z" fill="#6FA3D2"/>
+<line x1="588.8" y1="83.2" x2="588.8" y2="43.2" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="588.8" y="75.6" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M597.7 376.0 L597.7 73.7 Q597.7 70.7 600.7 70.7 L608.4 70.7 Q611.4 70.7 611.4 73.7 L611.4 376.0 Z" fill="#4682BE"/>
+<line x1="604.6" y1="71.7" x2="604.6" y2="67.0" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="604.6" y="66.7" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M613.4 376.0 L613.4 110.1 Q613.4 107.1 616.4 107.1 L624.2 107.1 Q627.2 107.1 627.2 110.1 L627.2 376.0 Z" fill="#285F97"/>
+<line x1="620.3" y1="119.8" x2="620.3" y2="101.4" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="620.3" y="103.1" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M629.2 376.0 L629.2 154.8 Q629.2 151.8 632.2 151.8 L639.9 151.8 Q642.9 151.8 642.9 154.8 L642.9 376.0 Z" fill="#123F63"/>
+<line x1="636.0" y1="155.4" x2="636.0" y2="128.3" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="636.0" y="147.8" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="604.6" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">750</text>
+<path d="M664.5 376.0 L664.5 375.4 Q664.5 372.4 667.5 372.4 L675.3 372.4 Q678.3 372.4 678.3 375.4 L678.3 376.0 Z" fill="#9FC2E0"/>
+<line x1="671.4" y1="373.0" x2="671.4" y2="359.6" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<path d="M680.3 376.0 L680.3 57.2 Q680.3 54.2 683.3 54.2 L691.0 54.2 Q694.0 54.2 694.0 57.2 L694.0 376.0 Z" fill="#6FA3D2"/>
+<line x1="687.1" y1="66.7" x2="687.1" y2="41.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="687.1" y="50.2" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M696.0 376.0 L696.0 91.3 Q696.0 88.3 699.0 88.3 L706.7 88.3 Q709.7 88.3 709.7 91.3 L709.7 376.0 Z" fill="#4682BE"/>
+<line x1="702.9" y1="110.3" x2="702.9" y2="64.9" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="702.9" y="84.3" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M711.7 376.0 L711.7 96.4 Q711.7 93.4 714.7 93.4 L722.4 93.4 Q725.4 93.4 725.4 96.4 L725.4 376.0 Z" fill="#285F97"/>
+<line x1="718.6" y1="234.0" x2="718.6" y2="90.1" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="718.6" y="89.4" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<path d="M727.4 376.0 L727.4 132.2 Q727.4 129.2 730.4 129.2 L738.2 129.2 Q741.2 129.2 741.2 132.2 L741.2 376.0 Z" fill="#123F63"/>
+<line x1="734.3" y1="150.5" x2="734.3" y2="122.5" stroke="#12181f" stroke-width="1" opacity="0.55"/>
+<text x="734.3" y="125.2" fill="#B4740F" font-size="11" text-anchor="middle">▲</text>
+<text x="702.9" y="394" fill="#12181f" font-size="12" text-anchor="middle" class="mono b">1000</text>
+<line x1="64" y1="376.0" x2="752" y2="376.0" stroke="#dbe2ec"/>
+<line x1="64" y1="22" x2="64" y2="376.0" stroke="#dbe2ec"/>
+<text x="408" y="424" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">SPEED_SET (velocidad de cierre)</text>
+<text transform="translate(15,199) rotate(-90)" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">sobreimpulso  ΔF = F_max − Fset  (g)</text>
+</svg>
+      <figcaption><b>Figura 2.</b> Sobreimpulso de fuerza por celda (velocidad × setpoint). ▲ marca los impactos que superaron el techo de seguridad de 2200 g. Con setpoint 100 g el sobreimpulso queda plano y bajo.</figcaption>
+    </figure>
+    <figure>
+      <svg viewBox="0 0 770 330" role="img" aria-label="Comparación de sobreimpulso: modo A rápido, A lento y B híbrido vs Fset">
+<line x1="64" y1="280.0" x2="638" y2="280.0" stroke="#eef2f7"/>
+<text x="56" y="284.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="64" y1="208.3" x2="638" y2="208.3" stroke="#eef2f7"/>
+<text x="56" y="212.3" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<line x1="64" y1="136.6" x2="638" y2="136.6" stroke="#eef2f7"/>
+<text x="56" y="140.6" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2000</text>
+<line x1="64" y1="64.9" x2="638" y2="64.9" stroke="#eef2f7"/>
+<text x="56" y="68.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3000</text>
+<text x="64.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="207.5" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="351.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="494.5" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="638.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<polyline points="64.0,277.4 207.5,46.1 351.0,70.9 494.5,74.6 638.0,100.6" fill="none" stroke="#B4740F" stroke-width="2.4"/>
+<circle cx="64.0" cy="277.4" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="46.1" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="70.9" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="74.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="100.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="104.6" fill="#B4740F" font-size="12" class="mono b">A · v=1000 (rápido)</text>
+<polyline points="64.0,279.5 207.5,277.9 351.0,275.4 494.5,274.8 638.0,275.1" fill="none" stroke="#6FA3D2" stroke-width="2.4"/>
+<circle cx="64.0" cy="279.5" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="277.9" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="275.4" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="274.8" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="275.1" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="279.1" fill="#6FA3D2" font-size="12" class="mono b">A · v=25 (lento)</text>
+<polyline points="64.0,279.9 207.5,278.2 351.0,277.2 494.5,274.9 638.0,273.4" fill="none" stroke="#285F97" stroke-width="2.4"/>
+<circle cx="64.0" cy="279.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="207.5" cy="278.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="277.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="494.5" cy="274.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<circle cx="638.0" cy="273.4" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<text x="646.0" y="277.4" fill="#285F97" font-size="12" class="mono b">B · híbrido</text>
+<line x1="64" y1="280.0" x2="638" y2="280.0" stroke="#dbe2ec"/>
+<line x1="64" y1="18" x2="64" y2="280.0" stroke="#dbe2ec"/>
+<text x="351" y="324" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">FORCE_SET (g)</text>
+<text transform="translate(15,149) rotate(-90)" fill="#5a6472" font-size="12.5" text-anchor="middle" class="ey">sobreimpulso ΔF (g)</text>
+</svg>
+      <figcaption><b>Figura 3 · La mitigación.</b> Con la política híbrida (curva azul) el sobreimpulso se colapsa al nivel de la aproximación lenta, muy por debajo del cierre rápido (curva ámbar), para todo setpoint.</figcaption>
+    </figure>
+    <div class="tbl-wrap"><table><caption><b>Tabla 2.</b> Sobreimpulso de fuerza ΔF = F_max − F_set (mediana, g) por celda. Filas = velocidad de cierre; columnas = F_set (g). ▲ = celda con impacto sobre el techo de seguridad (2200 g).</caption><thead><tr><th>v \ F_set</th><th>100</th><th>250</th><th>500</th><th>750</th><th>1000</th></tr></thead><tbody><tr><td class="mono b">25</td><td class="mono">7</td><td class="mono">29</td><td class="mono">64</td><td class="mono">73</td><td class="mono">69</td></tr><tr><td class="mono b">50</td><td class="mono">15</td><td class="mono">81</td><td class="mono">112</td><td class="mono">100<span class="ab">▲</span></td><td class="mono">122</td></tr><tr><td class="mono b">100</td><td class="mono">5</td><td class="mono">139</td><td class="mono">202</td><td class="mono">392</td><td class="mono">439</td></tr><tr><td class="mono b">250</td><td class="mono">36</td><td class="mono">336</td><td class="mono">637</td><td class="mono">1108<span class="ab">▲</span></td><td class="mono">1640<span class="ab">▲</span></td></tr><tr><td class="mono b">500</td><td class="mono">24</td><td class="mono">1604<span class="ab">▲</span></td><td class="mono">2466<span class="ab">▲</span></td><td class="mono">2194<span class="ab">▲</span></td><td class="mono">2021<span class="ab">▲</span></td></tr><tr><td class="mono b">750</td><td class="mono">28</td><td class="mono">3005<span class="ab">▲</span></td><td class="mono">3096<span class="ab">▲</span></td><td class="mono">2726<span class="ab">▲</span></td><td class="mono">2273<span class="ab">▲</span></td></tr><tr><td class="mono b">1000</td><td class="mono">36</td><td class="mono">3263<span class="ab">▲</span></td><td class="mono">2917<span class="ab">▲</span></td><td class="mono">2865<span class="ab">▲</span></td><td class="mono">2502<span class="ab">▲</span></td></tr></tbody></table></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Sub-experimento <span class="tag">margen de conmutación</span></h2>
+    <h3>Dónde debe la mano cambiar a velocidad lenta</h3>
+    <p>Para fijar el punto en que la política híbrida cambia a cierre lento, se midió la <b>posición de primer contacto</b> en 50 toques suaves a máxima velocidad. La <b>repetibilidad mecánica del contacto es excelente</b> (σ ~5–8 counts, comparable a la literatura). A máxima velocidad la resolución de posición por muestra domina la σ medida (~37 counts), de la cual se deriva un <b>margen de conmutación de ~124 counts</b>: la mano entra al cierre lento ~124 counts <b>antes</b> del contacto esperado, garantizando un toque suave. Este margen se re-mide por montaje.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Conclusiones</h2>
+    <ul>
+      <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
+      <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso ~68×, con un margen de conmutación (~124 counts) fijado experimentalmente.</li>
+      <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
+    </ul>
+    <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los demás dedos, e integración de la política híbrida en el lazo de agarre.</p>
+  </section>
+
+  <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU. Reemplazar el nombre del autor según corresponda.</p>
+
+</div>

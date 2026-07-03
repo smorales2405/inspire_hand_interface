@@ -481,6 +481,107 @@ def run_hybrid(hand, args):
     print(f"\nListo: {total} trials (modo B) en {args.outdir}/.")
 
 
+# ── Sub-experimento: variabilidad del onset de contacto ──────────────────────
+
+def run_onset(hand, args):
+    """A --onset-speed (peor caso, v=1000) conduce el índice contra el bloque N
+    veces y mide el POS_ACT de PRIMER contacto (fuerza sobre el baseline propio
+    del trial + margen). Retrae apenas detecta el onset → toque suave, no impacto.
+    Reporta σ_onset y el margen de conmutación q_sw = ceil(k·σ) para el modo B.
+    """
+    import math
+    dof = args.dof; v = args.onset_speed; F = args.onset_fset
+    os.makedirs(args.outdir, exist_ok=True)
+    print(f"Sub-exp onset: v={v}, Fset={F}, N={args.onset_trials}, "
+          f"margen={args.onset_margin} g sobre baseline. Toque suave (retrae al detectar).")
+    if not args.no_cal:
+        print("Calibrando fuerza (forceClb)...")
+        calibrate(hand, args)
+
+    onsets = []
+    rows = []
+    for k in range(1, args.onset_trials + 1):
+        if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
+            calibrate(hand, args)
+        open_and_settle(hand, dof, args.start_angle, args.settle_band,
+                        args.settle_timeout_s, args.approach_speed)
+        # baseline de fuerza estacionario (inmune a la deriva entre trials)
+        fbase = []
+        for _ in range(8):
+            fb = hand.read_block(FORCE_ACT)
+            if fb is not None:
+                fbase.append(fb[dof])
+            time.sleep(0.02)
+        f_base = statistics.median(fbase) if fbase else 0
+        pb0 = hand.read_block(POS_ACT)
+        start_pos = pb0[dof] if pb0 else 0
+
+        hand.write_block(SPEED_SET, [v] * NDOF)
+        hand.write_block(FORCE_SET, [F] * NDOF)
+        onset_pos = None; consec = 0; aborted = False
+        t_start = time.perf_counter()
+        hand.write_block(ANGLE_SET, angle_vector(dof, 0))
+        while True:
+            elapsed = time.perf_counter() - t_start
+            fb = hand.read_block(FORCE_ACT)
+            force = fb[dof] if fb else None
+            if force is not None:
+                if abs(force) > args.safety_force_g:
+                    aborted = True; break
+                if (force - f_base) > args.onset_margin:
+                    consec += 1
+                    if consec >= 2:
+                        pb = hand.read_block(POS_ACT)
+                        pos = pb[dof] if pb else None
+                        if pos is not None and (pos - start_pos) > args.onset_min_travel:
+                            onset_pos = pos
+                            break                         # onset real → retraer
+                        consec = 0                        # blip de arranque → seguir
+                else:
+                    consec = 0
+            if elapsed >= args.trial_window:
+                break
+        hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))   # retraer
+        time.sleep(0.15)
+        if onset_pos is not None and not aborted:
+            onsets.append(onset_pos)
+        rows.append((k, onset_pos if onset_pos is not None else '', f"{f_base:.0f}", int(aborted)))
+        flag = '  ⚠ABORT' if aborted else ('' if onset_pos is not None else '  (sin onset)')
+        print(f"[{k}/{args.onset_trials}] onset_pos={onset_pos}  (f_base={f_base:.0f} g){flag}")
+
+    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    path = os.path.join(args.outdir, 'onset_trials.csv')
+    with open(path, 'w', newline='') as f:
+        w = csv.writer(f)
+        w.writerow(['trial', 'onset_pos', 'f_base_g', 'aborted'])
+        w.writerows(rows)
+
+    print(f"\n=== Sub-exp onset — resultado (N válidos = {len(onsets)}/{args.onset_trials}) ===")
+    if len(onsets) >= 4:
+        s = sorted(onsets)
+        q1, _, q3 = statistics.quantiles(s, n=4)
+        iqr = q3 - q1
+        clean = [x for x in s if q1 - 1.5 * iqr <= x <= q3 + 1.5 * iqr]  # sin outliers de detección
+        mu = statistics.fmean(clean); sd = statistics.pstdev(clean)
+        q = math.ceil(args.onset_k * sd)
+        switch = mu - q
+        ang = round(1000 - (switch - 98) / 1902 * 1000)   # POS → ANGLE_SET aprox
+        print(f" onset POS crudo:   media={statistics.fmean(s):.0f}  σ={statistics.pstdev(s):.1f}  (N={len(s)})")
+        print(f" onset POS robusto: media={mu:.0f}  σ={sd:.1f}  min={min(clean)}  "
+              f"(N={len(clean)}; {len(s)-len(clean)} outliers de detección excluidos)")
+        print(f"   (a v={args.onset_speed} la cuantización de POS por muestra domina la σ medida;")
+        print(f"    la repetibilidad mecánica intra-cluster es mucho menor.)")
+        print(f" Margen de conmutación  q_sw = ceil({args.onset_k}·σ_robusta) = {q} counts POS")
+        print(f" → modo B: entra al cierre lento en POS ≈ {switch:.0f}  (--approach-angle ≈ {ang}),")
+        print(f"   ANTES del onset mínimo confiable ({min(clean)}).")
+    elif len(onsets) >= 2:
+        mu = statistics.fmean(onsets); sd = statistics.pstdev(onsets)
+        print(f" POS onset: media={mu:.0f}  σ={sd:.1f}  q_sw=ceil({args.onset_k}·σ)={math.ceil(args.onset_k*sd)}")
+    else:
+        print(" Muy pocos onsets válidos; revisa --onset-margin / --onset-min-travel / montaje.")
+    print(f" CSV: {path}")
+
+
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 def connect(args):
@@ -541,6 +642,16 @@ def parse_args(argv=None):
     p.add_argument('--hybrid-speed', type=int, default=25, help='velocidad de cierre lento del modo B (def 25)')
     p.add_argument('--approach-angle', type=int, default=475,
                    help='ANGLE_SET de aproximación, justo antes del contacto (def 475)')
+    # sub-experimento onset
+    p.add_argument('--onset', action='store_true', help='sub-exp: variabilidad del onset de contacto')
+    p.add_argument('--onset-speed', type=int, default=1000, help='velocidad del sub-exp onset (def 1000)')
+    p.add_argument('--onset-fset', type=int, default=500, help='FORCE_SET del sub-exp onset (def 500)')
+    p.add_argument('--onset-trials', type=int, default=50, help='nº de toques (def 50)')
+    p.add_argument('--onset-margin', type=int, default=120,
+                   help='fuerza sobre el baseline del trial para declarar contacto (g, def 120)')
+    p.add_argument('--onset-min-travel', type=int, default=200,
+                   help='avance mínimo de POS desde el inicio para descartar el blip de arranque')
+    p.add_argument('--onset-k', type=float, default=3.3, help='factor para q_sw = ceil(k·σ) (def 3.3)')
     p.add_argument('--onset-thr', type=int, default=80,
                    help='umbral de fuerza para onset de contacto, sobre el blip de arranque (g)')
     p.add_argument('--contact-min-travel', type=int, default=150,
@@ -561,8 +672,8 @@ def main(argv=None):
     if not (0 <= args.dof < NDOF):
         print(f"ERROR: --dof fuera de rango 0..{NDOF-1}", file=sys.stderr)
         return 2
-    if not (args.probe or args.zero or args.cell or args.grid or args.hybrid):
-        print("Usa --zero, --probe, --cell, --grid (modo A) o --hybrid (modo B).",
+    if not (args.probe or args.zero or args.cell or args.grid or args.hybrid or args.onset):
+        print("Usa --zero, --probe, --cell, --grid (modo A), --hybrid (modo B) o --onset.",
               file=sys.stderr)
         return 2
     if args.cell and (args.speed is None or args.fset is None):
@@ -582,6 +693,8 @@ def main(argv=None):
             run_grid(hand, args)
         elif args.hybrid:
             run_hybrid(hand, args)
+        elif args.onset:
+            run_onset(hand, args)
         else:
             run_probe(hand, args)
     except KeyboardInterrupt:

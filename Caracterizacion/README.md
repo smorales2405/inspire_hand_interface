@@ -188,6 +188,22 @@ al salir.
 Manda el CSV del sondeo para caracterizar la curva libre `F(POS)` + el onset y
 diseñar el grid.
 
+### Sub-experimento — variabilidad del onset (`--onset`)
+
+Fija el **margen de conmutación** del modo B: a v=1000 (peor caso) da N toques
+suaves contra el bloque (retrae al detectar el primer contacto) y reporta σ del
+`POS_ACT` de onset y `q_sw = ceil(k·σ)` + el `--approach-angle` recomendado.
+
+```bash
+.venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
+    --transport serial --serial-port /dev/ttyUSB0 \
+    --onset --outdir Caracterizacion/exp2/data_onset
+```
+
+Usa **baseline de fuerza por trial** (inmune a la deriva) y reporta estadística
+robusta (excluye outliers de detección). Corre tras (re)montar el bloque, porque
+la posición del contacto define el `--approach-angle` del modo B.
+
 ---
 
 ## Resultados y figuras

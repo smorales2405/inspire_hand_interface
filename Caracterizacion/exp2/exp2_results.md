@@ -44,6 +44,26 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
    a un contacto pasivo (corriente → 0) por debajo de Fset. Por eso ΔF es el pico
    de impacto, no un error de régimen.
 
+## Sub-experimento — variabilidad del onset y margen de conmutación
+
+A v=1000 (peor caso), 50 toques suaves del índice contra el bloque, midiendo el
+`POS_ACT` de primer contacto (fuerza sobre el baseline propio de cada trial +
+margen; **retrae al detectar** → toque suave, no impacto). Datos:
+`data_onset/onset_trials.csv`. Corre con `exp2_force_overshoot.py --onset`.
+
+- **Repetibilidad mecánica excelente**: σ intra-cluster ~5–8 counts (≈ el σ≈7.5
+  del paper). El contacto ocurre de forma muy consistente (POS ≈ 1019).
+- **σ medida a v=1000 ≈ 37 counts** (robusta, sin outliers de detección): a esa
+  velocidad la **cuantización de `POS_ACT` por muestra** (~30–60 counts) domina la
+  σ, no la física. La σ cruda (~118) estaba inflada por esa cuantización + 5–6
+  outliers (lecturas Modbus atrasadas), y daba un q_sw irreal (389).
+- **Margen de conmutación**: `q_sw = ceil(3.3·σ_robusta) ≈ 124 counts POS`.
+- **Para el modo B**: entrar al cierre lento en `POS ≈ 895` (`--approach-angle ≈
+  581`), antes del onset mínimo confiable (967). Como la posición del bloque
+  cambia entre montajes, correr `--onset` tras (re)montar y usar el
+  `--approach-angle` que reporta. (El default 475 del modo B ≈ POS 1120 queda
+  *después* del onset para este montaje.)
+
 ## Figura
 
 `figures/exp2_force_overshoot.html` (autocontenida) y los SVG

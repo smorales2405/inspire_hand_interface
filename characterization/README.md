@@ -143,3 +143,47 @@ establecimiento, R², figuras) se hace **offline** sobre esos CSV, después.
 
 Repite la campaña (2 pasadas) para verificar repetibilidad; registra la
 temperatura por bloque e intercala descansos si sube (deriva térmica).
+
+---
+
+## Exp 2 — Sobreimpulso de fuerza en contacto (`exp2_force_overshoot.py`)
+
+Exp 2 del protocolo: el índice cierra contra un **bloque rígido fijo** y se mide
+el sobreimpulso `ΔF = F_max − Fset`. Por ahora está implementado **solo el
+sondeo de contacto** (`--probe`); el grid (modos A/B × v × Fset) se añade
+después, calibrado con los resultados del sondeo.
+
+**Adaptación del hallazgo del Exp 1** (offset de `FORCE_ACT` dependiente de la
+flexión): el contacto se detecta por **stall de `POS_ACT`** (el dedo deja de
+avanzar al tocar), no por fuerza absoluta; y la fuerza externa real se obtendrá
+restando la curva libre `F(POS_ACT)`.
+
+### Sondeo de contacto — corre esto primero (con el bloque montado)
+
+```bash
+.venv/bin/python characterization/exp2_force_overshoot.py \
+    --transport serial --serial-port /dev/ttyUSB0 --probe
+```
+
+Cierre lento e instrumentado. **Presión mínima por diseño**: abre el dedo al
+detectar contacto. Reporta: si la lectura de bloque ancho (POS+FORCE+CURRENT en
+1 transacción) es usable, el offset de fuerza en reposo, el **POS de contacto**
+(= ángulo de aproximación para el modo B híbrido), la fuerza de contacto, y los
+máximos de fuerza/corriente. Guarda `exp2_out/probe_dof3.csv`.
+
+Seguridad: `SPEED_SET=50`, `FORCE_SET=800` (> offset, para que el firmware no
+frene en espacio libre → todo stall es contacto real), techo crudo
+`--probe-ceiling 500` g, watchdog de corriente, timeout, y abre todos los dedos
+al salir.
+
+| Flag | Def | Nota |
+|---|---|---|
+| `--probe` | — | corre el sondeo |
+| `--probe-speed` | 50 | `SPEED_SET` del cierre lento |
+| `--probe-fset` | 800 | alto, para no frenar en espacio libre |
+| `--probe-ceiling` | 500 | techo `|FORCE_ACT|` crudo de emergencia (g) |
+| `--current-max` | 1200 | corriente máx antes de abortar (mA) |
+| `--stall-hold` | 0.12 | tiempo detenido para declarar contacto (s) |
+
+Manda el CSV del sondeo para caracterizar la curva libre `F(POS)` + el onset y
+diseñar el grid.

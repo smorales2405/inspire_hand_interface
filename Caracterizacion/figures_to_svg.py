@@ -12,20 +12,21 @@ STYLE = ('<style>text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans
          '.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;}'
          '.b{font-weight:600;}.ey{letter-spacing:.14em;}</style>')
 
-# HTML -> nombres de cada <svg> en orden de aparición
+_HERE = os.path.dirname(os.path.abspath(__file__))
+# HTML -> nombres de cada <svg> en orden de aparición (los SVG se escriben junto al HTML)
 JOBS = [
-    ('characterization/figures/exp1_step_response.html',
+    (os.path.join(_HERE, 'exp1', 'figures', 'exp1_step_response.html'),
      ['exp1_overlay_pos_vs_t', 'exp1_slope_vs_speed', 'exp1_latency_vs_speed']),
-    ('characterization/figures/exp2_force_overshoot.html',
+    (os.path.join(_HERE, 'exp2', 'figures', 'exp2_force_overshoot.html'),
      ['exp2_overshoot_bars', 'exp2_hybrid_comparison']),
 ]
 
 
 def main():
-    outdir = 'characterization/figures'
     for html, names in JOBS:
         if not os.path.exists(html):
             print("(falta)", html); continue
+        outdir = os.path.dirname(html)     # los SVG van junto a su HTML
         src = open(html).read()
         svgs = re.findall(r'<svg\b.*?</svg>', src, re.S)
         for i, svg in enumerate(svgs):

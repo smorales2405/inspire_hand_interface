@@ -3,8 +3,9 @@
 import csv, json, os, statistics
 from collections import defaultdict
 
-OUT='exp2_out'
-DST='characterization/figures/exp2_force_overshoot.html'
+_HERE=os.path.dirname(os.path.abspath(__file__))
+OUT=os.path.join(_HERE,'data')
+DST=os.path.join(_HERE,'figures','exp2_force_overshoot.html')
 
 grid=json.load(open(os.path.join(OUT,'exp2_overshoot_grid.json')))
 speeds=grid['speeds']; fsets=grid['fsets']
@@ -24,7 +25,7 @@ total_ab=sum(AB(v,F) for v in speeds for F in fsets)
 
 # Modo B (híbrido): mediana de ΔF por Fset
 _bd=defaultdict(list)
-for _r in csv.DictReader(open('exp2_out_hybrid/grid_index.csv')):
+for _r in csv.DictReader(open(os.path.join(_HERE,'data_hybrid','grid_index.csv'))):
     try: _bd[int(_r['fset'])].append(float(_r['delta_f']))
     except (ValueError,TypeError): pass
 modeB={F:statistics.median(_bd[F]) for F in fsets if _bd[F]}
@@ -203,7 +204,7 @@ HTML=f'''<title>Exp 2 — Sobreimpulso de fuerza en contacto · RH56DFTP</title>
     </div>
   </div>
 
-  <p class="foot">En modo A el firmware NO sostiene el setpoint tras el impacto: sobrepasa y se relaja a un contacto pasivo por debajo de Fset; a alta velocidad el pico es puro momento de la yema. El <b>modo B (híbrido)</b> lo resuelve (0 aborts). {total_ab} impactos del modo A superaron el techo de 2200 g. Datos: <code>exp2_out/</code>, <code>exp2_out_slow/</code>, <code>exp2_out_hybrid/</code>. Análisis: <code>exp2_analyze.py</code> (Python puro).</p>
+  <p class="foot">En modo A el firmware NO sostiene el setpoint tras el impacto: sobrepasa y se relaja a un contacto pasivo por debajo de Fset; a alta velocidad el pico es puro momento de la yema. El <b>modo B (híbrido)</b> lo resuelve (0 aborts). {total_ab} impactos del modo A superaron el techo de 2200 g. Datos: <code>exp2/data/</code>, <code>exp2/data_slow/</code>, <code>exp2/data_hybrid/</code>. Análisis: <code>exp2_analyze.py</code> (Python puro).</p>
 </div>'''
 
 open(DST,'w').write(HTML)

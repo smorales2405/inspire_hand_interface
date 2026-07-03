@@ -197,7 +197,8 @@ def cross_interp(series, x):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Análisis Exp 1 (paso, espacio libre).")
-    p.add_argument('--outdir', default='exp1_out')
+    _here = os.path.dirname(os.path.abspath(__file__))
+    p.add_argument('--outdir', default=os.path.join(_here, 'data'))
     p.add_argument('--settle-pct', type=float, default=2.0)
     p.add_argument('--grid-dt', type=float, default=0.01)
     p.add_argument('--grid-max', type=float, default=6.0)

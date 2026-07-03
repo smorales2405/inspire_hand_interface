@@ -34,6 +34,10 @@ import statistics
 import sys
 import time
 
+# hand_modbus vive en Caracterizacion/ (un nivel arriba): importable desde cualquier cwd.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(_HERE))
+
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
@@ -548,7 +552,7 @@ def parse_args(argv=None):
     p.add_argument('--safety-force-g', type=int, default=2200,
                    help='techo |FORCE_ACT| de emergencia (g, def 2200)')
     p.add_argument('--no-cal', action='store_true', help='no calibrar (forceClb) al inicio')
-    p.add_argument('--outdir', default='exp2_out')
+    p.add_argument('--outdir', default=os.path.join(_HERE, 'data'))
     return p.parse_args(argv)
 
 

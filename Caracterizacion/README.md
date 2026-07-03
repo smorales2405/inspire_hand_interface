@@ -29,18 +29,18 @@ Usa el intérprete del venv del proyecto (ya trae pymodbus 3.6.9):
 
 ```bash
 # TCP (valores por defecto: 192.168.11.210:6000, device_id 1, N=2000)
-.venv/bin/python characterization/exp0_sampling_baseline.py --transport tcp
+.venv/bin/python Caracterizacion/exp0/exp0_sampling_baseline.py --transport tcp
 
 # TCP explícito
-.venv/bin/python characterization/exp0_sampling_baseline.py \
+.venv/bin/python Caracterizacion/exp0/exp0_sampling_baseline.py \
     --transport tcp --ip 192.168.11.210 --port 6000 --n 2000
 
 # Serial RTU
-.venv/bin/python characterization/exp0_sampling_baseline.py \
+.venv/bin/python Caracterizacion/exp0/exp0_sampling_baseline.py \
     --transport serial --serial-port /dev/ttyUSB0 --baud 115200
 
 # Guardar la serie de dt por muestra (para graficar en la tesis)
-.venv/bin/python characterization/exp0_sampling_baseline.py \
+.venv/bin/python Caracterizacion/exp0/exp0_sampling_baseline.py \
     --transport tcp --csv exp0_dt.csv
 ```
 
@@ -104,7 +104,7 @@ Un `--target-angle` mal elegido puede chocar el dedo contra la palma u otros
 dedos. Corre **un solo trial** lento y confirma que no hay contacto:
 
 ```bash
-.venv/bin/python characterization/exp1_step_response.py \
+.venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
     --transport serial --serial-port /dev/ttyUSB1 \
     --single --speed 100 --read full
 ```
@@ -115,8 +115,8 @@ Revisa en la salida `|FORCE_ACT|max` ≈ 0 (sin contacto). Ajusta `--target-angl
 ### Campaña completa (protocolo)
 
 ```bash
-.venv/bin/python characterization/exp1_step_response.py \
-    --transport serial --serial-port /dev/ttyUSB1 --outdir exp1_out
+.venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
+    --transport serial --serial-port /dev/ttyUSB1
 ```
 
 Barre `--speeds 100,250,500,750,1000` × `--trials 20`, en **orden aleatorio**
@@ -161,7 +161,7 @@ restando la curva libre `F(POS_ACT)`.
 ### Sondeo de contacto — corre esto primero (con el bloque montado)
 
 ```bash
-.venv/bin/python characterization/exp2_force_overshoot.py \
+.venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 --probe
 ```
 
@@ -169,7 +169,7 @@ Cierre lento e instrumentado. **Presión mínima por diseño**: abre el dedo al
 detectar contacto. Reporta: si la lectura de bloque ancho (POS+FORCE+CURRENT en
 1 transacción) es usable, el offset de fuerza en reposo, el **POS de contacto**
 (= ángulo de aproximación para el modo B híbrido), la fuerza de contacto, y los
-máximos de fuerza/corriente. Guarda `exp2_out/probe_dof3.csv`.
+máximos de fuerza/corriente. Guarda `exp2/data/probe_dof3.csv`.
 
 Seguridad: `SPEED_SET=50`, `FORCE_SET=800` (> offset, para que el firmware no
 frene en espacio libre → todo stall es contacto real), techo crudo
@@ -206,9 +206,9 @@ Figuras (autocontenidas, se abren en cualquier navegador) en `figures/`:
 Regenerar todo desde los CSV (correr desde la raíz del repo):
 
 ```bash
-.venv/bin/python characterization/exp1_analyze.py
-.venv/bin/python characterization/exp1_make_figure.py
-.venv/bin/python characterization/exp2_analyze.py --base exp2_out --override exp2_out_slow
-.venv/bin/python characterization/exp2_make_figure.py
-.venv/bin/python characterization/figures_to_svg.py       # extrae los SVG standalone
+.venv/bin/python Caracterizacion/exp1/exp1_analyze.py
+.venv/bin/python Caracterizacion/exp1/exp1_make_figure.py
+.venv/bin/python Caracterizacion/exp2/exp2_analyze.py
+.venv/bin/python Caracterizacion/exp2/exp2_make_figure.py
+.venv/bin/python Caracterizacion/figures_to_svg.py       # extrae los SVG standalone
 ```

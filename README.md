@@ -1,149 +1,54 @@
-# Inspire Hand RH56DFTP — Interface de Control PyQt5
+# Inspire Hand RH56DFTP — Interfaz + Caracterización
 
-Interfaz gráfica para el control y visualización de la mano robótica **Inspire Hand RH56DFTP** (6 DOF, 12 joints, grip máximo 30 N). Comunicación directa por **Modbus RTU/TCP** sin dependencia de DDS ni middleware adicional.
+Proyecto para la mano robótica **Inspire Hand RH56DFTP** (6 DOF, Modbus RTU/TCP),
+organizado en dos partes:
 
----
+- **`Interfaz/`** — GUI PyQt5 de control y visualización (control por DOF,
+  lectura de fuerzas, sensores táctiles). Ver [`Interfaz/README.md`](Interfaz/README.md).
+- **`Caracterizacion/`** — caracterización dinámica del hardware (latencia,
+  respuesta al escalón, sobreimpulso de fuerza en contacto) para la tesis. Ver
+  [`Caracterizacion/README.md`](Caracterizacion/README.md). Cada experimento es
+  **auto-contenido**: código + datos + figuras + resultados.
 
-## Características
-
-| Pestaña | Descripción |
-|---|---|
-| **Control y Ángulos** | Sliders por DOF, lectura en tiempo real de ángulos, gestos predefinidos (Abrir, Cerrar, Señalar, Pinza, Pulgar arriba), control de velocidad |
-| **Lectura Fuerzas** | Silueta de la mano con mapa de calor por FORCE_ACT, barras verticales por DOF y curvas temporales (ventana 20 s) |
-| **Sensores Táctiles** | Vista anatómica de 17 zonas táctiles clicables con coloreado por valor medio de taxel; panel de detalle con grilla de taxeles y estadísticas |
-
----
-
-## Requisitos
-
-### Python
-
-**Python 3.9 o superior** (probado con Python 3.10).
-
-### Dependencias
-
-Instala los paquetes con `pip`:
+## Setup
 
 ```bash
-pip install PyQt5>=5.15 pymodbus==3.6.9 pyserial>=3.5
-```
-
-| Paquete | Versión mínima | Uso |
-|---|---|---|
-| `PyQt5` | 5.15 | Interfaz gráfica |
-| `pymodbus` | **3.6.9** | Comunicación Modbus RTU/TCP |
-| `pyserial` | 3.5 | Puerto serial (RS-485) |
-
-> **Nota:** `pymodbus` **3.6.9** es la versión requerida. Versiones anteriores usan una API diferente (`method='rtu'` en `ModbusSerialClient`) que causará errores.
-
-No se requieren `numpy`, `pyqtgraph` ni ningún middleware DDS.
-
----
-
-## Instalación y ejecución
-
-```bash
-# 1. Clonar el repositorio
-git clone https://github.com/smorales2405/inspire_hand_interface.git
-cd inspire_hand_interface
-
-# 2. Crear el entorno virtual e instalar dependencias (solo la primera vez)
-./setup.sh
-
-# 3. Activar el entorno virtual
+./setup.sh                 # crea .venv/ e instala requirements.txt (deps compartidas)
 source .venv/bin/activate
-
-# 4. Ejecutar la interfaz
-python3 main.py
 ```
 
-> **Windows:** en el paso 3 usa `.venv\Scripts\activate` en lugar de `source .venv/bin/activate`.
+## Uso
 
-El script `setup.sh` crea automáticamente el entorno `.venv/` dentro de la misma carpeta e instala los paquetes de `requirements.txt`. Las siguientes veces solo es necesario activar el entorno y correr `python3 main.py`.
+- **GUI:** `python3 Interfaz/main.py`
+- **Caracterización:** scripts por experimento (ver `Caracterizacion/README.md`).
 
-La interfaz se abre sin necesidad de conectar la mano; las secciones de lectura simplemente no mostrarán datos hasta que se establezca la conexión.
-
-### Conexión TCP (por defecto)
-
-```
-IP:    192.168.11.210
-Puerto: 6000
-```
-
-### Conexión Serial (RS-485)
-
-```
-Puerto: /dev/ttyUSB0  (Linux)  o  COM3  (Windows)
-Baud:   115200
-```
-
-Selecciona el modo de conexión en el panel superior de la pestaña **Control y Ángulos**.
-
----
-
-## Estructura del proyecto
+## Estructura
 
 ```
 inspire_hand_interface/
-├── main.py                        # Punto de entrada
-├── core/
-│   ├── hand_connection.py         # Wrapper Modbus (TCP + Serial)
-│   ├── angle_converter.py         # Conversión registros ↔ grados por DOF
-│   └── tactile_zones.py           # Definiciones de las 17 zonas táctiles
-└── ui/
-    ├── main_window.py             # Ventana principal con 3 pestañas
-    ├── tabs/
-    │   ├── control_tab.py         # Pestaña 1: control y ángulos
-    │   ├── force_tab.py           # Pestaña 2: fuerzas
-    │   └── tactile_tab.py         # Pestaña 3: sensores táctiles
-    └── widgets/
-        ├── finger_widget.py       # Widget de control por DOF
-        ├── gesture_panel.py       # Panel de gestos predefinidos
-        ├── hand_silhouette_widget.py   # Silueta con mapa de calor
-        ├── force_bar_widget.py    # Barra vertical de fuerza por DOF
-        ├── force_plot_widget.py   # Curvas temporales de FORCE_ACT
-        ├── tactile_overview_widget.py  # Vista anatómica clicable
-        └── tactile_detail_widget.py    # Grilla de taxeles por zona
+├── requirements.txt · setup.sh          # deps compartidas (PyQt5, pymodbus, pyserial)
+├── Documentation/                       # manuales del hardware (Inspire)
+├── Interfaz/                            # GUI PyQt5
+│   ├── main.py · core/ · ui/
+│   └── README.md
+└── Caracterizacion/
+    ├── README.md · PROTOCOL_...md
+    ├── hand_modbus.py                   # helper Modbus compartido (exp1, exp2)
+    ├── figures_to_svg.py                # extrae SVG de las figuras
+    ├── exp0/   → código · exp0_results.md · data/
+    ├── exp1/   → código · exp1_results.md · data/ · figures/
+    └── exp2/   → código · exp2_results.md · data/ · data_slow/ · data_hybrid/ · figures/
 ```
 
----
+## Resultados de la caracterización
 
-## Rangos de los DOF
+- **Exp 0** — baseline de muestreo: 98.3 Hz sostenidos.
+- **Exp 1** — respuesta al escalón (espacio libre): deadtime ~64 ms, pendiente ∝
+  velocidad (R² ≥ 0.98), sobreimpulso de posición ~0.
+- **Exp 2** — sobreimpulso de fuerza en contacto: dominado por la velocidad de
+  cierre (hasta ~3300 g), mitigado ~68× por el modo híbrido.
 
-| DOF | Articulación | Rango (grados) | Registro 0 → 1000 |
-|---|---|---|---|
-| 0 | Meñique | 176.7° → 19.0° | Cerrado → Abierto |
-| 1 | Anular | 176.7° → 19.0° | Cerrado → Abierto |
-| 2 | Medio | 176.7° → 19.0° | Cerrado → Abierto |
-| 3 | Índice | 176.7° → 19.0° | Cerrado → Abierto |
-| 4 | Pulgar (flex.) | 53.6° → −13.0° | Cerrado → Abierto |
-| 5 | Pulgar (rot.) | 165° → 90° | Abducción → Aducción |
+Cada `exp*/results.md` tiene la interpretación; las figuras (`exp*/figures/`)
+están en HTML autocontenido + SVG para embeber en la tesis.
 
----
-
-## Zonas táctiles
-
-17 zonas Modbus (registros 3000–5012) con taxeles de 16 bits con signo:
-
-| Zona | Taxeles | Grid |
-|---|---|---|
-| Punta (×5 dedos) | 9 | 3 × 3 |
-| Distal (×5 dedos) | 96 | 12 × 8 |
-| Palmar/Medio (×5) | 80 / 96 | 10×8 / 12×8 |
-| Palma | 112 | 14 × 8 |
-
-Las lecturas de las 17 zonas se realizan en un `QThread` en segundo plano (~5 Hz) para no bloquear la interfaz.
-
----
-
-## Hardware compatible
-
-- **Mano:** Inspire Hand RH56DFTP (derecha)
-- **Interfaces probadas:** Modbus TCP y Modbus RTU sobre RS-485
-- **SO:** Linux (Ubuntu 20.04 / 22.04), Windows 10/11
-
----
-
-## Licencia
-
-MIT
+Hardware: Inspire Hand RH56DFTP. Manuales en `Documentation/`.

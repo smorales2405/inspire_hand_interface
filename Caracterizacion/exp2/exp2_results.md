@@ -19,7 +19,7 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
 | 1000 | 36 | 3263* | 2917* | 2865* | 2502*|
 
 `*` = celda con ≥1 abort (F_max superó el techo de seguridad de 2200 g). Datos:
-`exp2_out/exp2_analysis_by_cell.csv`, `exp2_overshoot_grid.json`.
+`data/exp2_analysis_by_cell.csv`, `exp2_overshoot_grid.json`.
 
 ## Modo B — híbrido (aproximación rápida + contacto lento): ΔF (g)
 
@@ -27,7 +27,7 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
 |---|---|---|---|---|---|
 | ΔF modo B | 2 | 25 | 39 | 71 | 92 |
 
-(Datos: `exp2_out_hybrid/grid_index.csv`.)
+(Datos: `data_hybrid/grid_index.csv`.)
 
 ## Hallazgos
 
@@ -48,4 +48,4 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
 
 `figures/exp2_force_overshoot.html` (autocontenida) y los SVG
 `figures/exp2_overshoot_bars.svg`, `exp2_hybrid_comparison.svg`. Regenerar:
-`python characterization/exp2_analyze.py && python characterization/exp2_make_figure.py`.
+`python Caracterizacion/exp2/exp2_analyze.py && python Caracterizacion/exp2/exp2_make_figure.py`.

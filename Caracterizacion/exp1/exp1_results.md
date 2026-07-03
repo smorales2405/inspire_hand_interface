@@ -16,7 +16,7 @@ que el umbral de fuerza nunca dispare (movimiento puro). Muestreo `--read pos`
 | 750  | 70.7 ± 15.9 | 468  | 676  | 2280 | 0.991 | ~0 |
 | 1000 | 64.3 ± 8.0  | 376  | 587  | 2922 | 0.980 | ~0 |
 
-(Datos crudos: `exp1_out/analysis_by_speed.csv`, `exp1_out/analysis_per_trial.csv`.)
+(Datos crudos: `data/analysis_by_speed.csv`, `data/analysis_per_trial.csv`.)
 
 ## Hallazgos
 
@@ -38,4 +38,4 @@ que el umbral de fuerza nunca dispare (movimiento puro). Muestreo `--read pos`
 
 `figures/exp1_step_response.html` (autocontenida) y los SVG
 `figures/exp1_overlay_pos_vs_t.svg`, `exp1_slope_vs_speed.svg`,
-`exp1_latency_vs_speed.svg`. Regenerar: `python characterization/exp1_make_figure.py`.
+`exp1_latency_vs_speed.svg`. Regenerar: `python Caracterizacion/exp1/exp1_make_figure.py`.

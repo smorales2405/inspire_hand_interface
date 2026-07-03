@@ -36,9 +36,10 @@ def load(d):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Análisis grid Exp 2 (mapa de ΔF).")
-    ap.add_argument('--base', default='exp2_out', help='dir del piloto')
-    ap.add_argument('--override', default='exp2_out_slow', help='dir que reemplaza por velocidad')
-    ap.add_argument('--out', default='exp2_out', help='dir de salida')
+    _here = os.path.dirname(os.path.abspath(__file__))
+    ap.add_argument('--base', default=os.path.join(_here, 'data'), help='dir del piloto')
+    ap.add_argument('--override', default=os.path.join(_here, 'data_slow'), help='dir que reemplaza por velocidad')
+    ap.add_argument('--out', default=os.path.join(_here, 'data'), help='dir de salida')
     a = ap.parse_args(argv)
 
     rows = load(a.base)

@@ -2,8 +2,9 @@
 """Genera la figura Exp 1 (hoja técnica HTML autocontenida) desde el análisis."""
 import csv, json, math, os
 
-OUT = 'exp1_out'
-DST = 'characterization/figures/exp1_step_response.html'
+_HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(_HERE, 'data')
+DST = os.path.join(_HERE, 'figures', 'exp1_step_response.html')
 
 # ── datos ───────────────────────────────────────────────────────────────
 ov = json.load(open(os.path.join(OUT, 'overlay_traces.json')))
@@ -218,7 +219,7 @@ HTML = f'''<title>Exp 1 — Respuesta al escalón · RH56DFTP</title>
     </div>
   </div>
 
-  <p class="foot">100 trials, 0 abortos, 0 sin asentar. <code>FORCE_ACT</code> tiene un offset dependiente de la flexión (~216→326&nbsp;g) sin contacto externo (corriente→0 al sostener) — relevante para el Exp&nbsp;2. Datos: <code>exp1_out/</code>. Análisis: <code>exp1_analyze.py</code> (Python puro).</p>
+  <p class="foot">100 trials, 0 abortos, 0 sin asentar. <code>FORCE_ACT</code> tiene un offset dependiente de la flexión (~216→326&nbsp;g) sin contacto externo (corriente→0 al sostener) — relevante para el Exp&nbsp;2. Datos: <code>exp1/data/</code>. Análisis: <code>exp1_analyze.py</code> (Python puro).</p>
 </div>'''
 
 open(DST, 'w').write(HTML)

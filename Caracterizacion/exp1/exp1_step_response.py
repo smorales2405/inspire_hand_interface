@@ -41,6 +41,10 @@ import statistics
 import sys
 import time
 
+# hand_modbus vive en Caracterizacion/ (un nivel arriba): importable desde cualquier cwd.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(_HERE))
+
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
@@ -346,7 +350,7 @@ def parse_args(argv=None):
                    help='banda ANGLE_ACT para dar por asentada la apertura (def 6)')
     p.add_argument('--settle-timeout-s', type=float, default=3.0)
     p.add_argument('--seed', type=int, default=0, help='semilla del orden aleatorio (def 0)')
-    p.add_argument('--outdir', default='exp1_out', help='carpeta de salida (def exp1_out)')
+    p.add_argument('--outdir', default=os.path.join(_HERE, 'data'), help='carpeta de salida (def exp1/data)')
     # modo trial único (validación)
     p.add_argument('--single', action='store_true', help='corre un solo trial (validación)')
     p.add_argument('--speed', type=int, default=None, help='velocidad para --single')

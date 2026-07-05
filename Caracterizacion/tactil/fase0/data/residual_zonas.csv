@@ -1,0 +1,18 @@
+zone,zone_name,pressed,ref_residual_max,ref_residual_zone,own_rise,worst_cross_zone,worst_cross_val
+z0,Meñique — Punta,1,13.4,z4,2690,z13,10
+z1,Meñique — Distal,1,367.7,z0,1449,z4,13
+z2,Meñique — Palmar,1,234.7,z0,1500,z1,40
+z3,Anular — Punta,1,260.2,z0,2886,z4,153
+z4,Anular — Distal,1,261.7,z0,1432,z8,5
+z5,Anular — Palmar,1,253.3,z0,1468,z8,17
+z6,Medio — Punta,0,,,,,
+z7,Medio — Distal,1,237.2,z0,662,z5,23
+z8,Medio — Palmar,1,232.5,z0,1332,z5,16
+z9,Índice — Punta,1,235.0,z0,2062,z10,98
+z10,Índice — Distal,1,236.2,z0,1078,z5,17
+z11,Índice — Palmar,1,233.9,z0,2233,z5,12
+z12,Pulgar — Punta,1,231.2,z0,2894,z11,48
+z13,Pulgar — Distal,1,231.2,z0,1145,z0,54
+z14,Pulgar — Medio,1,251.2,z0,733,z0,23
+z15,Pulgar — Palmar,1,256.7,z0,1130,z13,13
+z16,Palma,1,261.2,z0,1754,z13,16

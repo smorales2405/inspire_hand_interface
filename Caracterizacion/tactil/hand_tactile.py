@@ -90,7 +90,10 @@ class TactileHand:
         return flat, 0
 
     def read_temps(self):
-        """Temperatura de los 6 actuadores (C, 0-100) o None. Proxy termico para deriva."""
+        """Temperatura de los 6 actuadores (C, 0-100) o None. Proxy termico para deriva.
+
+        Orden: 0 meñique, 1 ring, 2 medio, 3 INDICE, 4 pulgar-flex, 5 pulgar-rot.
+        """
         return self.hm.read_temps()
 
     # ── Estado seguro ──────────────────────────────────────────────────

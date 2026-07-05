@@ -23,8 +23,10 @@ POS_ACT   = 1534   # R    0-2000  (actuator position, fine resolution)
 ANGLE_ACT = 1546   # R    0-1000
 FORCE_ACT = 1582   # R    -4000..4000  (g, signed)
 CURRENT   = 1594   # R    0-2000  (mA)
-TEMP      = 1618   # R    temperatura por actuador: 3 regs = 6 bytes, 1 byte/DOF, 0-100 C
-#                        (manual sec. 2.6.19; 1618 meñique..1621 indice, 1622/1623 pulgar)
+TEMP      = 1618   # R    temperatura por actuador: 6 regs (1618..1623), 1 temp/reg, 0-100 C
+#                        (manual sec. 2.6.19 dice "6 bytes" pero la lectura cruda de 1618..1623
+#                         da 6 valores plausibles -> 1 valor/registro, NO byte-empaquetado.
+#                         1618 meñique, 1619 ring, 1620 medio, 1621 indice, 1622/1623 pulgar)
 
 NDOF = 6
 G_TO_N = 9.80665 / 1000.0   # grams-force -> Newton
@@ -60,27 +62,13 @@ class HandModbus:
         packed = struct.pack('>' + 'H' * count, *r.registers)
         return list(struct.unpack('>' + 'h' * count, packed))
 
-    def read_bytes(self, addr, reg_count):
-        """Lee reg_count regs y los desempaca como bytes (alto, luego bajo).
-
-        Para bloques byte-empaquetados (STATUS, TEMP): 1 byte por DOF. None si error.
-        """
-        try:
-            r = self.client.read_holding_registers(addr, reg_count, self.device_id)
-        except Exception:
-            return None
-        if r.isError():
-            return None
-        out = []
-        for reg in r.registers:
-            out.append((reg >> 8) & 0xFF)
-            out.append(reg & 0xFF)
-        return out
-
     def read_temps(self):
-        """Temperatura de los 6 actuadores (C, 0-100) o None. Reg TEMP (3 regs = 6 bytes)."""
-        b = self.read_bytes(TEMP, 3)
-        return b[:NDOF] if b else None
+        """Temperatura de los 6 actuadores (C, 0-100) o None.
+
+        6 registros TEMP..TEMP+5, 1 temp por registro (confirmado con lectura
+        cruda de 1618..1623). 0-100 cabe en el byte bajo -> read_block (signed) sirve.
+        """
+        return self.read_block(TEMP, NDOF)
 
     def write_block(self, addr, values):
         """Write signed ints as uint16 (so -1 -> 0xFFFF). Returns bool ok."""

@@ -6,7 +6,8 @@ hardware-in-the-loop:
 
 - **A1.1 — Ruido en reposo** (`a1_noise.py`) — **[implementado]** fija el piso
   del umbral de contacto.
-- **A1.2 — Deriva sin carga desde frío** (20–30 min, con temperatura) — *pendiente*.
+- **A1.2 — Deriva sin carga desde frío** (`a1_drift.py`) — **[implementado]**
+  20–30 min desde frío, con temperatura.
 - **A1.3 — Creep y recuperación bajo carga constante** — *pendiente* (la más
   crítica: Fase 0 ya vio ~6% FS de no-recuperación).
 
@@ -74,10 +75,58 @@ thr = max(k·σ_taxel, abs_floor)      # k≈5 (param)
 
 ---
 
-## Después de A1.1
+---
 
-Pega la salida de consola + adjunta `a1_noise_taxels.csv`. Con el piso de ruido
-y el umbral fijados, se implementan **A1.2** (deriva desde frío) y **A1.3**
-(creep/recuperación) — cuyos umbrales de detección dependen de este `abs_floor`.
-La **decisión de re-cero** (cero fijo vs baseline adaptativo) se toma al cerrar
-A1, con A1.3 como evidencia principal.
+## A1.2 — Deriva sin carga desde frío (`a1_drift.py`)
+
+Loguea el táctil **en reposo, sin contacto, 20–30 min, arrancando EN FRÍO**
+(power-cycle justo antes) para cuantificar cuánto se corre el cero al calentarse/
+asentarse el sensor. Correlaciona el baseline por taxel/zona contra el **tiempo**
+y la **temperatura** de los actuadores.
+
+Es la evidencia (con A1.3) de la **decisión de re-cero**: si la deriva es
+comparable o mayor que el `abs_floor` de A1.1 (≈41 counts), un **cero fijo de
+sesión no basta** → baseline adaptativo.
+
+> Temperatura resuelta: `TEMP` son **6 registros (1618..1623), 1 temp/reg**
+> (confirmado con lectura cruda: `[40,42,40,38,40,40]`). Orden: meñique, ring,
+> medio, **índice**, pulgar-flex, pulgar-rot. El índice es el proxy térmico del
+> dedo de prueba.
+
+### Cómo correr
+
+```bash
+# ¡Power-cycle la mano justo antes! Mano quieta, sin contacto, ~25 min.
+.venv/bin/python Caracterizacion/tactil/fase_a1/a1_drift.py \
+    --transport serial --serial-port /dev/ttyUSB0 --baud 115200 --mins 25
+```
+
+| Flag | Def | Descripción |
+|---|---|---|
+| `--mins` | 25 | duración del logueo (min) |
+| `--bucket-s` | 15 | periodo de agregado temporal (serie) |
+| `--window-s` | 60 | ventana de baseline de inicio/fin por taxel |
+| `--abs-floor` | 41 | piso de A1.1 para comparar la deriva |
+| `--diag` | `../fase0/data/taxel_diagnosis.csv` | exclusión de Fase 0 |
+| `--no-prompt` / `--no-safe-open` | — | igual que A1.1 |
+| `--outdir` / `--tag` | `fase_a1/data` / — | salida |
+
+### Salida
+
+- Consola: duración/Hz, temperatura de los 6 actuadores (inicio/final/ΔT, con el
+  índice destacado), **deriva del cero por taxel** (`|μ_fin−μ_inicio|`
+  med/p95/p99/max), cuántos taxeles superan `abs_floor`, deriva global inicio→fin,
+  deriva por zona, y la **compuerta de re-cero preliminar**.
+- CSV `data/a1_drift_timeseries.csv`: por bucket, `t_s`, las 6 temps
+  (`t_little..t_thumbR`), `gmean`/`gmed` (buenos) y la media por zona → curvas
+  baseline-vs-tiempo/temperatura.
+- CSV `data/a1_drift_taxels.csv`: `mu_start,mu_end,delta` por taxel.
+
+---
+
+## Después de A1.1/A1.2
+
+Pega la salida de consola + adjunta los CSV. Falta **A1.3** (creep/recuperación
+con peso constante) — cuyos umbrales dependen del `abs_floor` de A1.1. La
+**decisión de re-cero** (cero fijo vs baseline adaptativo) se toma al **cerrar
+A1**, con la deriva de A1.2 y el creep de A1.3 como evidencia principal.

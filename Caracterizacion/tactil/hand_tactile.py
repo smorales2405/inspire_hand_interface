@@ -89,6 +89,10 @@ class TactileHand:
         flat = [v for z in zones for v in z]
         return flat, 0
 
+    def read_temps(self):
+        """Temperatura de los 6 actuadores (C, 0-100) o None. Proxy termico para deriva."""
+        return self.hm.read_temps()
+
     # ── Estado seguro ──────────────────────────────────────────────────
     def open_fingers(self, speed=300):
         """Deja la mano en postura segura: todos los dedos extendidos (abiertos)."""

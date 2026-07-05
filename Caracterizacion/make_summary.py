@@ -113,7 +113,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <header>
     <div class="eyebrow">Trabajo de tesis · Resultados iniciales</div>
     <h1>Caracterización dinámica de la mano robótica Inspire RH56DFTP</h1>
-    <p class="byline"><span class="mono">S. Morales</span> · Universidad de Ingeniería y Tecnología (UTEC) · Julio 2026 · <span class="ey" style="font-size:11px">documento de trabajo</span></p>
+    <p class="byline"><span class="mono">Sergio Morales</span> · Universidad de Ingeniería y Tecnología (UTEC) · Julio 2026 · <span class="ey" style="font-size:11px">documento de trabajo</span></p>
     <p class="abstract">Se caracterizó experimentalmente la respuesta dinámica de la mano robótica Inspire RH56DFTP (comunicación Modbus RTU a 115 200 baud) con experimentos de <b>hardware en el lazo</b>. El hallazgo central: el <b>sobreimpulso de fuerza</b> al cerrar los dedos está dominado por la velocidad de cierre —llega a <b>triplicar la fuerza deseada</b>— y una estrategia de aproximación <b>híbrida</b> (rápida hasta el borde del contacto, luego lenta) lo reduce <b>~68×</b>. Se cuantificaron además la latencia comando→sensor, la respuesta al escalón y la repetibilidad del contacto para fijar los parámetros de dicha estrategia.</p>
   </header>
 
@@ -209,7 +209,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los demás dedos, e integración de la política híbrida en el lazo de agarre.</p>
   </section>
 
-  <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU. Reemplazar el nombre del autor según corresponda.</p>
+  <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU.</p>
 
 </div>'''
 

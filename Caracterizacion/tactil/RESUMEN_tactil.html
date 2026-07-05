@@ -1,0 +1,171 @@
+<title>Caracterización del sensor táctil RH56DFTP — Resultados iniciales</title>
+<style>
+  :root{--ink:#12181f;--muted:#5a6472;--hair:#dbe2ec;--acc:#285F97;--amber:#B4740F;
+    --bg:#f6f8fb;--panel:#ffffff;--soft:#eef2f7;}
+  *{box-sizing:border-box;}
+  .wrap{max-width:880px;margin:0 auto;padding:52px 26px 72px;color:var(--ink);background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.62;font-size:16px;}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;font-variant-numeric:tabular-nums;}
+  .b{font-weight:600;} .ey{letter-spacing:.14em;text-transform:uppercase;}
+  .eyebrow{font-size:12px;letter-spacing:.24em;text-transform:uppercase;color:var(--acc);font-weight:600;}
+  h1{font-size:33px;line-height:1.12;margin:.5rem 0 .4rem;letter-spacing:-.015em;text-wrap:balance;max-width:22ch;}
+  .byline{color:var(--muted);font-size:14px;margin:0 0 22px;}
+  .byline .mono{color:var(--ink);}
+  .abstract{font-size:17px;max-width:64ch;margin:0;color:#333b45;}
+  .abstract b{color:var(--ink);}
+  h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);font-weight:700;
+    margin:0 0 4px;display:flex;align-items:baseline;gap:10px;}
+  h2 .tag{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);
+    letter-spacing:0;text-transform:none;border:1px solid var(--hair);border-radius:20px;padding:1px 8px;}
+  h3{font-size:20px;margin:.1rem 0 .5rem;letter-spacing:-.01em;text-wrap:balance;}
+  section{margin:30px 0;}
+  p{margin:.5rem 0;}
+  .rule{height:1px;background:var(--hair);border:0;margin:30px 0;}
+  .lead{font-size:16.5px;}
+  ul{margin:.5rem 0;padding-left:1.1rem;} li{margin:.28rem 0;}
+  strong,b{font-weight:600;}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:24px 0 4px;}
+  @media(max-width:640px){.kpis{grid-template-columns:repeat(2,1fr);}}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:11px;padding:15px 15px 13px;}
+  .kpi .n{font-size:22px;font-weight:600;letter-spacing:-.015em;line-height:1.1;}
+  .kpi .n .u{font-size:13px;color:var(--muted);font-weight:500;}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.35;}
+  .method{background:var(--soft);border:1px solid var(--hair);border-radius:11px;padding:16px 18px;
+    font-size:14px;color:#3a434e;}
+  .method .h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px;}
+  .method code,.foot code,p code,li code{font-family:ui-monospace,Menlo,monospace;font-size:.86em;
+    background:var(--soft);padding:1px 5px;border-radius:4px;color:var(--ink);}
+  figure{margin:20px 0 6px;background:var(--panel);border:1px solid var(--hair);border-radius:11px;padding:16px 16px 8px;}
+  svg{width:100%;height:auto;display:block;}
+  figcaption{font-size:12.5px;color:var(--muted);margin-top:10px;}
+  figcaption b{color:var(--ink);}
+  .foot{font-size:12.5px;color:var(--muted);border-top:1px solid var(--hair);margin-top:34px;padding-top:16px;}
+  a{color:var(--acc);}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin:4px 0;}
+  caption{caption-side:top;text-align:left;font-size:12.5px;color:var(--muted);margin-bottom:9px;line-height:1.5;}
+  caption b{color:var(--ink);}
+  th,td{text-align:right;padding:7px 9px;border-bottom:1px solid var(--hair);}
+  th:first-child,td:first-child{text-align:left;}
+  thead th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .tbl-wrap{overflow-x:auto;margin:18px 0 6px;}
+  .future{background:var(--soft);border:1px solid var(--hair);border-radius:11px;padding:6px 20px 10px;}
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ink:#e8edf3;--muted:#9aa6b4;--hair:#2a323d;--bg:#0f1319;--panel:#161b22;--soft:#1a2027;--acc:#5b9bd8;--amber:#d29a3e;}
+    :root:not([data-theme="light"]) .abstract{color:#c4ccd6;}
+    :root:not([data-theme="light"]) .method{color:#b6bfca;}}
+  :root[data-theme="dark"]{--ink:#e8edf3;--muted:#9aa6b4;--hair:#2a323d;--bg:#0f1319;--panel:#161b22;--soft:#1a2027;--acc:#5b9bd8;--amber:#d29a3e;}
+  :root[data-theme="dark"] .abstract{color:#c4ccd6;} :root[data-theme="dark"] .method{color:#b6bfca;}
+</style>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Trabajo de tesis · Resultados iniciales</div>
+    <h1>Caracterización del sensor táctil de la mano Inspire RH56DFTP</h1>
+    <p class="byline"><span class="mono">Sergio Morales</span> · Universidad de Ingeniería y Tecnología (UTEC) · Julio 2026 · <span class="ey" style="font-size:11px">documento de trabajo</span></p>
+    <p class="abstract">Se caracterizó el <b>sensor táctil resistivo</b> de la mano Inspire RH56DFTP —<b>17 zonas, 1062 taxeles</b> (crudo 0–4095)— a nivel de señal, con experimentos de <b>hardware en el lazo</b> por fases. Resultados: la lectura sostiene <b>2.9 Hz</b> de frame completo y <b>32.4 Hz</b> por zona (lo que gatea qué mediciones son factibles); el <b>piso de ruido es casi cero</b> (93% de los taxeles no fluctúan); la <b>deriva del cero sin carga es despreciable</b> y bajo carga hay <b>creep ~1% con recuperación completa</b> — de donde se concluye que un <b>cero fijo de sesión es adecuado</b>. Se detectó además <b>una zona muerta</b> (yema del dedo medio). Restan la calibración crudo→fuerza y el benchmark funcional.</p>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">1062<span class="u"> taxeles</span></div><div class="l">17 zonas · 1 registro/taxel · crudo 0–4095</div></div>
+    <div class="kpi"><div class="n">2.9 / 32.4<span class="u"> Hz</span></div><div class="l">muestreo frame completo / zona única</div></div>
+    <div class="kpi"><div class="n">93<span class="u"> %</span></div><div class="l">taxeles con ruido σ = 0 (piso ~cero)</div></div>
+    <div class="kpi"><div class="n">cero fijo<span class="u"> ✓</span></div><div class="l">deriva ~0 · creep ~1% · recuperación completa</div></div>
+  </div>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Contexto y objetivo</h2>
+    <p class="lead">El táctil de la RH56DFTP es <b>resistivo</b>, con 17 zonas repartidas en dedos y palma (1062 taxeles, crudo 0–4095 sin unidades). Antes de usarlo como canal de fuerza en un estado multimodal hay que <b>validarlo a nivel de señal</b>: conocer su ruido, su deriva (los resistivos derivan al cargarse/calentarse), su repetibilidad y su calibración. Este documento resume la <b>Fase 0</b> (mapa vivo / compuerta) y la <b>Fase A1</b> (ruido, deriva y creep) completadas sobre la mano física, y deja planteado lo que resta (A2, A3, Fase B).</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Método</h2>
+    <h3>Adquisición por fases, con dependencia A→B</h3>
+    <p><b>Adquisición.</b> Modbus RTU a 115 200 baud, un solo proceso/hilo/cliente con <b>lazo intercalado</b>, y marcas de tiempo con <code>time.perf_counter()</code>. Cada taxel es <b>1 registro de 16 bits</b> (crudo 0–4095), decodificado con signo. El frame completo son <b>17 transacciones secuenciales</b>; la lectura de <b>zona única</b> es mucho más rápida. Se registra la temperatura de los actuadores (<code>TEMP</code>, reg 1618) como proxy térmico. Todo corre <b>fuera de la interfaz gráfica</b> y es reproducible desde los CSV.</p>
+    <p><b>Fase 0 · mapa vivo.</b> Baseline en reposo, barrido manual guiado zona por zona (con re-baseline por zona para des-confundir el cross-talk), diagnóstico de taxeles muertos/pegados/ruidosos, y medición de tasas.</p>
+    <p><b>A1.1 · ruido.</b> ~3 min en reposo; media y σ por taxel; fija el umbral de contacto <code>thr = max(k·σ, abs_floor)</code>.</p>
+    <p><b>A1.2 · deriva.</b> 25 min desde frío (tras encender); baseline por taxel/zona vs tiempo y temperatura.</p>
+    <p><b>A1.3 · creep.</b> Peso constante conocido sobre una zona; registro continuo carga→hold→retiro→recuperación (zona única); respuesta = suma del crudo sobre baseline en el parche cargado.</p>
+    <div class="method">
+      <div class="h">Definición de métricas</div>
+      <b>σ (ruido)</b>: desviación por taxel en reposo. &nbsp;·&nbsp; <b>abs_floor</b>: piso empírico del umbral = ⌈p99.9 de la excursión⌉. &nbsp;·&nbsp; <b>Deriva</b>: |μ_fin − μ_inicio| del baseline. &nbsp;·&nbsp; <b>Creep</b>: (R1 − R0)/R0 de la respuesta bajo carga constante. &nbsp;·&nbsp; <b>Residual</b>: respuesta remanente tras retirar la carga.
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Fase 0 <span class="tag">mapa vivo · compuerta</span></h2>
+    <h3>Inventario del sensor y qué muestreo es factible</h3>
+    <p>El frame completo se muestrea a <b>2.9 Hz</b> (17 transacciones) y una zona única a <b>32.4 Hz</b>. Esta diferencia <b>gatea</b> la caracterización: todo lo cuasi-estático (baseline, deriva, calibración) usa el frame; la respuesta temporal debe medirse por <b>zona única</b>, y aun así el flanco rápido de carga queda al límite del harness. Se detectó <b>1 zona muerta por hardware</b> (z6 · yema del dedo medio, 9 taxeles), excluida de todo análisis. El cross-talk entre zonas es <b>bajo (≤ 5%)</b>, dominado por adyacencia mismo-dedo.</p>
+    <figure>
+      <svg viewBox="0 0 720 150" role="img" aria-label="Tasas de muestreo"><text x="248" y="47" text-anchor="end" font-size="12.5" fill="var(--muted)">Frame completo · 17 zonas (1062 tax)</text><rect x="258" y="26" width="31.3" height="34" rx="4" fill="var(--amber)"/><text x="298" y="48" font-size="15" font-weight="600" fill="var(--ink)">2.9 Hz</text><text x="248" y="107" text-anchor="end" font-size="12.5" fill="var(--muted)">Zona única · 96 tax (Índice·Distal)</text><rect x="258" y="86" width="349.2" height="34" rx="4" fill="var(--acc)"/><text x="616" y="108" font-size="15" font-weight="600" fill="var(--ink)">32.4 Hz</text><text x="258" y="140" font-size="11" fill="var(--muted)">Nyquist 1.45 Hz (frame) vs 16 Hz (zona) — el frame gatea lo cuasi-estático; la zona única habilita respuesta temporal.</text></svg>
+      <figcaption><b>Figura 1.</b> Tasas de muestreo medidas. La lectura por zona única (~11×) es la que habilita medir tiempos de respuesta.</figcaption>
+    </figure>
+    <div class="tbl-wrap"><table><caption><b>Tabla 1.</b> Diagnóstico de taxeles (Fase 0, screening): el barrido manual certifica respuesta a nivel de zona; certificar taxeles muertos individuales en zonas grandes queda para A3/B con indentador.</caption><thead><tr><th>Estado</th><th>Taxeles</th><th>% del total</th><th>Interpretación</th></tr></thead><tbody><tr><td class="b">OK</td><td class="mono">919</td><td class="mono">86.5%</td><td style="text-align:left">responden y baseline limpio</td></tr><tr><td class="b">Ruidosos</td><td class="mono">39</td><td class="mono">3.7%</td><td style="text-align:left">los ~7% con algo de fluctuación en reposo (σ ≤ 15 counts)</td></tr><tr><td class="b">Sin respuesta</td><td class="mono">93</td><td class="mono">8.8%</td><td style="text-align:left">mayormente <b>cobertura</b> del barrido manual en zonas grandes, no muertos</td></tr><tr><td class="b">Sin evaluar</td><td class="mono">9</td><td class="mono">0.8%</td><td style="text-align:left">z6 Medio·Punta, <b>muerta por hardware</b> (excluida)</td></tr><tr><td class="b">Anómalos</td><td class="mono">2</td><td class="mono">0.2%</td><td style="text-align:left">artefactos de deriva del baseline (2 taxeles)</td></tr></tbody></table></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Fase A1.1 <span class="tag">ruido · umbral</span></h2>
+    <h3>El piso de ruido es casi cero</h3>
+    <p>En 3 min de reposo, <b>el 93% de los 958 taxeles buenos no fluctúan ni un count</b> (σ = 0); el más ruidoso llega a 14.5 counts (0.35% del fondo de escala). Esto da un canal muy sensible: el umbral de contacto <code>thr = max(5·σ, 41)</code> queda gobernado por un piso empírico de <b>41 counts (~1% FS)</b>.</p>
+    <figure>
+      <svg viewBox="0 0 720 260" role="img" aria-label="Distribución de σ"><line x1="44" y1="214.0" x2="700" y2="214.0" stroke="var(--hair)"/><text x="36" y="218.0" text-anchor="end" font-size="11" fill="var(--muted)">0%</text><line x1="44" y1="166.0" x2="700" y2="166.0" stroke="var(--hair)"/><text x="36" y="170.0" text-anchor="end" font-size="11" fill="var(--muted)">25%</text><line x1="44" y1="118.0" x2="700" y2="118.0" stroke="var(--hair)"/><text x="36" y="122.0" text-anchor="end" font-size="11" fill="var(--muted)">50%</text><line x1="44" y1="70.0" x2="700" y2="70.0" stroke="var(--hair)"/><text x="36" y="74.0" text-anchor="end" font-size="11" fill="var(--muted)">75%</text><line x1="44" y1="22.0" x2="700" y2="22.0" stroke="var(--hair)"/><text x="36" y="26.0" text-anchor="end" font-size="11" fill="var(--muted)">100%</text><rect x="65.0" y="35.4" width="89.2" height="178.6" rx="3" fill="var(--acc)"/><text x="109.6" y="29.4" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">93%</text><text x="109.6" y="232.0" text-anchor="middle" font-size="11.5" fill="var(--muted)">σ = 0</text><rect x="196.2" y="209.2" width="89.2" height="4.8" rx="3" fill="var(--amber)"/><text x="240.8" y="203.2" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">3%</text><text x="240.8" y="232.0" text-anchor="middle" font-size="11.5" fill="var(--muted)">0 < σ ≤ 1</text><rect x="327.4" y="207.6" width="89.2" height="6.4" rx="3" fill="var(--amber)"/><text x="372.0" y="201.6" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">3%</text><text x="372.0" y="232.0" text-anchor="middle" font-size="11.5" fill="var(--muted)">1 < σ ≤ 5</text><rect x="458.6" y="212.0" width="89.2" height="2.0" rx="3" fill="var(--amber)"/><text x="503.2" y="206.0" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">1%</text><text x="503.2" y="232.0" text-anchor="middle" font-size="11.5" fill="var(--muted)">5 < σ ≤ 10</text><rect x="589.8" y="213.8" width="89.2" height="0.2" rx="3" fill="var(--amber)"/><text x="634.4" y="207.8" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">1</text><text x="634.4" y="232.0" text-anchor="middle" font-size="11.5" fill="var(--muted)">σ > 10</text><text x="44" y="252" font-size="11" fill="var(--muted)">958 taxeles buenos · σ en counts (0–4095) · máx 14.5 · umbral de contacto abs_floor = 41 counts</text></svg>
+      <figcaption><b>Figura 2.</b> Distribución del ruido σ por taxel (solo taxeles buenos). La abrumadora mayoría está en σ = 0; el ruido se concentra en un ~7% con algo de offset en reposo.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Fase A1.2 <span class="tag">deriva sin carga</span></h2>
+    <h3>Sin carga, el cero no se mueve — aunque el sensor se caliente</h3>
+    <p>Registrando 25 min <b>desde frío</b> (el índice sube de 28 a 36 °C, ΔT +8), el baseline del táctil se corre <b>~0.5 counts en total</b>: el 95% de los taxeles no derivan nada. La leve subida correlaciona con la temperatura, pero su magnitud (medio count) es <b>irrelevante</b> frente al umbral de 41 counts. La deriva resistiva <b>no es térmica/de asentamiento sin carga</b>.</p>
+    <figure>
+      <svg viewBox="0 0 720 260" role="img" aria-label="Deriva del baseline y temperatura"><line x1="52" y1="220.0" x2="666" y2="220.0" stroke="var(--hair)"/><text x="44" y="224.0" text-anchor="end" font-size="10.5" fill="var(--acc)">0.0</text><line x1="52" y1="170.5" x2="666" y2="170.5" stroke="var(--hair)"/><text x="44" y="174.5" text-anchor="end" font-size="10.5" fill="var(--acc)">0.5</text><line x1="52" y1="121.0" x2="666" y2="121.0" stroke="var(--hair)"/><text x="44" y="125.0" text-anchor="end" font-size="10.5" fill="var(--acc)">1.0</text><line x1="52" y1="71.5" x2="666" y2="71.5" stroke="var(--hair)"/><text x="44" y="75.5" text-anchor="end" font-size="10.5" fill="var(--acc)">1.5</text><line x1="52" y1="22.0" x2="666" y2="22.0" stroke="var(--hair)"/><text x="44" y="26.0" text-anchor="end" font-size="10.5" fill="var(--acc)">2.0</text><text x="674" y="195.7" font-size="10.5" fill="var(--amber)">28°</text><text x="674" y="139.1" font-size="10.5" fill="var(--amber)">32°</text><text x="674" y="82.6" font-size="10.5" fill="var(--amber)">36°</text><text x="674" y="26.0" font-size="10.5" fill="var(--amber)">40°</text><text x="52.0" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">0</text><text x="174.8" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">5</text><text x="297.6" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">10</text><text x="420.4" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">15</text><text x="543.2" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">20</text><text x="665.9" y="236.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">25</text><polyline points="58.3,191.7 64.4,163.4 70.6,163.4 76.7,163.4 82.8,163.4 89.0,163.4 95.1,163.4 101.3,163.4 107.4,163.4 113.5,163.4 119.8,163.4 126.0,163.4 132.1,163.4 138.4,163.4 144.6,163.4 150.9,135.1 157.0,135.1 163.2,135.1 169.3,135.1 175.5,135.1 181.6,135.1 187.7,135.1 193.9,135.1 200.0,135.1 206.2,135.1 212.3,135.1 218.5,135.1 224.6,135.1 230.7,135.1 236.9,135.1 243.0,135.1 249.2,135.1 255.3,135.1 261.4,135.1 267.6,106.9 273.8,135.1 280.0,106.9 286.1,106.9 292.3,106.9 298.4,106.9 304.6,106.9 310.7,106.9 316.8,106.9 323.0,106.9 329.1,106.9 335.3,106.9 341.4,106.9 347.5,106.9 353.7,106.9 360.0,106.9 366.1,106.9 372.2,106.9 378.4,106.9 384.5,106.9 390.7,106.9 396.8,106.9 402.9,106.9 409.1,106.9 415.2,106.9 421.4,106.9 427.5,106.9 433.6,106.9 439.8,78.6 445.9,78.6 452.1,78.6 458.2,78.6 464.3,78.6 470.5,78.6 476.6,78.6 482.8,78.6 488.9,78.6 495.1,78.6 501.3,78.6 507.5,78.6 513.6,78.6 519.7,78.6 525.9,78.6 532.0,78.6 538.2,78.6 544.3,78.6 550.5,78.6 556.6,78.6 562.7,78.6 568.9,78.6 575.0,78.6 581.3,78.6 587.4,78.6 593.6,78.6 599.7,78.6 605.8,78.6 612.0,78.6 618.1,78.6 624.3,78.6 630.4,78.6 636.6,78.6 642.7,78.6 648.8,78.6 655.0,78.6 661.1,78.6 666.0,78.6" fill="none" stroke="var(--amber)" stroke-width="2"/><polyline points="58.3,162.2 64.4,160.7 70.6,159.8 76.7,160.8 82.8,160.2 89.0,160.6 95.1,147.9 101.3,139.7 107.4,140.3 113.5,140.6 119.8,139.8 126.0,140.0 132.1,140.0 138.4,138.3 144.6,138.9 150.9,138.8 157.0,139.1 163.2,138.3 169.3,138.6 175.5,137.8 181.6,135.6 187.7,135.6 193.9,136.7 200.0,135.4 206.2,134.8 212.3,134.9 218.5,134.7 224.6,132.5 230.7,131.5 236.9,132.0 243.0,130.3 249.2,130.8 255.3,129.7 261.4,128.3 267.6,127.6 273.8,128.1 280.0,128.8 286.1,128.3 292.3,127.2 298.4,126.7 304.6,127.3 310.7,128.4 316.8,131.7 323.0,129.2 329.1,130.6 335.3,132.0 341.4,130.9 347.5,129.6 353.7,128.2 360.0,130.2 366.1,128.9 372.2,126.0 378.4,125.9 384.5,125.0 390.7,126.2 396.8,125.9 402.9,127.7 409.1,129.3 415.2,129.8 421.4,129.2 427.5,130.7 433.6,129.2 439.8,129.5 445.9,128.6 452.1,128.1 458.2,127.2 464.3,129.0 470.5,129.5 476.6,127.4 482.8,126.0 488.9,124.6 495.1,123.2 501.3,126.5 507.5,135.8 513.6,122.4 519.7,119.7 525.9,119.9 532.0,120.3 538.2,122.9 544.3,121.3 550.5,120.2 556.6,120.2 562.7,123.1 568.9,123.7 575.0,124.3 581.3,122.9 587.4,121.1 593.6,120.0 599.7,119.5 605.8,120.0 612.0,120.8 618.1,117.9 624.3,116.8 630.4,116.9 636.6,117.9 642.7,116.2 648.8,117.5 655.0,119.4 661.1,116.8 666.0,115.6" fill="none" stroke="var(--acc)" stroke-width="2.2"/><rect x="58" y="24" width="11" height="11" fill="var(--acc)"/><text x="74" y="34" font-size="11.5" fill="var(--ink)">baseline (counts)</text><rect x="202" y="24" width="11" height="11" fill="var(--amber)"/><text x="218" y="34" font-size="11.5" fill="var(--ink)">temp índice (°C)</text><text x="359" y="254" text-anchor="middle" font-size="11" fill="var(--muted)">tiempo (min) — baseline plano (Δ ≈ +0.5 counts) pese a ΔT ≈ +8 °C</text></svg>
+      <figcaption><b>Figura 3.</b> Baseline medio de los taxeles buenos (azul, eje izq.) y temperatura del actuador índice (ámbar, eje der.) durante 25 min. El baseline queda plano mientras la temperatura sube ~8 °C.</figcaption>
+    </figure>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Fase A1.3 <span class="tag">creep · recuperación</span></h2>
+    <h3>Bajo carga: creep despreciable y recuperación completa</h3>
+    <p>Con un peso constante de <b>256 g</b> sobre la palma, la respuesta se mantiene <b>plana (creep ~1% en 4 min)</b> y, al retirar el peso, <b>vuelve al cero en menos de 0.4 s con residual 0</b>. (Una primera corrida mostró un "+29%" que resultó ser <b>asentamiento mecánico</b> de la carga mal apoyada, no creep del sensor — un recordatorio de montar el contacto estable y plano.) Esto contrasta con un residual observado en Fase 0 tras contactos <b>muy duros</b> en una yema: el residual es <b>dependiente de la carga y la zona</b>, y no aparece a cargas moderadas.</p>
+    <figure>
+      <svg viewBox="0 0 720 270" role="img" aria-label="Creep y recuperación"><line x1="52" y1="232.0" x2="702" y2="232.0" stroke="var(--hair)"/><text x="44" y="236.0" text-anchor="end" font-size="10.5" fill="var(--muted)">0</text><line x1="52" y1="180.5" x2="702" y2="180.5" stroke="var(--hair)"/><text x="44" y="184.5" text-anchor="end" font-size="10.5" fill="var(--muted)">400</text><line x1="52" y1="129.0" x2="702" y2="129.0" stroke="var(--hair)"/><text x="44" y="133.0" text-anchor="end" font-size="10.5" fill="var(--muted)">800</text><line x1="52" y1="77.5" x2="702" y2="77.5" stroke="var(--hair)"/><text x="44" y="81.5" text-anchor="end" font-size="10.5" fill="var(--muted)">1200</text><line x1="52" y1="26.0" x2="702" y2="26.0" stroke="var(--hair)"/><text x="44" y="30.0" text-anchor="end" font-size="10.5" fill="var(--muted)">1600</text><text x="52.0" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">0</text><text x="133.3" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">60</text><text x="214.5" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">120</text><text x="295.8" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">180</text><text x="377.0" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">240</text><text x="458.3" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">300</text><text x="539.5" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">360</text><text x="620.8" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">420</text><text x="702.1" y="248.0" text-anchor="middle" font-size="10.5" fill="var(--muted)">480</text><line x1="377.0" y1="26" x2="377.0" y2="232" stroke="var(--amber)" stroke-width="1.3" stroke-dasharray="4 3"/><text x="371.0" y="38" text-anchor="end" font-size="11" fill="var(--amber)">retiro del peso</text><polyline points="52.0,47.5 54.7,47.2 57.4,45.4 60.1,44.9 62.8,45.4 65.5,43.9 68.2,44.3 70.9,43.9 73.7,43.6 76.3,45.7 79.1,45.1 81.8,44.7 84.5,46.2 87.2,44.7 89.9,45.7 92.6,46.2 95.3,45.3 98.0,46.6 100.7,46.5 103.4,41.3 106.2,44.5 108.8,44.7 111.6,44.2 114.3,44.2 117.0,43.3 119.7,43.9 122.4,47.2 125.1,43.0 127.8,41.1 130.5,40.4 133.2,41.6 136.0,40.7 138.7,40.9 141.4,40.7 144.1,41.3 146.8,41.6 149.5,41.1 152.2,41.6 154.9,41.4 157.6,44.4 160.3,42.1 163.0,43.0 165.7,46.0 168.5,45.1 171.1,45.7 173.9,46.6 176.6,48.8 179.3,50.1 182.0,45.4 184.7,45.6 187.4,46.1 190.1,45.7 192.8,47.4 195.5,46.9 198.2,46.7 201.0,46.5 203.6,45.8 206.4,46.3 209.1,46.1 211.8,46.9 214.5,46.3 217.2,47.5 219.9,47.0 222.6,45.3 225.4,45.4 228.0,45.2 230.8,45.1 233.5,45.2 236.2,44.8 238.9,46.5 241.6,45.3 244.3,43.3 247.0,44.2 249.7,49.7 252.4,44.8 255.1,44.8 257.8,43.6 260.5,48.0 263.3,44.8 265.9,44.7 268.7,44.0 271.4,43.8 274.1,43.8 276.8,45.3 279.5,45.7 282.2,43.4 284.9,46.7 287.6,51.0 290.3,43.3 293.0,43.3 295.8,45.3 298.5,46.0 301.2,44.9 303.9,44.9 306.6,45.6 309.3,45.2 312.0,44.0 314.7,45.1 317.4,44.4 320.2,44.8 322.8,46.0 325.6,41.6 328.3,45.1 331.0,45.4 333.7,45.4 336.4,44.2 339.1,44.8 341.8,44.0 344.5,44.0 347.2,42.0 349.9,42.5 352.6,44.8 355.3,42.1 358.1,45.1 360.8,45.3 363.5,44.4 366.2,44.3 368.9,44.7 371.6,45.7 374.3,44.9 377.0,45.4 377.3,44.5 377.5,44.2 377.8,45.1 378.1,45.2 378.3,42.2 378.6,41.4 378.9,41.8 379.1,50.3 379.4,42.0 379.7,44.9 379.9,42.2 380.2,232.0 380.5,232.0 380.8,232.0 381.0,232.0 381.3,232.0 381.6,232.0 381.9,232.0 382.1,232.0 382.4,232.0 382.7,232.0 382.9,232.0 383.2,232.0 383.5,232.0 383.8,232.0 384.0,232.0 384.3,232.0 384.6,232.0 384.9,232.0 385.1,232.0 385.4,232.0 385.7,232.0 385.9,232.0 386.2,232.0 386.5,232.0 386.7,232.0 387.0,232.0 387.3,232.0 387.5,232.0 387.8,232.0 395.7,232.0 403.5,232.0 411.4,232.0 419.2,232.0 427.1,232.0 434.9,232.0 442.8,232.0 450.6,232.0 458.5,232.0 466.4,232.0 474.2,232.0 482.1,232.0 489.9,232.0 497.8,232.0 505.6,232.0 513.5,232.0 521.3,232.0 529.2,232.0 537.0,232.0 544.9,232.0 552.8,232.0 560.6,232.0 568.5,232.0 576.3,232.0 584.2,232.0 592.0,232.0 599.9,232.0 607.7,232.0 615.6,232.0 623.5,232.0 631.3,232.0 639.2,232.0 647.0,232.0 654.9,232.0 662.7,232.0 670.6,232.0 678.4,232.0 686.3,232.0 694.1,232.0" fill="none" stroke="var(--acc)" stroke-width="2.2"/><text x="214" y="33" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--ink)">HOLD · creep +1%</text><text x="431" y="217" font-size="11.5" font-weight="600" fill="var(--ink)">recuperación &lt;0.4 s · residual 0</text><text x="377" y="264" text-anchor="middle" font-size="11" fill="var(--muted)">tiempo (s) — palma (z16), 256 g · respuesta = suma del crudo sobre baseline</text></svg>
+      <figcaption><b>Figura 4.</b> Respuesta de la palma a carga constante: hold plano (creep ~1%) y, tras el retiro (línea ámbar), recuperación inmediata a cero sin residual.</figcaption>
+    </figure>
+    <div class="tbl-wrap"><table><caption><b>Tabla 2.</b> Métricas de la Fase A1 (nivel sensor) y su implicación para la estrategia de cero.</caption><thead><tr><th>Sub-experimento</th><th>Resultado medido</th><th>Implicación</th></tr></thead><tbody><tr><td class="b" style="text-align:left">A1.1 — Ruido / umbral</td><td class="mono" style="text-align:left">93% de taxeles con σ = 0; máx 14.5 counts</td><td style="text-align:left">umbral de contacto <span class="mono">thr = max(5σ, 41)</span> (~1% FS)</td></tr><tr><td class="b" style="text-align:left">A1.2 — Deriva sin carga</td><td class="mono" style="text-align:left">≈ +0.5 counts en 25 min (desde frío, ΔT +8 °C)</td><td style="text-align:left">el cero <b>sin tocar</b> es estable</td></tr><tr><td class="b" style="text-align:left">A1.3 — Creep / recuperación</td><td class="mono" style="text-align:left">creep ~1% en 4 min · recuperación &lt; 0.4 s, residual 0</td><td style="text-align:left">el cero <b>vuelve</b> tras contacto moderado</td></tr></tbody></table></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Conclusión de la Fase A1 <span class="tag">decisión de re-cero</span></h2>
+    <p class="lead">Con el baseline estable sin carga (A1.2) y el creep despreciable con recuperación completa (A1.3), se concluye que <b>un cero fijo de sesión (una tara al inicio) es adecuado</b> para el canal táctil; no hace falta un baseline adaptativo por-toque. Como red de seguridad barata se contempla un <b>re-cero oportunista periódico</b> (refrescar el baseline cuando la mano esté ociosa), por el residual que aparece tras contactos duros. Para la calibración (A3), el crudo mapea bien a fuerza una vez asentado el contacto, leyendo a un <b>tiempo de permanencia consistente</b>.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Trabajo futuro <span class="tag">pendiente</span></h2>
+    <div class="future">
+    <ul>
+      <li><b>A2 — Repetibilidad e histéresis.</b> Carga cíclica con pesos escalonados (subida y bajada) usando un <b>jig de posicionamiento repetible</b>: error de repetibilidad por nivel, lazo de histéresis carga-vs-descarga, y tiempos de respuesta asimétricos (carga/descarga) por zona única. Decide si una sola curva de calibración sirve o hay que separar rama de carga.</li>
+      <li><b>A3 — Calibración crudo→fuerza/presión.</b> Rig de ground-truth: <b>indentador plano de área conocida</b> + pesos calibrados. Ajuste del modelo (los resistivos suelen ser no lineales): sensibilidad, rango, resolución y R², en <b>al menos una zona de cada tipo de grid</b> (punta 3×3, distal 12×8, palmar 10×8, palma 14×8). Es el entregable que vuelve <b>cuantitativo</b> el canal táctil.</li>
+      <li><b>Fase B — Benchmark funcional.</b> Resolución espacial y cross-talk fino (point-spread, discriminación de dos puntos), umbral mínimo de fuerza detectable por zona, y localización/discriminación de forma (punto vs borde vs área).</li>
+      <li><b>Verificación pendiente.</b> Caracterizar el residual tras contactos <b>duros</b> en yemas (reconciliar con Fase 0) para afinar la política de re-cero, y confirmar el mapa de taxeles muertos con el indentador de A3.</li>
+    </ul>
+    </div>
+  </section>
+
+  <p class="foot">Documento de trabajo — resultados iniciales de tesis (caracterización táctil). Datos, código y este resumen reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span> (<code>Caracterizacion/tactil/</code>). Hardware: Inspire Hand RH56DFTP · táctil resistivo, 17 zonas.</p>
+
+</div>

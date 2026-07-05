@@ -8,8 +8,8 @@ hardware-in-the-loop:
   del umbral de contacto.
 - **A1.2 — Deriva sin carga desde frío** (`a1_drift.py`) — **[implementado]**
   20–30 min desde frío, con temperatura.
-- **A1.3 — Creep y recuperación bajo carga constante** — *pendiente* (la más
-  crítica: Fase 0 ya vio ~6% FS de no-recuperación).
+- **A1.3 — Creep y recuperación bajo carga constante** (`a1_creep.py`) —
+  **[implementado]** la más crítica (Fase 0 ya vio ~6% FS de no-recuperación).
 
 Standalone (sin PyQt): un proceso/hilo/cliente Modbus, `time.perf_counter()`,
 estado seguro al salir. **Correr con la GUI CERRADA.** Reutiliza
@@ -124,9 +124,58 @@ sesión no basta** → baseline adaptativo.
 
 ---
 
-## Después de A1.1/A1.2
+## A1.3 — Creep y recuperación bajo carga constante (`a1_creep.py`)
 
-Pega la salida de consola + adjunta los CSV. Falta **A1.3** (creep/recuperación
-con peso constante) — cuyos umbrales dependen del `abs_floor` de A1.1. La
-**decisión de re-cero** (cero fijo vs baseline adaptativo) se toma al **cerrar
-A1**, con la deriva de A1.2 y el creep de A1.3 como evidencia principal.
+Aplica un **peso calibrado constante** sobre una zona y mide (a) **creep** — cómo
+cambia el crudo bajo fuerza constante durante el hold — y (b) **recuperación** —
+al retirar el peso, ¿vuelve al baseline?, ¿qué offset residual queda y en cuánto
+se disipa? Es **la evidencia decisiva del re-cero**: Fase 0 ya vio ~6% FS de
+no-recuperación tras un contacto.
+
+Lee **una sola zona** (~32 Hz, mejor resolución de los transitorios). Respuesta de
+zona = **suma del crudo sobre baseline en el parche de taxeles cargados**
+(robusta a la colocación). Excluye los muertos de Fase 0.
+
+### Montaje
+
+- La **zona objetivo hacia arriba** y plana, para que el peso apoye estable y
+  cargue siempre los mismos taxeles.
+- Un **peso calibrado** (p. ej. 50–200 g). Pásalo con `--load-g` (`F = m·g`).
+- Zona por defecto **z10 (Índice·Distal, 12×8)** — el dedo de prueba; pad amplio.
+
+### Cómo correr
+
+```bash
+.venv/bin/python Caracterizacion/tactil/fase_a1/a1_creep.py \
+    --transport serial --serial-port /dev/ttyUSB0 --baud 115200 \
+    --zone 10 --load-g 100 --hold-mins 4 --recover-mins 4
+```
+
+Sigue los 3 prompts: **baseline** (sin peso) → **aplica el peso** → **retíralo**.
+
+| Flag | Def | Descripción |
+|---|---|---|
+| `--zone` | 10 | zona objetivo (10 = Índice·Distal) |
+| `--load-g` | — | masa del peso en g (para `F=m·g`; metadato) |
+| `--settle-s` | 30 | baseline en reposo antes de cargar |
+| `--hold-mins` | 4 | duración del hold bajo carga (creep) |
+| `--recover-mins` | 4 | duración de la recuperación tras retirar |
+| `--detect-thr` | 41 | umbral de subida para el parche (= abs_floor A1.1) |
+| `--edge-s` | 5 | ventana de medianas R0/R1/residual |
+| `--diag` | `../fase0/data/taxel_diagnosis.csv` | exclusión de Fase 0 |
+
+### Salida
+
+- Consola: parche detectado, **R0/R1 y creep %**, **residual %** y **tiempos de
+  recuperación** (≤50/10/5% de R0), y la **compuerta de re-cero**.
+- CSV `data/a1_creep_timeseries_z<zona>.csv`: `phase,t_s,response,temp_index` —
+  la curva completa de carga→creep→descarga→recuperación.
+
+---
+
+## Cierre de la Fase A1 — decisión de re-cero
+
+Con A1.1 (ruido/umbral), A1.2 (deriva sin carga) y A1.3 (creep/recuperación) se
+toma la **decisión de re-cero** (cero fijo de sesión vs baseline adaptativo /
+re-cero por-toque), que condiciona la calibración de A2/A3 y el pipeline
+multimodal. Pega las salidas + adjunta los CSV de las tres.

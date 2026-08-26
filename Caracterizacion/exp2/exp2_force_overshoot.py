@@ -456,6 +456,23 @@ def run_cell(hand, args):
     print(f" CSV: {path}")
 
 
+def check_no_overwrite(outdir, names):
+    """Aborta si algún CSV de trial ya existe: ampliar N debe AÑADIR, no pisar.
+
+    Los trials se numeran con `--trial-start`, así que una segunda tanda sobre la
+    misma carpeta tiene que arrancar donde terminó la primera.
+    """
+    clash = [n for n in names if os.path.exists(os.path.join(outdir, n))]
+    if clash:
+        print(f"ERROR: {len(clash)} trial(s) ya existen en {outdir} y se sobrescribirían, "
+              f"p. ej. {clash[0]}.", file=sys.stderr)
+        print(f"       Usa --trial-start para continuar la numeración "
+              f"(la tanda previa ocupa n=0..{len(clash)-1} o más), o escribe en otra carpeta.",
+              file=sys.stderr)
+        return False
+    return True
+
+
 # ── Grid modo A: campaña ─────────────────────────────────────────────────────
 
 def run_grid(hand, args):
@@ -464,11 +481,16 @@ def run_grid(hand, args):
     os.makedirs(args.outdir, exist_ok=True)
     speeds = [int(x) for x in args.speeds.split(',') if x.strip()]
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
-    order = [(v, F, n) for v in speeds for F in fsets for n in range(args.trials)]
+    n0 = args.trial_start
+    order = [(v, F, n) for v in speeds for F in fsets for n in range(n0, n0 + args.trials)]
     random.Random(args.seed).shuffle(order)
     total = len(order)
     print(f"Grid modo A sobre DOF {dof} ({DOF_NAMES[dof]}): {len(speeds)} v × "
-          f"{len(fsets)} Fset × {args.trials} = {total} trials (orden aleatorio).")
+          f"{len(fsets)} Fset × {args.trials} = {total} trials (orden aleatorio"
+          + (f", numerados desde n={n0}" if n0 else "") + ").")
+    if not check_no_overwrite(args.outdir, [f"A_dof{dof}_v{v}_F{F}_n{n:02d}.csv"
+                                            for v, F, n in order]):
+        return
     report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
 
     if not args.no_cal:
@@ -522,9 +544,13 @@ def run_hybrid(hand, args):
     hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
-    order = [(F, n) for F in fsets for n in range(args.trials)]
+    n0 = args.trial_start
+    order = [(F, n) for F in fsets for n in range(n0, n0 + args.trials)]
     random.Random(args.seed).shuffle(order)
     total = len(order)
+    if not check_no_overwrite(args.outdir, [f"B_dof{dof}_v{args.hybrid_speed}_F{F}_n{n:02d}.csv"
+                                            for F, n in order]):
+        return
     print(f"Modo B (híbrido) sobre DOF {dof} ({DOF_NAMES[dof]}): aproximación rápida a "
           f"{fmt_angle(args.approach_angle, dof)}, "
           f"luego cierre a v={args.hybrid_speed}.  {len(fsets)} Fset × {args.trials} = {total} trials.")
@@ -864,6 +890,9 @@ def parse_args(argv=None):
     p.add_argument('--speeds', default='25,50,100,250,500,750,1000', help='SPEED_SET a barrer')
     p.add_argument('--fsets', default='100,250,500,750,1000', help='FORCE_SET a barrer (g, calibrado)')
     p.add_argument('--trials', type=int, default=5, help='trials por celda (def 5, piloto)')
+    p.add_argument('--trial-start', type=int, default=0,
+                   help='primer índice de trial (def 0). Para AMPLIAR una campaña ya '
+                        'corrida sin pisarla: --trial-start 5 --trials 15 continúa n=5..19.')
     p.add_argument('--recal-every', type=int, default=20, help='recalibrar forceClb cada N trials (def 20)')
     p.add_argument('--seed', type=int, default=0, help='semilla del orden aleatorio')
     # modo B — híbrido

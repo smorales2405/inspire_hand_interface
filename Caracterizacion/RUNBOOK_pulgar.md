@@ -237,8 +237,33 @@ postura anclada. Antes de montarlo:
     --dof 4 --hold 5:0 --probe --no-block
 ```
 
-`--zero` debe dejar el reposo calibrado ≈0 g y un residual por flexión pequeño
-(en el índice: 241 g → 0, residual ~9 g). `--probe --no-block` da el `POS` libre
+### ✔ P2.1 HECHA (2026-08-25)
+
+| | índice (DOF 3) | pulgar (DOF 4) |
+|---|---|---|
+| `FORCE_ACT` en reposo, antes de la tara | 241 g | **11 g** |
+| tras `forceClb` | ~0 g | **0 g** |
+| residual por flexión (libre, `ANGLE_SET 300`) | ~9 g | **51 g** (a `POS 892`) |
+
+La tara funciona igual de bien, pero el reparto cambia: el pulgar arranca casi
+sin offset de reposo y en cambio acumula **~5× más residual por flexión** que el
+índice. Eso importa porque **`FORCE_SET` se compara contra la lectura CRUDA**:
+en la posición de contacto el firmware ya "ve" ~51 g antes de tocar nada, así
+que el umbral efectivo en fuerza externa es `Fset − residual`. Para `Fset = 100`
+eso es ~49 g — la mitad. En el índice la corrección era de 9 g y se podía
+ignorar; aquí **no**.
+
+Consecuencias, ya implementadas:
+
+- Cada trial del Exp 2 registra `f_base_g` (el residual medido en su propia
+  pre-posición, inmune a la deriva) en `grid_index.csv`, y `--cell` lo imprime
+  junto con el umbral externo efectivo.
+- `ΔF = F_max − Fset` **sigue siendo válido tal cual**: ambos términos están en
+  el marco crudo y el residual es ~constante durante el impacto, así que se
+  cancela. Lo que hay que corregir al interpretar es *dónde queda el umbral en
+  fuerza externa*, no la magnitud del sobreimpulso.
+- La curva completa `residual(POS)` sale de **P2.2**: es la diferencia
+  `F(POS) − F(abierto)`, que no depende de la tara. `--probe --no-block` da el `POS` libre
 máximo: el sondeo **con** bloque tiene que detenerse **antes** de ese valor —
 si coincide, el bloque está fuera de alcance.
 

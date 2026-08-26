@@ -324,10 +324,15 @@ def run_trial_A(hand, dof, speed, fset, args):
     # Baseline de los DOF ANCLADOS: se vigila la DESVIACIÓN, no el absoluto (ese
     # sensor tiene offset propio y se mueve con la postura del DOF bajo prueba).
     hold_base = {}
-    if hold_dofs:
-        reads = [fb for fb in (hand.read_block(FORCE_ACT) for _ in range(5)) if fb]
-        if reads:
-            hold_base = {d: statistics.median([r[d] for r in reads]) for d in hold_dofs}
+    reads = [fb for fb in (hand.read_block(FORCE_ACT) for _ in range(5)) if fb]
+    if hold_dofs and reads:
+        hold_base = {d: statistics.median([r[d] for r in reads]) for d in hold_dofs}
+    # Fuerza del DOF bajo prueba EN LA PRE-POSICIÓN, antes de cerrar: es el
+    # residual por flexión (sin contacto) en ese punto. `FORCE_SET` se compara
+    # contra la lectura CRUDA, así que el umbral efectivo en fuerza externa es
+    # Fset − f_base. En el índice ese residual era ~9 g (despreciable); en el
+    # pulgar P2.1 midió ~51 g, así que hay que registrarlo por trial.
+    f_base = statistics.median([r[dof] for r in reads]) if reads else None
 
     samples = []                 # (t, force, pos|None, cur|None)
     f_max = None; peak_t = None; onset_pos = None
@@ -399,7 +404,7 @@ def run_trial_A(hand, dof, speed, fset, args):
         'f_max': f_max, 'delta_f': (f_max - fset) if f_max is not None else None,
         'f_settle': f_settle, 't_peak_ms': (peak_t - t_cmd) * 1000 if peak_t else None,
         'onset_pos': onset_pos, 'aborted': aborted, 'abort_reason': abort_reason,
-        'f_max_hold': f_max_hold, 'start_pos': start_pos,
+        'f_max_hold': f_max_hold, 'start_pos': start_pos, 'f_base': f_base,
     }
 
 
@@ -439,6 +444,10 @@ def run_cell(hand, args):
           f"{trial['t_peak_ms']:.0f} ms" if trial['f_settle'] is not None else " F_régimen = —")
     print(f" onset de contacto en POS = {trial['onset_pos']}   "
           f"(POS de pre-posición = {trial['start_pos']})")
+    if trial['f_base'] is not None:
+        print(f" Residual por flexión en la pre-posición = {trial['f_base']:.0f} g  →  "
+              f"umbral efectivo en fuerza EXTERNA ≈ {args.fset - trial['f_base']:.0f} g "
+              f"(FORCE_SET se compara contra la lectura cruda)")
     if hold:
         print(f" DOF anclados: desviación máx sobre su baseline en reposo = "
               f"{trial['f_max_hold']} g (no es el valor absoluto)")
@@ -473,7 +482,7 @@ def run_grid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'max_hold_dev_g'])
+                         'hold', 'max_hold_dev_g', 'f_base_g'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (v, F, n) in enumerate(order, 1):
             # Recalibración periódica (con el dedo abierto) por la deriva del sensor.
@@ -491,7 +500,8 @@ def run_grid(hand, args):
                          f"{trial['f_settle']:.0f}" if trial['f_settle'] is not None else '',
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
-                         hold_txt, trial['f_max_hold']])
+                         hold_txt, trial['f_max_hold'],
+                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}"])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] v={v:4d} Fset={F:4d} n={n} → "
@@ -549,7 +559,8 @@ def run_hybrid(hand, args):
                          f"{trial['f_settle']:.0f}" if trial['f_settle'] is not None else '',
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
-                         hold_txt, trial['f_max_hold']])
+                         hold_txt, trial['f_max_hold'],
+                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}"])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] Fset={F:4d} n={n} → F_max={trial['f_max']} g  ΔF={trial['delta_f']} g{flag}")

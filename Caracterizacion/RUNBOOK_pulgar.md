@@ -428,6 +428,17 @@ Análisis del grid:
     --out  Caracterizacion/exp2/data_dof4
 ```
 
+### ✔ P2.6 HECHA (2026-08-26) — modo B, 0 abortos
+
+ΔF colapsa a **17–37 g para todo `Fset`** (contra 16–36 g del modo A a v=25):
+el híbrido recupera el rendimiento de la velocidad más lenta aproximándose a
+velocidad máxima. Reducción de **30–82×** frente al modo A a v=1000, con la
+mayor ganancia justo en `Fset = 100`, la celda que en el pulgar no tenía
+protección. `F_max` sigue al setpoint limpiamente. Detalle en
+[`exp2/exp2_results_dof4.md`](exp2/exp2_results_dof4.md).
+
+**Fase P2 completa.** Queda P3 (figuras + documento comparativo).
+
 ⏸ **Pausa entre P2.3, P2.4 y P2.5.** El grid completo son ~175 trials de impacto
 contra un bloque: no se lanza sin que la celda de validación se vea sana.
 

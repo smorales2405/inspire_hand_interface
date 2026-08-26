@@ -65,8 +65,61 @@ vecinos en 71 g, a la velocidad más lenta, donde la fuerza sube ~5 g por
 muestra). La mediana de la celda no cambia (36 g) — solo desaparece un `*` de
 abort espurio.
 
+## Sub-experimento — onset y margen de conmutación
+
+50/50 toques válidos a v=1000 contra el bloque (retracción al detectar). Datos:
+`data_dof4_onset/onset_trials.csv`.
+
+- **Repetibilidad mecánica excelente:** σ robusta = **10.0 counts** (el índice
+  dio ~37 con el mismo método; el paper, ~7.5).
+- **El onset medido a v=1000 llega tarde por construcción.** Detectado en
+  `POS 888` contra el onset **geométrico** de `POS 777` que da el sondeo lento
+  restando la curva libre → **+111 counts de retardo**. El presupuesto lo
+  explica: margen 120 g ÷ 6.4 g/count ≈ 19 counts, más las 2 muestras
+  consecutivas que exige el detector (≈67 a 78 Hz y 2620 counts/s), más la
+  lectura de `POS` posterior (≈34) ≈ **120 previstos contra 117 observados**. La
+  señal delatora es que 888 cae *más allá* del `POS 833` donde el dedo ya se
+  detenía en el sondeo.
+- Por eso el punto de conmutación se ancla en el onset **geométrico** y la σ se
+  usa solo para el margen: `q_sw = ceil(3.3·σ) = 34 counts` →
+  **conmutar en `POS 777 − 34 = 743`, `--approach-angle 504`**. Restar `q_sw` al
+  valor detectado habría dado `POS 854`, **83 counts pasado el contacto real**.
+
+## Modo B — híbrido (aproximación rápida + cierre lento)
+
+Aproximación a `open_speed` hasta `--approach-angle 504` (`POS ≈ 743`), luego
+cierre a v=25. 5 `Fset` × 5 trials = 25, **0 abortos**. Datos:
+`data_dof4_hybrid/`.
+
+| `Fset` | 100 | 250 | 500 | 750 | 1000 |
+|---|---|---|---|---|---|
+| **ΔF modo B** | 17 | 34 | 28 | 36 | 37 |
+| modo A a v=25 | 16 | 21 | 27 | 29 | 36 |
+| modo A a v=1000 | 1397 | 1524 | 1169 | 1083 | 1403 |
+| **reducción vs v=1000** | **82×** | 45× | 42× | 30× | 38× |
+| `F_max` | 117 | 284 | 528 | 786 | 1037 |
+| `F_régimen` | 88 | 239 | 421 | 684 | 935 |
+
+1. **El híbrido recupera exactamente el rendimiento de v=25** (17–37 g contra
+   16–36 g) mientras se aproxima a velocidad máxima. El sobreimpulso deja de
+   depender del `Fset`: la componente de impacto desaparece.
+2. **`F_max` sigue al setpoint limpiamente** en todo el rango, y `F_régimen`
+   queda más cerca del objetivo que en el índice — o sea que en modo B el
+   firmware sí sostiene aproximadamente la fuerza pedida.
+3. **La mayor ganancia está justo donde el modo A fallaba peor:** `Fset = 100`,
+   la celda sin protección del pulgar, es la que más mejora (**82×**).
+4. **Contraste con el índice:** allí el híbrido era *una* de dos mitigaciones
+   (el `Fset` bajo también funcionaba). En el pulgar es **la única**. El
+   resultado cierra el argumento: la conmutación de velocidad ataca la causa —el
+   momento en el instante del contacto— y por eso generaliza entre dedos,
+   mientras que bajar el `Fset` depende de la rigidez del contacto y no.
+
+| `Fset` | 100 | 250 | 500 | 750 | 1000 |
+|---|---|---|---|---|---|
+| ΔF modo B — pulgar | 17 | 34 | 28 | 36 | 37 |
+| ΔF modo B — índice | 2 | 25 | 39 | 71 | 92 |
+
 ## Pendiente
 
-Modo B (híbrido) y sub-experimento de onset: fases P2.6 y P2.7 del
-[`RUNBOOK_pulgar.md`](../RUNBOOK_pulgar.md). El `--approach-angle` sale de restar
-`q_sw` al onset medido (`POS 771`).
+Fase P3: figuras del pulgar y sección comparativa índice vs pulgar en el
+documento-resumen.

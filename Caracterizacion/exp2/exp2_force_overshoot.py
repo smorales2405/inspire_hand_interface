@@ -541,7 +541,7 @@ def run_hybrid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'f_max_hold_g'])
+                         'hold', 'max_hold_dev_g', 'f_base_g'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (F, n) in enumerate(order, 1):
             if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:

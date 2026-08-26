@@ -352,6 +352,22 @@ Los valores del índice (680 y 475) no sirven: dependen del montaje y del DOF.
     --dof 4 --hold 5:0 --start-angle 750 \
     --cell --speed 100 --fset 500 --safety-force-g 1500
 
+### ✔ P2.4 HECHA (2026-08-25) — celda de validación v=100, Fset=500
+
+| magnitud | valor | contraste |
+|---|---|---|
+| `F_max` | 558 g | — |
+| `ΔF = F_max − Fset` | **58 g** | índice en la misma celda: 202 g |
+| `F_régimen` | 476 g | cerca del setpoint (a v=100 el frenado alcanza) |
+| `onset_pos` | **777** | el sondeo P2.3 dio 771 → 6 counts, dentro de la resolución |
+| `f_base_g` (pre-posición) | **42 g** | la curva libre predecía 37 g a `POS 501` |
+| umbral externo efectivo | 458 g | `Fset 500 − 42` |
+| desviación del DOF anclado | 39 g | sin colisión |
+
+Sin abortos, 78 Hz. Las tres predicciones de las fases anteriores —onset,
+residual y ausencia de carga en la rotación— se confirman sobre el montaje real.
+Vía libre para el grid.
+
 # P2.5 — grid modo A (velocidad constante). Piloto N=5 por celda.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \

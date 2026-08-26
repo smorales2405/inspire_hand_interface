@@ -10,7 +10,7 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
 
 | v \ Fset | 100 | 250 | 500 | 750 | 1000 |
 |---|---|---|---|---|---|
-| 25   | 7  | 29    | 64    | 73    | 69   |
+| 25   | 7  | 29    | 54    | 73    | 69   |
 | 50   | 15 | 81    | 112   | 100*  | 122  |
 | 100  | 5  | 139   | 202   | 392   | 439  |
 | 250  | 36 | 336   | 637   | 1108* | 1640*|
@@ -20,6 +20,14 @@ mediana de 5 trials/celda (robusta a outliers/aborts).
 
 `*` = celda con ≥1 abort (F_max superó el techo de seguridad de 2200 g). Datos:
 `data/exp2_analysis_by_cell.csv`, `exp2_overshoot_grid.json`.
+
+> *Corregido 2026-08-26:* la celda `v=25, Fset=500` pasa de 64 a **54 g**. Un
+> trial tenía un `F_max` de 1873 g con los vecinos en 404 g, a la velocidad más
+> lenta — una lectura Modbus corrupta, no un impacto. `exp2_analyze.py` ahora la
+> descarta con un criterio físico explícito (`drop_glitches`: solo a `v ≤ 100`,
+> donde el dedo no lleva energía cinética para un pico inercial; a `v ≥ 250` no
+> filtra nada porque ahí el pico real sí dura una sola muestra). Es la **única**
+> celda del mapa que cambia; el resto queda idéntico.
 
 ## Modo B — híbrido (aproximación rápida + contacto lento): ΔF (g)
 

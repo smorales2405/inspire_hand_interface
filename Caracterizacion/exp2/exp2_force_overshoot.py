@@ -17,9 +17,8 @@ flexión (~216→330 g sin contacto). Por eso:
 
 DOF anclados (`--hold`): otro DOF puede quedar fijo en un ángulo durante todo el
 experimento. Caso pulgar: FLEXIÓN (DOF 4) con la ROTACIÓN (DOF 5) anclada en su
-ángulo máximo (165°) → `--dof 4 --hold 5:<reg>`, con `<reg>` medido una vez con
-`pose_check.py --dof 5` (el manual da el rango 90°-165° pero no qué extremo del
-registro es cuál). El ancla se re-afirma en cada escritura de ANGLE_SET, la tara
+tope de oposición (ANGLE_SET 0 ≈ 90°, medido con `pose_check.py`) →
+`--dof 4 --hold 5:0`. El ancla se re-afirma en cada escritura de ANGLE_SET, la tara
 `forceClb` se hace en esa misma postura, y los DOF anclados se vigilan por fuerza
 (si el dedo bajo prueba empuja contra ellos, la carga aparece ahí y no en `--dof`).
 

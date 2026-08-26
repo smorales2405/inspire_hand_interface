@@ -49,11 +49,21 @@ DOF_DEG_RANGE = [
 ]
 
 # Correspondencia (grados en ANGLE_SET=0, grados en ANGLE_SET=1000).
-# La DIRECCIÓN está confirmada solo para los dedos: el manual dice
-# «ANGLE_ACT(3) = 1000 (i.e. fully open)» y las campañas del Exp 1 lo verifican
-# (ANGLE_SET 1000 abre, 0 cierra, POS_ACT crece al cerrar) → 1000 = extendido =
-# 176°. Para el pulgar el manual NO indica qué extremo del registro es qué
-# ángulo, así que NO se asume: se mide con `pose_check.py` y se completa aquí.
+# Regla única, confirmada en los 6 DOF: **ANGLE_SET 1000 = extremo ABIERTO =
+# ángulo MAYOR del rango; ANGLE_SET 0 = extremo CERRADO = ángulo MENOR.**
+# Evidencia:
+#   · dedos      — el manual dice «ANGLE_ACT(3) = 1000 (i.e. fully open)» y las
+#                  campañas del Exp 1 lo verifican (1000 abre, 0 cierra, POS_ACT
+#                  crece al cerrar) → 1000 = extendido = 176°.
+#   · pulgar rot.— medido con pose_check.py (2026-08-25): ANGLE_SET 1000 deja la
+#                  rotación ABIERTA (lateral) y 0 la lleva al tope de cierre
+#                  (oposición). En la figura del manual (p. 22/27) β se mide
+#                  desde el plano metacarpiano: 90° = pulgar perpendicular al
+#                  plano = máxima OPOSICIÓN; 165° = casi tendido en el plano =
+#                  ABIERTO. Luego 1000 = 165° y 0 = 90°.
+#   · pulgar flex.— misma regla + la figura del manual (p. 21/27): θ crece al
+#                  extender, luego 1000 = 70° (extendido) y 0 = -13° (flexionado).
+#                  Confírmalo de vista en la fase P0.2 del RUNBOOK_pulgar.
 #
 #   ⚠ Interfaz/core/angle_converter.py usa la dirección INVERTIDA (0 = abierto)
 #     y un rango distinto para la flexión del pulgar (53.6° vs los 70° del
@@ -64,8 +74,8 @@ DOF_DEG_ENDPOINTS = [
     (20.0, 176.0),   # 1
     (20.0, 176.0),   # 2
     (20.0, 176.0),   # 3: verificado en la campaña del Exp 1
-    None,            # 4: flexión del pulgar — POR MEDIR (pose_check.py --dof 4)
-    None,            # 5: rotación del pulgar — POR MEDIR (pose_check.py --dof 5)
+    (-13.0, 70.0),   # 4: flexión del pulgar   (0 = flexionado, 1000 = extendido)
+    (90.0, 165.0),   # 5: rotación del pulgar  (0 = opuesto/cerrado, 1000 = abierto)
 ]
 
 

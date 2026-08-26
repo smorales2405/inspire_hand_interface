@@ -42,11 +42,13 @@ completa del protocolo sobre DOF 4, por fases.
 
 El manual publica los rangos angulares (dedos 20°-176°, flexión del pulgar
 −13°-70°, rotación del pulgar 90°-165°) pero **no dice qué extremo de
-`ANGLE_SET` es cada ángulo**. Para los dedos quedó resuelto (manual:
-«`ANGLE_ACT(3)=1000`, i.e. *fully open*» + el Exp 1). Para el pulgar **hay que
-medirlo**, así que `reg_to_deg()` devuelve `None` para los DOF 4/5 hasta
-completar `DOF_DEG_ENDPOINTS` en `hand_modbus.py`, y la forma en grados de
-`--hold` (`5:165d`) falla a propósito en vez de suponer.
+`ANGLE_SET` es cada ángulo**. Se resolvió midiendo, y la regla vale para los 6
+DOF: **`ANGLE_SET 1000` = extremo abierto = ángulo mayor; `ANGLE_SET 0` = extremo
+cerrado = ángulo menor** (dedos 1000 = 176°; rotación del pulgar 1000 = 165°
+abierto / 0 = 90° en oposición; flexión del pulgar 1000 = 70° / 0 = −13°). Está
+en `DOF_DEG_ENDPOINTS` (`hand_modbus.py`) con la evidencia de cada DOF; para un
+DOF sin medir, `reg_to_deg()` devuelve `None` y la forma en grados de `--hold`
+falla a propósito en vez de suponer.
 
 `pose_check.py` recorre un DOF por una lista de `ANGLE_SET`, se detiene en cada
 una y reporta `ANGLE_ACT`/`POS_ACT`/`FORCE_ACT`/`CURRENT` — miras la mano y

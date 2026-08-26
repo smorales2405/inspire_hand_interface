@@ -24,12 +24,11 @@ Al salir (fin, Ctrl-C o aborto) el script abre todos los dedos.
 
 DOF anclados (`--hold`): un experimento puede exigir que OTRO DOF quede fijo en
 un ángulo mientras se caracteriza `--dof`. Caso pulgar: se caracteriza la
-FLEXIÓN (DOF 4) con la ROTACIÓN (DOF 5) anclada en su ángulo máximo (165°) →
-`--dof 4 --hold 5:<reg>`, donde `<reg>` es el extremo de ANGLE_SET(5) que
-corresponde a 165° — el manual NO lo dice, así que se MIDE una vez con
-`pose_check.py --dof 5`. El ancla se re-afirma en cada escritura de ANGLE_SET
-(mismo bloque de 6 shorts, coste cero) y sobrevive a las aperturas globales del
-script. Los DOF anclados también se vigilan por fuerza.
+FLEXIÓN (DOF 4) con la ROTACIÓN (DOF 5) anclada en su tope de oposición
+(ANGLE_SET 0 ≈ 90°, medido con pose_check.py) → `--dof 4 --hold 5:0`. El ancla se
+re-afirma en cada escritura de ANGLE_SET (mismo bloque de 6 shorts, coste cero) y
+sobrevive a las aperturas globales del script. Los DOF anclados también se
+vigilan por fuerza.
 
 Ejemplos:
   # validación de un trial (índice, lento, con fuerza por muestra)
@@ -40,7 +39,7 @@ Ejemplos:
   .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
       --transport serial --serial-port /dev/ttyUSB1
 
-  # flexión del pulgar con la rotación anclada (suponiendo que 165° = ANGLE_SET 0)
+  # flexión del pulgar con la rotación anclada en oposición (ANGLE_SET 0 ≈ 90°)
   .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
       --transport serial --serial-port /dev/ttyUSB1 --dof 4 --hold 5:0 \
       --single --speed 100 --read full

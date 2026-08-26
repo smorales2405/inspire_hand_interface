@@ -2,8 +2,9 @@
 
 Réplica del [`PROTOCOL_Dynamic_Characterization_RH56DFTP.md`](PROTOCOL_Dynamic_Characterization_RH56DFTP.md)
 —ya ejecutado sobre el índice (DOF 3)— aplicado ahora a la **flexión del pulgar
-(DOF 4)**, con la **rotación del pulgar (DOF 5) anclada en su ángulo máximo
-(≈165°)** para que la única variable cinemática sea la flexión.
+(DOF 4)**, con la **rotación del pulgar (DOF 5) anclada en su tope de oposición**
+(`ANGLE_SET(5) = 0`, medido en P0.1) para que la única variable cinemática sea la
+flexión.
 
 El propio protocolo lo anticipa (§1: *«Luego repite para medio (DOF 2) y flexión
 del pulgar (DOF 4) si quieres cobertura»*). Lo que sigue es la instanciación
@@ -16,7 +17,7 @@ concreta, por fases, con el hardware en el lazo.
 | | Índice (hecho) | Pulgar (este runbook) |
 |---|---|---|
 | DOF bajo prueba | 3 | **4** (flexión) |
-| DOF anclado | — | **5** (rotación) a ≈165°, `--hold 5:<reg>` |
+| DOF anclado | — | **5** (rotación) en `ANGLE_SET 0` ≈ 90°, `--hold 5:0` |
 | Rango angular (manual) | 20°–176° | **−13°–70°** (flexión) |
 | Vel. angular (datasheet) | >200 °/s (4 dedos) | **>130 °/s** (pulgar) |
 | Carpetas de datos | `exp1/data`, `exp2/data…` | `exp1/data_dof4`, `exp2/data_dof4…` (automático) |
@@ -49,15 +50,32 @@ si **no** llegó a su ángulo (tope mecánico o colisión).
 
 ---
 
-## ⚠ Lo que hay que MEDIR antes de empezar (no está en el manual)
+## ✔ Correspondencia registro↔ángulo — RESUELTA (P0.1, 2026-08-25)
 
-El manual (secc. 2.6.11, p. 21) publica los **rangos** angulares pero **no dice
-qué extremo de `ANGLE_SET` corresponde a cada ángulo**. Para los dedos quedó
-resuelto («`ANGLE_ACT(3)=1000`, i.e. *fully open*» + las campañas del Exp 1 →
-1000 = extendido = 176°). Para el pulgar **no está resuelto**, así que el código
-se niega a suponerlo: `reg_to_deg()` devuelve `None` para los DOF 4 y 5 hasta que
-lo midas, y `--hold 5:165d` (forma en grados) falla con un mensaje que apunta
-aquí. Se usa la forma en registro: `--hold 5:0` o `--hold 5:1000`.
+El manual (secc. 2.6.11, p. 21-22) publica los **rangos** angulares pero **no
+dice qué extremo de `ANGLE_SET` corresponde a cada ángulo**. Quedó resuelto así:
+
+- **Dedos:** el manual dice «`ANGLE_ACT(3)=1000`, i.e. *fully open*» y las
+  campañas del Exp 1 lo verifican → **1000 = extendido = 176°**.
+- **Rotación del pulgar (DOF 5):** medido con `pose_check.py`. `ANGLE_SET 1000`
+  deja la rotación **abierta** (lateral) y `ANGLE_SET 0` la lleva al **tope de
+  cierre** (oposición). En la figura del manual (p. 22/27) el ángulo β se mide
+  desde el **plano metacarpiano**: 90° = pulgar perpendicular al plano = máxima
+  **oposición**; 165° = pulgar casi tendido en el plano = **abierto**. Por tanto
+  **`ANGLE_SET 1000 = 165°` y `ANGLE_SET 0 = 90°`**.
+- **Flexión del pulgar (DOF 4):** misma regla + figura del manual (p. 21/27,
+  θ crece al extender) → **1000 = 70° (extendido), 0 = −13° (flexionado)**.
+  Se confirma de vista en P0.2.
+
+> ⚠ **Corrección respecto del planteo inicial.** La postura de trabajo elegida
+> —el tope de oposición, `ANGLE_SET(5) = 0`— es **90°**, no 165°. Los 165° son el
+> extremo **opuesto** (pulgar abierto/lateral), donde la yema no enfrenta a los
+> dedos y no podría presionar el bloque. La postura es la correcta para el
+> experimento; lo que hay que corregir es la **etiqueta en grados** al redactar.
+
+Regla única, ya cargada en `hand_modbus.DOF_DEG_ENDPOINTS`: **`ANGLE_SET 1000` =
+extremo abierto = ángulo mayor del rango; `ANGLE_SET 0` = extremo cerrado =
+ángulo menor.** Todos los reportes imprimen ya los grados.
 
 > **Nota aparte:** `Interfaz/core/angle_converter.py` (la GUI) usa la dirección
 > **invertida** (comenta «registro 0 → dedo abierto») y un rango distinto para la
@@ -69,25 +87,38 @@ aquí. Se usa la forma en registro: `--hold 5:0` o `--hold 5:1000`.
 
 ## Fase P0 — Postura de referencia (10 min, sin bloque)
 
-**Objetivo:** fijar (a) qué valor de `ANGLE_SET(5)` es la rotación a 165°, y
-(b) hasta dónde flexiona libre el pulgar en esa postura.
+**Objetivo:** fijar (a) qué valor de `ANGLE_SET(5)` es la postura de trabajo de
+la rotación, y (b) hasta dónde flexiona libre el pulgar en esa postura.
+
+### P0.1 — ✔ HECHA (2026-08-25)
 
 ```bash
-# P0.1 — ¿qué extremo del registro es 165°? MIRA la mano en cada parada.
 .venv/bin/python Caracterizacion/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 \
     --dof 5 --angles 1000,750,500,250,0 --dwell-s 3
 ```
 
-Anota qué postura ves en `ANGLE_SET=1000` y en `ANGLE_SET=0`. La rotación a
-**165°** es el extremo de máxima rotación lateral del pulgar (el que lo aleja
-más del plano metacarpiano). Llámalo `<ROT>` de aquí en adelante.
+| `ANGLE_SET` | `ANGLE_ACT` | `POS_ACT` | `FORCE_g` | parada | postura observada |
+|---|---|---|---|---|---|
+| 1000 | 986 | 51 | −245 | detenido | rotación **abierta** (≈165°) |
+| 750 | 738 | 467 | −79 | detenido | |
+| 500 | 489 | 884 | −75 | detenido | |
+| 250 | 238 | 1303 | −106 | detenido | |
+| **0** | **0** | **1556** | **−88** | detenido | **tope de oposición (≈90°) ← postura de trabajo** |
+
+Las cinco paradas dieron `detenido` y `mA = 0`: la rotación recorre **libre**, sin
+colisión. Recorrido de `POS_ACT(5)`: 51 … 1556 (1505 counts).
+`FORCE_ACT(5)` tiene un **offset negativo en reposo** (−245 g abierto, ~−90 g en
+el resto) **sin contacto** — se elimina con la tara `forceClb` de la fase P2.1, y
+queda muy por debajo del techo de la vigilancia del DOF anclado.
+
+**Resultado: el ancla es `--hold 5:0`.**
 
 ```bash
 # P0.2 — con la rotación anclada, ¿hasta dónde llega la flexión SIN tocar nada?
 .venv/bin/python Caracterizacion/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --angles 1000,750,500,250,0 --dwell-s 3 \
+    --dof 4 --hold 5:0 --angles 1000,750,500,250,0 --dwell-s 3 \
     --csv Caracterizacion/exp1/data_dof4/pose_dof4.csv
 ```
 
@@ -100,13 +131,12 @@ más del plano metacarpiano). Llámalo `<ROT>` de aquí en adelante.
   necesitarás en las fases siguientes.
 - `FORCE_g` ≈ 0 en todas las paradas libres.
 
-**Salida de la fase:** `<ROT>`, el `POS_ACT` libre máximo, y el **`ANGLE_SET`
-más cerrado que sigue siendo libre** — ese será el `--target-angle` del Exp 1
-(el índice usó 300; el pulgar tendrá el suyo).
+**Salida de la fase:** el `POS_ACT` libre máximo y el **`ANGLE_SET` más cerrado
+que sigue siendo libre** — ese será el `--target-angle` (`<TGT>`) del Exp 1 (el
+índice usó 300; el pulgar tendrá el suyo). Confirma también de vista que en
+`ANGLE_SET 1000` el pulgar está extendido (≈70°) y en `0` flexionado (≈−13°).
 
-⏸ **Pausa: mándame la tabla.** Con ella completo `DOF_DEG_ENDPOINTS[4]` y `[5]`
-en `hand_modbus.py` (para que los grados aparezcan en todos los reportes) y fijo
-los parámetros de la Fase P1.
+⏸ **Pausa: mándame la tabla.** Con ella fijo los parámetros de la Fase P1.
 
 ---
 
@@ -119,7 +149,7 @@ El Exp 0 (baseline de muestreo) **no se repite**: lee el bloque completo de 6
 # P1.1 — validación de UN trial. Confirma |FORCE_ACT|max ≈ 0 (sin contacto).
 .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
     --transport serial --serial-port /dev/ttyUSB1 \
-    --dof 4 --hold 5:<ROT> --target-angle <TGT> \
+    --dof 4 --hold 5:0 --target-angle <TGT> \
     --single --speed 100 --read full --safety-force-g 1200
 ```
 
@@ -130,7 +160,7 @@ anclados ≈ 0, y que **asentó**. Si hay contacto, sube `<TGT>` y repite.
 # P1.2 — campaña del protocolo: 5 velocidades × 20 trials, orden aleatorio.
 .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
     --transport serial --serial-port /dev/ttyUSB1 \
-    --dof 4 --hold 5:<ROT> --target-angle <TGT> --safety-force-g 1200
+    --dof 4 --hold 5:0 --target-angle <TGT> --safety-force-g 1200
 ```
 
 Escribe en `exp1/data_dof4/` (serie por trial + `index.csv` con las columnas
@@ -154,12 +184,12 @@ postura anclada. Antes de montarlo:
 # P2.1 — diagnóstico de la tara de fuerza EN LA POSTURA ANCLADA.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --zero --zero-flex-angle <TGT>
+    --dof 4 --hold 5:0 --zero --zero-flex-angle <TGT>
 
 # P2.2 — recorrido LIBRE de referencia (todavía sin bloque).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --probe --no-block
+    --dof 4 --hold 5:0 --probe --no-block
 ```
 
 `--zero` debe dejar el reposo calibrado ≈0 g y un residual por flexión pequeño
@@ -173,7 +203,7 @@ si coincide, el bloque está fuera de alcance.
 # P2.3 — sondeo de contacto (presión mínima: abre al detectar).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --probe
+    --dof 4 --hold 5:0 --probe
 ```
 
 Da el **POS de contacto** → de ahí salen `--start-angle` (pre-posición justo
@@ -184,24 +214,24 @@ antes del contacto, modo A) y `--approach-angle` (modo B). Los valores del
 # P2.4 — una celda de validación antes del grid.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --start-angle <START> \
+    --dof 4 --hold 5:0 --start-angle <START> \
     --cell --speed 100 --fset 500 --safety-force-g 1500
 
 # P2.5 — grid modo A (velocidad constante). Piloto N=5 por celda.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --start-angle <START> --grid --trials 5
+    --dof 4 --hold 5:0 --start-angle <START> --grid --trials 5
 
 # P2.6 — modo B (híbrido: aproximación rápida + cierre lento).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --approach-angle <APPR> --hybrid --trials 5 \
+    --dof 4 --hold 5:0 --approach-angle <APPR> --hybrid --trials 5 \
     --outdir Caracterizacion/exp2/data_dof4_hybrid
 
 # P2.7 — sub-experimento de onset (margen de conmutación del modo B).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:<ROT> --start-angle <START> --onset --onset-trials 50 \
+    --dof 4 --hold 5:0 --start-angle <START> --onset --onset-trials 50 \
     --outdir Caracterizacion/exp2/data_dof4_onset
 ```
 
@@ -231,7 +261,7 @@ sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
 
 | Parámetro | Índice | Pulgar | Se fija en |
 |---|---|---|---|
-| `<ROT>` (ANGLE_SET(5) = 165°) | — | **?** | P0.1 |
+| ancla de rotación `--hold 5:<reg>` | — | **0** (≈90°, oposición) ✔ | P0.1 |
 | `--target-angle` (Exp 1, sin contacto) | 300 | **?** | P0.2 |
 | `--start-angle` (pre-posición modo A) | 680 | **?** | P2.3 |
 | `--approach-angle` (modo B) | 475 | **?** | P2.7 |
@@ -245,7 +275,7 @@ sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
 ## Seguridad — específico del pulgar
 
 - **Auto-colisión.** A diferencia del índice (que cierra al aire), el pulgar en
-  rotación 165° puede topar contra la palma o los dedos. Por eso P0.2 y
+  oposición puede topar contra la palma o los dedos. Por eso P0.2 y
   `--probe --no-block` van **antes** de montar el bloque.
 - **Techo de fuerza conservador al principio** (`--safety-force-g 1200`–`1500`),
   se sube solo con evidencia del sondeo. El datasheet da ≥30 N (~3060 g) de

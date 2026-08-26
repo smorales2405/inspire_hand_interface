@@ -11,6 +11,7 @@ that is verified to work on this hand.
 """
 from __future__ import annotations
 
+import csv
 import struct
 import time
 
@@ -106,6 +107,44 @@ def fmt_angle(reg, dof):
     """'ANGLE_SET 0 ≈ 176.0°' o, si los grados no están medidos, solo el registro."""
     d = reg_to_deg(reg, dof)
     return f"ANGLE_SET {reg}" + (f" ≈ {d}°" if d is not None else " (grados sin medir)")
+
+
+# ── Mapa medido POS_ACT ↔ ANGLE_SET ───────────────────────────────────────
+# La relación NO es lineal (el actuador comprime su avance al flexionar), así
+# que interpolar entre dos anclas introduce error. `pose_check.py --csv` deja la
+# tabla completa; estas funciones la usan por tramos.
+
+def load_pos_angle_map(path):
+    """CSV de pose_check.py -> [(angle_set, pos_act)] ordenado por POS, o None."""
+    pts = []
+    try:
+        with open(path, newline='') as f:
+            for r in csv.DictReader(f):
+                try:
+                    pts.append((int(r['angle_set']), int(r['pos_act'])))
+                except (TypeError, ValueError, KeyError):
+                    continue
+    except OSError:
+        return None
+    pts.sort(key=lambda t: t[1])
+    return pts if len(pts) >= 2 else None
+
+
+def pos_to_angle(pts, pos):
+    """POS_ACT -> ANGLE_SET por interpolación lineal a tramos (extrapola en los bordes)."""
+    if not pts or len(pts) < 2:
+        return None
+    if pos <= pts[0][1]:
+        (a0, p0), (a1, p1) = pts[0], pts[1]
+    elif pos >= pts[-1][1]:
+        (a0, p0), (a1, p1) = pts[-2], pts[-1]
+    else:
+        for (a0, p0), (a1, p1) in zip(pts, pts[1:]):
+            if p0 <= pos <= p1:
+                break
+    if p1 == p0:
+        return None
+    return int(max(0, min(1000, round(a0 + (pos - p0) * (a1 - a0) / (p1 - p0)))))
 
 
 # ── DOF fijados ("hold") ──────────────────────────────────────────────────

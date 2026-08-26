@@ -114,29 +114,56 @@ queda muy por debajo del techo de la vigilancia del DOF anclado.
 
 **Resultado: el ancla es `--hold 5:0`.**
 
+### P0.2 — ✔ HECHA (2026-08-25)
+
 ```bash
-# P0.2 — con la rotación anclada, ¿hasta dónde llega la flexión SIN tocar nada?
 .venv/bin/python Caracterizacion/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 \
     --dof 4 --hold 5:0 --angles 1000,750,500,250,0 --dwell-s 3 \
     --csv Caracterizacion/exp1/data_dof4/pose_dof4.csv
 ```
 
-**Qué mirar en la salida:**
+| `ANGLE_SET` | grados | `ANGLE_ACT` | `POS_ACT` | `FORCE_g` | mA | parada |
+|---|---|---|---|---|---|---|
+| 1000 | 70.0° | 1000 | 245 | 13 | 0 | detenido |
+| 750 | 49.2° | 753 | 501 | 39 | 0 | detenido |
+| 500 | 28.5° | 504 | 747 | 49 | 0 | detenido |
+| 250 | 7.8° | 254 | 928 | 53 | 0 | detenido |
+| 0 | −13.0° | 3 | 1103 | 67 | 0 | detenido |
 
-- La columna `parada`: `detenido` en todas = el pulgar recorre libre. Un
-  `techo_fuerza` o `corriente` en las paradas bajas = **auto-colisión** (el
-  pulgar topa contra la palma o los dedos en esa rotación).
-- `POS_ACT` en cada parada → es el mapa `ANGLE_SET ↔ POS_ACT` del pulgar, que
-  necesitarás en las fases siguientes.
-- `FORCE_g` ≈ 0 en todas las paradas libres.
+(Tabla en `exp1/data_dof4/pose_dof4.csv`.)
 
-**Salida de la fase:** el `POS_ACT` libre máximo y el **`ANGLE_SET` más cerrado
-que sigue siendo libre** — ese será el `--target-angle` (`<TGT>`) del Exp 1 (el
-índice usó 300; el pulgar tendrá el suyo). Confirma también de vista que en
-`ANGLE_SET 1000` el pulgar está extendido (≈70°) y en `0` flexionado (≈−13°).
+**Tres resultados:**
 
-⏸ **Pausa: mándame la tabla.** Con ella fijo los parámetros de la Fase P1.
+1. **La flexión recorre TODO su rango libre, sin auto-colisión.** Las cinco
+   paradas dieron `detenido` con `mA = 0` y fuerza ≤ 67 g — incluso a
+   `ANGLE_SET 0` (flexión completa) el pulgar no toca la palma ni los dedos en
+   esta rotación. Es más margen del que tenía el índice, que sí chocaba y obligó
+   a limitar el objetivo del Exp 1.
+2. **`FORCE_ACT(4)` tiene el mismo offset dependiente de la flexión que el
+   índice, pero ~5× menor**: 13 g extendido → 67 g flexionado (+54 g en todo el
+   recorrido, contra los ~110 g del índice), sin contacto externo. Buena noticia
+   para el Exp 2: el residual tras `forceClb` será pequeño.
+3. **Carrera corta y NO lineal.** `POS_ACT` va de 245 a 1103 = **858 counts**,
+   bastante menos que el índice. Y el avance se comprime al flexionar: ~1.02
+   counts por unidad de `ANGLE_SET` en la primera mitad contra ~0.71 en la
+   segunda. Por eso el sub-experimento de onset ya **no** interpola entre dos
+   anclas (hasta 58 counts de error de `ANGLE_SET`): usa esta tabla completa,
+   interpolada a tramos. La encuentra sola en `exp1/data_dof4/pose_dof4.csv`, o
+   se le pasa con `--pos-angle-csv`.
+
+**Parámetros que fija esta fase para el Exp 1:**
+
+- `--target-angle 300` — deliberadamente **el mismo comando que el índice**
+  (escalón 1000→300), para que la comparación entre dedos sea con el mismo
+  estímulo. Cae entre dos paradas libres (250 y 500) y da ~655 counts de
+  recorrido, sin llegar al extremo del rango (evita que la deceleración de fin
+  de carrera contamine el establecimiento).
+- `--safety-force-g 400` — el máximo medido en espacio libre es 67 g (y ~88 g en
+  la rotación anclada), así que 400 g deja ~6× de margen y aun así corta muy
+  pronto ante una colisión inesperada. Mucho más protector que los 1800 g por
+  defecto, que en espacio libre nunca dispararían a tiempo. Si P1.1 aborta sin
+  causa visible, se sube — para eso está la validación de un solo trial.
 
 ---
 
@@ -149,18 +176,19 @@ El Exp 0 (baseline de muestreo) **no se repite**: lee el bloque completo de 6
 # P1.1 — validación de UN trial. Confirma |FORCE_ACT|max ≈ 0 (sin contacto).
 .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
     --transport serial --serial-port /dev/ttyUSB1 \
-    --dof 4 --hold 5:0 --target-angle <TGT> \
-    --single --speed 100 --read full --safety-force-g 1200
+    --dof 4 --hold 5:0 --target-angle 300 \
+    --single --speed 100 --read full --safety-force-g 400
 ```
 
-Revisa: `desvío final` de `FORCE_ACT` cerca de su baseline, `máx |F|` de los DOF
-anclados ≈ 0, y que **asentó**. Si hay contacto, sube `<TGT>` y repite.
+Revisa: `desvío final` de `FORCE_ACT` ≈ +54 g sobre su baseline (el offset por
+flexión medido en P0.2, no contacto), `máx |F|` de los DOF anclados pequeño, y
+que **asentó**. `Δpos` esperado ≈ 655 counts.
 
 ```bash
 # P1.2 — campaña del protocolo: 5 velocidades × 20 trials, orden aleatorio.
 .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
     --transport serial --serial-port /dev/ttyUSB1 \
-    --dof 4 --hold 5:0 --target-angle <TGT> --safety-force-g 1200
+    --dof 4 --hold 5:0 --target-angle 300 --safety-force-g 400
 ```
 
 Escribe en `exp1/data_dof4/` (serie por trial + `index.csv` con las columnas
@@ -184,7 +212,7 @@ postura anclada. Antes de montarlo:
 # P2.1 — diagnóstico de la tara de fuerza EN LA POSTURA ANCLADA.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:0 --zero --zero-flex-angle <TGT>
+    --dof 4 --hold 5:0 --zero --zero-flex-angle 300
 
 # P2.2 — recorrido LIBRE de referencia (todavía sin bloque).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
@@ -262,10 +290,10 @@ sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
 | Parámetro | Índice | Pulgar | Se fija en |
 |---|---|---|---|
 | ancla de rotación `--hold 5:<reg>` | — | **0** (≈90°, oposición) ✔ | P0.1 |
-| `--target-angle` (Exp 1, sin contacto) | 300 | **?** | P0.2 |
+| `--target-angle` (Exp 1, sin contacto) | 300 | **300** (mismo comando) ✔ | P0.2 |
 | `--start-angle` (pre-posición modo A) | 680 | **?** | P2.3 |
 | `--approach-angle` (modo B) | 475 | **?** | P2.7 |
-| `--safety-force-g` | 2200 | empezar en **1500** y subir con evidencia | P2.4 |
+| `--safety-force-g` | 2200 | **400** en Exp 1; en Exp 2 empezar en **1500** | P0.2 / P2.4 |
 | offset de `FORCE_ACT` tras `forceClb` | 241 → 0 g | **?** | P2.1 |
 | `q_sw` (margen de conmutación) | 124 counts | **?** | P2.7 |
 | pendiente / `SPEED_SET` | 3.04 counts/s | **?** (menor, ver datasheet) | P1.2 |

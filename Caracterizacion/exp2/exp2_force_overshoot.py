@@ -50,6 +50,7 @@ from hand_modbus import (
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
     DOF_NAMES, fmt_angle, parse_hold, describe_hold,
     angle_vector, open_vector, report_hold,
+    load_pos_angle_map, pos_to_angle,
 )
 
 # Lectura de bloque ancho: POS_ACT(1534)…CURRENT(1599) en una sola transacción.
@@ -634,12 +635,25 @@ def run_onset(hand, args):
         w.writerow(['trial', 'onset_pos', 'f_base_g', 'aborted'])
         w.writerows(rows)
 
-    # Mapeo POS→ANGLE_SET a partir de DOS anclas MEDIDAS en este montaje
-    # (open_angle, pos_at_open) y (start_angle, pos_at_start) — sin constantes
-    # heredadas de otro DOF.
+    # Mapeo POS→ANGLE_SET. Preferido: la tabla completa de pose_check.py
+    # (interpolación a tramos — la relación POS↔ANGLE NO es lineal). Si no hay
+    # tabla, se cae a las DOS anclas medidas en esta corrida (open_angle y
+    # start_angle): sin constantes heredadas de otro DOF, pero con el error de
+    # linealizar todo el recorrido.
     pos_at_start = statistics.median(start_positions) if start_positions else None
+    pmap = None
+    for cand in ([args.pos_angle_csv] if args.pos_angle_csv else
+                 [os.path.join(args.outdir, f'pose_dof{dof}.csv'),
+                  os.path.join(os.path.dirname(_HERE), 'exp1',
+                               f'data_dof{dof}', f'pose_dof{dof}.csv')]):
+        pmap = load_pos_angle_map(cand)
+        if pmap:
+            map_src = cand
+            break
 
-    def pos_to_angle(pos):
+    def to_angle(pos):
+        if pmap:
+            return pos_to_angle(pmap, pos)
         if (pos_at_open is None or pos_at_start is None
                 or pos_at_start == pos_at_open):
             return None
@@ -648,8 +662,13 @@ def run_onset(hand, args):
         return int(max(0, min(1000, round(a))))
 
     print(f"\n=== Sub-exp onset — resultado (N válidos = {len(onsets)}/{args.onset_trials}) ===")
-    print(f" Anclas POS↔ANGLE medidas: ANGLE {args.open_angle}→POS {pos_at_open} · "
-          f"ANGLE {args.start_angle}→POS {pos_at_start}")
+    if pmap:
+        print(f" Mapa POS↔ANGLE: tabla de {len(pmap)} puntos, interpolada a tramos "
+              f"({os.path.relpath(map_src)})")
+    else:
+        print(f" Mapa POS↔ANGLE: 2 anclas de esta corrida (ANGLE {args.open_angle}→POS "
+              f"{pos_at_open} · ANGLE {args.start_angle}→POS {pos_at_start}). "
+              f"Corre pose_check.py --csv para una tabla completa.")
     if len(onsets) >= 4:
         s = sorted(onsets)
         q1, _, q3 = statistics.quantiles(s, n=4)
@@ -658,7 +677,7 @@ def run_onset(hand, args):
         mu = statistics.fmean(clean); sd = statistics.pstdev(clean)
         q = math.ceil(args.onset_k * sd)
         switch = mu - q
-        ang = pos_to_angle(switch)
+        ang = to_angle(switch)
         print(f" onset POS crudo:   media={statistics.fmean(s):.0f}  σ={statistics.pstdev(s):.1f}  (N={len(s)})")
         print(f" onset POS robusto: media={mu:.0f}  σ={sd:.1f}  min={min(clean)}  "
               f"(N={len(clean)}; {len(s)-len(clean)} outliers de detección excluidos)")
@@ -755,6 +774,9 @@ def parse_args(argv=None):
     p.add_argument('--onset-min-travel', type=int, default=200,
                    help='avance mínimo de POS desde el inicio para descartar el blip de arranque')
     p.add_argument('--onset-k', type=float, default=3.3, help='factor para q_sw = ceil(k·σ) (def 3.3)')
+    p.add_argument('--pos-angle-csv', default=None,
+                   help='CSV de pose_check.py para el mapeo POS↔ANGLE a tramos '
+                        '(def: se busca pose_dof<N>.csv en --outdir y en exp1/data_dof<N>/)')
     p.add_argument('--onset-thr', type=int, default=80,
                    help='umbral de fuerza para onset de contacto, sobre el blip de arranque (g)')
     p.add_argument('--contact-min-travel', type=int, default=150,

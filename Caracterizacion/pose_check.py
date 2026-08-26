@@ -195,6 +195,8 @@ def main(argv=None):
                   f"(rango {lo}°-{hi}°) y `--hold {dof}:<reg>` queda justificado.")
 
         if args.csv:
+            d = os.path.dirname(os.path.abspath(args.csv))
+            os.makedirs(d, exist_ok=True)
             with open(args.csv, 'w', newline='') as f:
                 w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
                 w.writeheader(); w.writerows(rows)

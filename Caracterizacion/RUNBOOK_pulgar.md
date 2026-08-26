@@ -376,7 +376,7 @@ Vía libre para el grid.
 # P2.6 — modo B (híbrido: aproximación rápida + cierre lento).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:0 --approach-angle <APPR> --hybrid --trials 5 \
+    --dof 4 --hold 5:0 --approach-angle 504 --hybrid --trials 5 \
     --outdir Caracterizacion/exp2/data_dof4_hybrid
 
 # P2.7 — sub-experimento de onset (margen de conmutación del modo B).
@@ -385,6 +385,40 @@ Vía libre para el grid.
     --dof 4 --hold 5:0 --start-angle 750 --onset --onset-trials 50 \
     --outdir Caracterizacion/exp2/data_dof4_onset
 ```
+
+### ✔ P2.7 HECHA (2026-08-26) — con una corrección importante
+
+50/50 toques válidos a v=1000. Pero el número que el script reportó de entrada
+**no servía como punto de conmutación**:
+
+| | `POS` |
+|---|---|
+| onset geométrico (sondeo lento P2.3, contra la curva libre) | **777** |
+| onset detectado a v=1000 (sub-exp) | 888 (σ robusta 10.0) |
+| **retardo de detección** | **+111 counts** |
+
+El onset medido a v=1000 llega tarde por construcción, y el presupuesto lo
+explica casi exactamente: margen de fuerza 120 g ÷ 6.4 g/count ≈ 19 counts, más
+2 muestras consecutivas exigidas por el detector (≈67 counts a 78 Hz y 2620
+counts/s), más la lectura de `POS` posterior (≈34) → **≈120 counts previstos
+contra 117 observados**. Cae incluso *más allá* del `POS 833` donde el dedo ya se
+detenía en el sondeo, que es la señal de que no es contacto más tardío sino
+detección tardía.
+
+Restar `q_sw` a ese valor daba `POS 854`, **83 counts pasado el contacto real**:
+el modo B habría impactado a velocidad máxima y no habría medido nada — el mismo
+fallo que tuvo el `--approach-angle 475` por defecto en el índice.
+
+**Corregido:** el punto de conmutación se ancla en el onset **geométrico**, y la
+σ del sub-experimento se usa solo para el margen:
+
+> `q_sw = ceil(3.3 · σ_robusta) = 34 counts`
+> **conmutación en `POS 777 − 34 = 743` → `--approach-angle 504`**
+
+`run_onset` ya lo hace solo: localiza el onset geométrico en `probe_dof<N>.csv`
+(restando la curva libre de `probe_dof<N>_libre.csv` si existe), reporta el
+retardo medido, y **avisa en grande** si no encuentra sondeo de referencia, en
+vez de recomendar un valor sesgado en silencio.
 
 Análisis del grid:
 
@@ -415,7 +449,7 @@ sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
 | ancla de rotación `--hold 5:<reg>` | — | **0** (≈90°, oposición) ✔ | P0.1 |
 | `--target-angle` (Exp 1, sin contacto) | 300 | **300** (mismo comando) ✔ | P0.2 |
 | `--start-angle` (pre-posición modo A) | 680 | **750** (POS≈501) ✔ | P2.3 |
-| `--approach-angle` (modo B) | 475 | **?** | P2.7 |
+| `--approach-angle` (modo B) | 475 | **504** (POS 743) ✔ | P2.7 |
 | `--safety-force-g` | 2200 | **400** en Exp 1; en Exp 2 empezar en **1500** | P0.2 / P2.4 |
 | offset de `FORCE_ACT` tras `forceClb` | 241 → 0 g | **?** | P2.1 |
 | `q_sw` (margen de conmutación) | 124 counts | **?** | P2.7 |

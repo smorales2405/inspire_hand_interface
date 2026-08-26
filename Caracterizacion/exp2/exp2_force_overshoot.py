@@ -569,6 +569,65 @@ def run_hybrid(hand, args):
     print(f"\nListo: {total} trials (modo B) en {args.outdir}/.")
 
 
+def _load_probe(path):
+    try:
+        return [(int(a['pos_act']), int(a['force_g']))
+                for a in csv.DictReader(open(path)) if a['pos_act'] and a['force_g']]
+    except OSError:
+        return None
+
+
+def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_pos=300):
+    """POS del contacto GEOMÉTRICO a partir del sondeo lento (`--probe`).
+
+    El sondeo corre a v=50, así que su onset está prácticamente libre de retardo
+    de detección. Es la referencia correcta para el punto de conmutación del modo
+    B — NO el onset medido a v=1000, que llega sistemáticamente tarde (el margen
+    de fuerza, las 2 muestras consecutivas y la lectura de POS posterior suman
+    ~100 counts a v=1000).
+
+    Con un sondeo libre de referencia (`--probe --no-block`) se resta la curva
+    `F(POS)` en espacio libre y se detecta el primer punto con fuerza EXTERNA
+    sostenida sobre `ext_g` — el criterio sensible. Sin él se cae a un detector
+    por salto entre muestras, que dispara más tarde. Ante la duda se prefiere el
+    valor MÁS TEMPRANO: conmutar antes solo alarga el cierre lento, conmutar
+    tarde invalida el modo B.
+    """
+    rows = _load_probe(path)
+    if not rows:
+        return None
+    free = _load_probe(free_path) if free_path else None
+    if free:
+        f0b = statistics.median([f for p, f in rows[:12]])
+        f0f = statistics.median([f for p, f in free[:12]])
+        pts = sorted(((p, f - f0f) for p, f in free))
+
+        def resid(pos):
+            if pos <= pts[0][0]:
+                return pts[0][1]
+            for (p0, r0), (p1, r1) in zip(pts, pts[1:]):
+                if p0 <= pos <= p1:
+                    return r0 if p1 == p0 else r0 + (pos - p0) * (r1 - r0) / (p1 - p0)
+            return pts[-1][1]
+
+        run = 0
+        for pos, f in rows:
+            if pos <= min_pos:
+                continue
+            if (f - f0b) - resid(pos) > ext_g:
+                run += 1
+                if run >= 2:
+                    return pos
+            else:
+                run = 0
+    prev = None
+    for pos, f in rows:
+        if prev is not None and (f - prev) > jump_g and pos > min_pos:
+            return pos
+        prev = f
+    return None
+
+
 # ── Sub-experimento: variabilidad del onset de contacto ──────────────────────
 
 def run_onset(hand, args):
@@ -683,6 +742,16 @@ def run_onset(hand, args):
              * (args.start_angle - args.open_angle) / (pos_at_start - pos_at_open))
         return int(max(0, min(1000, round(a))))
 
+    geom, geom_src = args.geom_onset_pos, '(--geom-onset-pos)'
+    if geom is None:
+        for cand in (os.path.join(args.outdir, f'probe_dof{dof}.csv'),
+                     os.path.join(default_outdir(dof), f'probe_dof{dof}.csv')):
+            g = geometric_onset_from_probe(
+                cand, cand.replace('.csv', '_libre.csv'))
+            if g is not None:
+                geom, geom_src = g, cand
+                break
+
     print(f"\n=== Sub-exp onset — resultado (N válidos = {len(onsets)}/{args.onset_trials}) ===")
     if pmap:
         print(f" Mapa POS↔ANGLE: tabla de {len(pmap)} puntos, interpolada a tramos "
@@ -699,17 +768,33 @@ def run_onset(hand, args):
         mu = statistics.fmean(clean); sd = statistics.pstdev(clean)
         q = math.ceil(args.onset_k * sd)
         switch = mu - q
-        ang = to_angle(switch)
         print(f" onset POS crudo:   media={statistics.fmean(s):.0f}  σ={statistics.pstdev(s):.1f}  (N={len(s)})")
         print(f" onset POS robusto: media={mu:.0f}  σ={sd:.1f}  min={min(clean)}  "
               f"(N={len(clean)}; {len(s)-len(clean)} outliers de detección excluidos)")
         print(f"   (a v={args.onset_speed} la cuantización de POS por muestra domina la σ medida;")
         print(f"    la repetibilidad mecánica intra-cluster es mucho menor.)")
         print(f" Margen de conmutación  q_sw = ceil({args.onset_k}·σ_robusta) = {q} counts POS")
-        print(f" → modo B: entra al cierre lento en POS ≈ {switch:.0f}"
-              + (f"  (--approach-angle ≈ {ang})," if ang is not None
-                 else "  (mapeo a ANGLE no disponible: anclas POS iguales),"))
-        print(f"   ANTES del onset mínimo confiable ({min(clean)}).")
+        # El onset medido a v=1000 llega SISTEMÁTICAMENTE TARDE: entre que la
+        # fuerza cruza el margen, se exigen 2 muestras seguidas y se lee POS,
+        # el dedo ya avanzó. El punto de conmutación debe anclarse en el onset
+        # GEOMÉTRICO del sondeo lento, no en el detectado.
+        if geom is not None:
+            switch_g = geom - q
+            ang = to_angle(switch_g)
+            print(f"\n Onset GEOMÉTRICO (sondeo lento, {os.path.relpath(geom_src)}): POS {geom}")
+            print(f"   retardo de detección a v={args.onset_speed}: {mu - geom:+.0f} counts "
+                  f"(la detección llega tarde; por eso NO se usa {mu:.0f} como referencia)")
+            print(f" → modo B: entra al cierre lento en POS ≈ {switch_g:.0f} = {geom} − {q}"
+                  + (f"  (--approach-angle ≈ {ang})" if ang is not None else ""))
+        else:
+            ang = to_angle(mu - q)
+            print(f"\n ⚠ SIN sondeo lento de referencia: no se puede corregir el retardo de")
+            print(f"   detección, que a esta velocidad puede ser de ~100 counts o más. El punto")
+            print(f"   de conmutación de abajo sale del onset DETECTADO y probablemente quede")
+            print(f"   TARDE (después del contacto real), que es justo lo que rompe el modo B.")
+            print(f"   Corre `--probe` en este mismo montaje y repite, o pasa --geom-onset-pos.")
+            print(f" → modo B (SIN CORREGIR): POS ≈ {mu - q:.0f}"
+                  + (f"  (--approach-angle ≈ {ang})" if ang is not None else ""))
     elif len(onsets) >= 2:
         mu = statistics.fmean(onsets); sd = statistics.pstdev(onsets)
         print(f" POS onset: media={mu:.0f}  σ={sd:.1f}  q_sw=ceil({args.onset_k}·σ)={math.ceil(args.onset_k*sd)}")
@@ -796,6 +881,10 @@ def parse_args(argv=None):
     p.add_argument('--onset-min-travel', type=int, default=200,
                    help='avance mínimo de POS desde el inicio para descartar el blip de arranque')
     p.add_argument('--onset-k', type=float, default=3.3, help='factor para q_sw = ceil(k·σ) (def 3.3)')
+    p.add_argument('--geom-onset-pos', type=int, default=None,
+                   help='POS del onset GEOMÉTRICO (del sondeo lento --probe). Es la '
+                        'referencia correcta para el punto de conmutación del modo B; el '
+                        'onset medido a v=1000 llega tarde. Def: se busca probe_dof<N>.csv.')
     p.add_argument('--pos-angle-csv', default=None,
                    help='CSV de pose_check.py para el mapeo POS↔ANGLE a tramos '
                         '(def: se busca pose_dof<N>.csv en --outdir y en exp1/data_dof<N>/)')

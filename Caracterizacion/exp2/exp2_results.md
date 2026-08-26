@@ -68,6 +68,18 @@ margen; **retrae al detectar** → toque suave, no impacto). Datos:
 - **Margen de conmutación**: `q_sw = ceil(3.3·σ_robusta) ≈ 124 counts POS`.
 - **Para el modo B**: entrar al cierre lento en `POS ≈ 895` (`--approach-angle ≈
   613`), antes del onset mínimo confiable (967).
+
+> ⚠ *Caveat añadido 2026-08-26 (descubierto al caracterizar el pulgar):* este
+> `POS 895` sale de restar `q_sw` al onset **detectado** a v=1000, que llega
+> sistemáticamente **tarde** — el margen de fuerza, las 2 muestras consecutivas
+> del detector y la lectura de `POS` posterior suman, para el índice, un
+> presupuesto de ~187 counts. La referencia correcta es el onset **geométrico**
+> del sondeo lento en el **mismo montaje**, y aquí no existe: el
+> `probe_dof3.csv` disponible es de otro montaje del bloque (da 1420, con un
+> sesgo de −401 contra el sub-experimento, imposible por retardo). Trátese
+> `895` como **cota superior** y re-derívese con `--probe` + `--onset` sobre el
+> montaje real antes de usarlo. El modo B ya corrido no se ve afectado: usó
+> `--approach-angle 475`, muy por delante.
   *(Corregido 2026-08-25: el valor publicado antes, 581, salía de linealizar
   `POS↔ANGLE`. La tabla medida `data/pose_dof3.csv` muestra que la relación no es
   lineal —2.08 counts/grado al abrir contra 1.62 al cerrar— y da 613. El `POS`

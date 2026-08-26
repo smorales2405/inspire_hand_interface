@@ -32,13 +32,19 @@ inspire_hand_interface/
 │   ├── main.py · core/ · ui/
 │   └── README.md
 └── Caracterizacion/
-    ├── README.md · PROTOCOL_...md
+    ├── README.md · PROTOCOL_...md · RUNBOOK_pulgar.md
     ├── hand_modbus.py                   # helper Modbus compartido (exp1, exp2)
+    ├── pose_check.py                    # Fase 0 de un DOF: ANGLE_SET → postura real
     ├── figures_to_svg.py                # extrae SVG de las figuras
     ├── exp0/   → código · exp0_results.md · data/
     ├── exp1/   → código · exp1_results.md · data/ · figures/
     └── exp2/   → código · exp2_results.md · data/ · data_slow/ · data_hybrid/ · figures/
 ```
+
+Los experimentos toman `--dof` y `--hold` (anclar otro DOF): la campaña del
+**índice** vive en `exp*/data/` y la de cualquier otro DOF en `exp*/data_dof<N>/`,
+sin mezclarse. La réplica sobre la **flexión del pulgar** (DOF 4, con la rotación
+anclada) está en [`Caracterizacion/RUNBOOK_pulgar.md`](Caracterizacion/RUNBOOK_pulgar.md).
 
 ## Resultados de la caracterización
 

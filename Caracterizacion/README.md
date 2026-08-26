@@ -15,6 +15,56 @@ Newton: `N = g * 9.80665 / 1000`.
 
 ---
 
+## Elegir el DOF · DOF anclados (`--hold`)
+
+`exp1_step_response.py` y `exp2_force_overshoot.py` toman `--dof` (def 3 =
+índice) y `--hold`, que **ancla otro DOF** en un ángulo durante todo el
+experimento. El caso de uso es la **flexión del pulgar (DOF 4) con la rotación
+(DOF 5) fija**, para que la única variable sea la flexión:
+
+```bash
+... --dof 4 --hold 5:0        # ancla ANGLE_SET(5)=0 mientras se barre el DOF 4
+```
+
+El ancla se re-afirma en cada escritura de `ANGLE_SET` (mismo bloque de 6
+shorts, coste cero), sobrevive a las aperturas globales y al Ctrl-C, se incluye
+en la tara `forceClb`, y **se vigila por fuerza** (techo propio
+`--safety-force-hold-g`): si el DOF bajo prueba empuja contra el anclado, la
+carga aparece ahí y el trial aborta con `fuerza_hold`.
+
+Los datos **no se mezclan**: el `--outdir` por defecto es `data/` para el DOF 3
+(histórico) y `data_dof<N>/` para cualquier otro.
+
+**Runbook del pulgar:** [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md) — la réplica
+completa del protocolo sobre DOF 4, por fases.
+
+## Fase 0 de un DOF nuevo (`pose_check.py`)
+
+El manual publica los rangos angulares (dedos 20°-176°, flexión del pulgar
+−13°-70°, rotación del pulgar 90°-165°) pero **no dice qué extremo de
+`ANGLE_SET` es cada ángulo**. Para los dedos quedó resuelto (manual:
+«`ANGLE_ACT(3)=1000`, i.e. *fully open*» + el Exp 1). Para el pulgar **hay que
+medirlo**, así que `reg_to_deg()` devuelve `None` para los DOF 4/5 hasta
+completar `DOF_DEG_ENDPOINTS` en `hand_modbus.py`, y la forma en grados de
+`--hold` (`5:165d`) falla a propósito en vez de suponer.
+
+`pose_check.py` recorre un DOF por una lista de `ANGLE_SET`, se detiene en cada
+una y reporta `ANGLE_ACT`/`POS_ACT`/`FORCE_ACT`/`CURRENT` — miras la mano y
+anotas. Sirve además para mapear el **recorrido libre** (dónde topa solo) antes
+de montarle un bloque:
+
+```bash
+.venv/bin/python Caracterizacion/pose_check.py \
+    --transport serial --serial-port /dev/ttyUSB0 --dof 5 --angles 1000,500,0
+```
+
+> `Interfaz/core/angle_converter.py` (la GUI) usa la dirección **invertida** y un
+> rango distinto para la flexión del pulgar (53.6° vs los 70° del manual). Afecta
+> solo a los grados que muestra la GUI, no al control — pero conviene corregirlo
+> antes de citar grados en la tesis.
+
+---
+
 ## Exp 0 — Baseline de muestreo (`exp0_sampling_baseline.py`)
 
 Lee en lazo cerrado el bloque de los 6 registros `FORCE_ACT` (dirección

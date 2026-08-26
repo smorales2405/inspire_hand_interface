@@ -15,6 +15,14 @@ flexión (~216→330 g sin contacto). Por eso:
   - `FORCE_SET` se pone alto (800 g > offset máximo) para que el firmware NO
     frene en espacio libre: así cualquier stall es contacto real.
 
+DOF anclados (`--hold`): otro DOF puede quedar fijo en un ángulo durante todo el
+experimento. Caso pulgar: FLEXIÓN (DOF 4) con la ROTACIÓN (DOF 5) anclada en su
+ángulo máximo (165°) → `--dof 4 --hold 5:<reg>`, con `<reg>` medido una vez con
+`pose_check.py --dof 5` (el manual da el rango 90°-165° pero no qué extremo del
+registro es cuál). El ancla se re-afirma en cada escritura de ANGLE_SET, la tara
+`forceClb` se hace en esa misma postura, y los DOF anclados se vigilan por fuerza
+(si el dedo bajo prueba empuja contra ellos, la carga aparece ahí y no en `--dof`).
+
 Standalone (no PyQt), un proceso/hilo/cliente, lazo intercalado. Al salir
 (contacto, techo, corriente, timeout, Ctrl-C) abre todos los dedos.
 
@@ -41,6 +49,8 @@ sys.path.insert(0, os.path.dirname(_HERE))
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
+    DOF_NAMES, fmt_angle, parse_hold, describe_hold,
+    angle_vector, open_vector, report_hold,
 )
 
 # Lectura de bloque ancho: POS_ACT(1534)…CURRENT(1599) en una sola transacción.
@@ -53,15 +63,14 @@ OFF_CUR = CURRENT - POS_ACT         # 60
 FORCE_CLB = 1009                    # GESTURE_FORCE_CLB: escribir 1 (palma abierta) tara la fuerza
 
 
-def angle_vector(dof, value):
-    v = [-1] * NDOF
-    v[dof] = value
-    return v
+def default_outdir(dof):
+    """exp2/data para el índice (histórico); exp2/data_dofN para el resto."""
+    return os.path.join(_HERE, 'data' if dof == 3 else f'data_dof{dof}')
 
 
-def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000):
+def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000, hold=None):
     hand.write_block(SPEED_SET, [open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, angle_vector(dof, open_angle))
+    hand.write_block(ANGLE_SET, angle_vector(dof, open_angle, hold))
     t0 = time.perf_counter()
     while time.perf_counter() - t0 < timeout_s:
         a = hand.read_block(ANGLE_ACT)
@@ -87,11 +96,14 @@ def read_signals(hand, dof, wide_ok):
 
 def run_zero(hand, args):
     dof = args.dof
+    hold = args.hold_map
     print("Calibración de fuerza (forceClb, reg 1009). Requiere palma ABIERTA sin tocar nada.")
     hand.write_block(SPEED_SET, [args.open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     time.sleep(0.8)
-    open_and_settle(hand, dof, args.open_angle, args.settle_band, args.settle_timeout_s, args.open_speed)
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
+    open_and_settle(hand, dof, args.open_angle, args.settle_band, args.settle_timeout_s,
+                    args.open_speed, hold)
 
     def rest_force(n=10):
         vals = []
@@ -116,7 +128,7 @@ def run_zero(hand, args):
     print(f" Flexionando libre a ANGLE_SET={ang} (antes del bloque) para el residual por flexión...")
     hand.write_block(SPEED_SET, [150] * NDOF)
     hand.write_block(FORCE_SET, [args.probe_fset] * NDOF)
-    hand.write_block(ANGLE_SET, angle_vector(dof, ang))
+    hand.write_block(ANGLE_SET, angle_vector(dof, ang, hold))
     t0 = time.perf_counter()
     last_pos = None; stable_t = t0; p = f = None
     while time.perf_counter() - t0 < 6.0:
@@ -132,7 +144,7 @@ def run_zero(hand, args):
             elif time.perf_counter() - stable_t > 0.4:
                 break                                   # asentó
         time.sleep(0.01)
-    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))
+    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))
     if p is not None and f is not None:
         print(f" A POS≈{p} (flexionado, libre): FORCE_ACT={f} g   "
               f"(residual por flexión vs reposo calibrado: {f - (f_after or 0):+.0f} g)")
@@ -145,11 +157,15 @@ def run_zero(hand, args):
 
 def run_probe(hand, args):
     dof = args.dof
-    print(f"Abriendo todos los dedos (DOF de sondeo: {dof})...")
+    hold = args.hold_map
+    print(f"Abriendo todos los dedos (DOF de sondeo: {dof} = {DOF_NAMES[dof]})"
+          + ("  [SIN bloque: mapeo del recorrido libre]" if args.no_block else "") + "...")
     hand.write_block(SPEED_SET, [args.open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     time.sleep(0.6)
-    open_and_settle(hand, dof, args.open_angle, args.settle_band, args.settle_timeout_s, args.open_speed)
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
+    open_and_settle(hand, dof, args.open_angle, args.settle_band, args.settle_timeout_s,
+                    args.open_speed, hold)
 
     # 1) Test de lectura ancha + cross-check contra lecturas separadas (en reposo).
     w = hand.read_block(WIDE_ADDR, WIDE_COUNT)
@@ -180,7 +196,7 @@ def run_probe(hand, args):
 
     t_start = time.perf_counter()
     tb = time.perf_counter()
-    hand.write_block(ANGLE_SET, angle_vector(dof, 0))     # cerrar
+    hand.write_block(ANGLE_SET, angle_vector(dof, 0, hold))     # cerrar
     t_cmd = time.perf_counter()
 
     while True:
@@ -218,7 +234,7 @@ def run_probe(hand, args):
             break
 
     # Abrir siempre.
-    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))
+    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))
 
     # Si una salvaguarda cortó justo en el contacto (POS ya detenido), inferir
     # el POS de contacto del tramo final.
@@ -229,7 +245,8 @@ def run_probe(hand, args):
 
     # 3) Guardar + reportar.
     os.makedirs(args.outdir, exist_ok=True)
-    path = os.path.join(args.outdir, f'probe_dof{dof}.csv')
+    path = os.path.join(args.outdir,
+                        f'probe_dof{dof}{"_libre" if args.no_block else ""}.csv')
     with open(path, 'w', newline='') as fp:
         wtr = csv.writer(fp)
         wtr.writerow(['t_s', 'pos_act', 'force_g', 'current_mA'])
@@ -239,13 +256,24 @@ def run_probe(hand, args):
 
     forces = [f for (_, _, f, _) in samples if f is not None]
     f_contact = forces[-1] if forces else None
-    print("\n=== Exp 2 — sondeo de contacto ===")
+    poss = [p for (_, p, _, _) in samples if p is not None]
+    label = 'recorrido libre' if args.no_block else 'contacto'
+    print(f"\n=== Exp 2 — sondeo de {label} (DOF {dof} = {DOF_NAMES[dof]}) ===")
+    print(f" Anclado          : {describe_hold(args.hold_map)}")
     print(f" Motivo de parada : {reason}")
-    if contact_pos is not None:
-        note = '  (¡ojo! cerca de cierre completo — ¿bloque fuera de alcance?)' if contact_pos > 1700 else ''
+    print(f" POS: reposo={p_open}  máximo alcanzado={max(poss) if poss else '—'}"
+          f"  (recorrido {max(poss) - start_pos if poss else '—'} counts)")
+    if args.no_block:
+        # Referencia SIN bloque: dónde se detiene el dedo por sí solo (tope
+        # mecánico o auto-colisión). El sondeo CON bloque debe detenerse ANTES.
+        print(f"   → POS libre de referencia. El sondeo CON bloque debe parar por debajo de")
+        print(f"     este valor; si para en el mismo punto, el bloque está fuera de alcance.")
+    elif contact_pos is not None:
         src = '' if reason == 'contacto' else f'  (inferido del punto de parada por {reason})'
-        print(f" POS de contacto  : {contact_pos}{note}{src}")
-        print(f"   → úsalo como ángulo de aproximación del modo B (híbrido)")
+        print(f" POS de contacto  : {contact_pos}{src}")
+        print(f"   → úsalo como referencia del ángulo de aproximación del modo B (híbrido).")
+        print(f"     Compáralo con el POS libre (--no-block): si coinciden, el dedo llegó a su")
+        print(f"     tope/auto-colisión y NO al bloque.")
     else:
         print(" POS de contacto  : no detectado (no hubo stall; revisa montaje/alcance)")
     print(f" Fuerza al parar  : {f_contact} g   (offset en reposo: {f_open} g "
@@ -255,22 +283,31 @@ def run_probe(hand, args):
     print(f" Muestras         : {len(samples)}  ({len(samples)/max(samples[-1][0],1e-9):.0f} Hz)  "
           f"lectura: {'ancha' if wide_ok else 'separada'}")
     print(f" CSV              : {path}")
-    if reason == 'contacto':
+    if reason == 'contacto' and not args.no_block:
         print(" ✔ Contacto detectado por stall y dedo abierto. Mándame el CSV y "
               "caracterizo la curva libre F(POS) + onset para diseñar el grid.")
+    elif reason == 'contacto':
+        print(" ✔ El dedo se detuvo solo (tope mecánico / auto-colisión): ese es el POS libre.")
     elif reason == 'techo_fuerza':
         print(" ⚠ Se llegó al techo de fuerza antes del stall: baja --probe-speed "
-              "o revisa que el bloque frene el dedo.")
+              + ("o revisa que el bloque frene el dedo." if not args.no_block else
+                 "— sin bloque, esto indica auto-colisión con carga: revisa la postura anclada."))
 
 
 # ── Grid modo A: una celda (v, Fset) ────────────────────────────────────────
 
 def calibrate(hand, args):
-    """forceClb con la palma abierta (fuerza ≈ externa tras esto)."""
+    """forceClb con la palma abierta (fuerza ≈ externa tras esto).
+
+    La tara se hace CON los DOF anclados en su ángulo de trabajo: así cualquier
+    sesgo estático de esa postura queda incluido en el cero.
+    """
+    hold = args.hold_map
     hand.write_block(SPEED_SET, [args.open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     time.sleep(0.6)
-    open_and_settle(hand, args.dof, args.open_angle, args.settle_band, args.settle_timeout_s, args.open_speed)
+    open_and_settle(hand, args.dof, args.open_angle, args.settle_band,
+                    args.settle_timeout_s, args.open_speed, hold)
     hand.write_block(FORCE_CLB, [1])
     time.sleep(1.5)
 
@@ -279,19 +316,22 @@ def run_trial_A(hand, dof, speed, fset, args):
     """Modo A: dedo ya pre-posicionado antes del contacto → cierra a `speed`,
     firmware frena en `fset`. Muestrea FORCE_ACT a alta tasa (pico) + POS/CURRENT
     periódicos. Devuelve series y métricas."""
+    hold = args.hold_map
+    hold_dofs = sorted(hold)
     hand.write_block(SPEED_SET, [speed] * NDOF)
     hand.write_block(FORCE_SET, [fset] * NDOF)
 
     samples = []                 # (t, force, pos|None, cur|None)
     f_max = None; peak_t = None; onset_pos = None
-    aborted = False; cur_over = 0
+    f_max_hold = 0
+    aborted = False; abort_reason = ''; cur_over = 0
     ref_pos = None; ref_t = None                 # seguimiento del plateau de POS
     pb0 = hand.read_block(POS_ACT)
     start_pos = pb0[dof] if pb0 else 0
     last_pos = start_pos
     i = 0
     t_start = time.perf_counter()
-    hand.write_block(ANGLE_SET, angle_vector(dof, 0))          # cerrar contra el bloque
+    hand.write_block(ANGLE_SET, angle_vector(dof, 0, hold))    # cerrar contra el bloque
     t_cmd = time.perf_counter()
 
     while True:
@@ -307,7 +347,7 @@ def run_trial_A(hand, dof, speed, fset, args):
             if cur is not None and cur > args.current_max:
                 cur_over += 1
                 if cur_over >= 3:
-                    aborted = True; break
+                    aborted = True; abort_reason = 'corriente'; break
             else:
                 cur_over = 0
             # Fin del trial: el dedo se DETUVO (plateau de POS) tras avanzar al
@@ -326,15 +366,21 @@ def run_trial_A(hand, dof, speed, fset, args):
             if (onset_pos is None and force > args.onset_thr
                     and (last_pos - start_pos) > 50):
                 onset_pos = last_pos
-            if abs(force) > args.safety_force_g:
+            # Vigilancia de los DOF anclados: si el dedo bajo prueba empuja
+            # contra uno de ellos, la carga aparece ahí, no en `dof`.
+            f_h = max((abs(fb[d]) for d in hold_dofs), default=0) if fb else 0
+            f_max_hold = max(f_max_hold, f_h)
+            hold_over = args.safety_force_hold_g > 0 and f_h > args.safety_force_hold_g
+            if abs(force) > args.safety_force_g or hold_over:
                 aborted = True
+                abort_reason = ('fuerza' if abs(force) > args.safety_force_g else 'fuerza_hold')
                 samples.append((elapsed, force, pos, cur)); break
         samples.append((elapsed, force, pos, cur))
         i += 1
         if elapsed >= args.trial_window:
             break
 
-    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))   # abrir
+    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))   # abrir
 
     forces = [f for (_, f, _, _) in samples if f is not None]
     tail = [f for (tt, f, _, _) in samples if f is not None and tt >= samples[-1][0] - 0.3]
@@ -343,7 +389,8 @@ def run_trial_A(hand, dof, speed, fset, args):
         'samples': samples, 'speed': speed, 'fset': fset,
         'f_max': f_max, 'delta_f': (f_max - fset) if f_max is not None else None,
         'f_settle': f_settle, 't_peak_ms': (peak_t - t_cmd) * 1000 if peak_t else None,
-        'onset_pos': onset_pos, 'aborted': aborted,
+        'onset_pos': onset_pos, 'aborted': aborted, 'abort_reason': abort_reason,
+        'f_max_hold': f_max_hold, 'start_pos': start_pos,
     }
 
 
@@ -358,26 +405,35 @@ def save_cell_csv(path, trial):
 
 def run_cell(hand, args):
     dof = args.dof
+    hold = args.hold_map
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
     if not args.no_cal:
         print("Calibrando fuerza (forceClb, palma abierta)...")
         calibrate(hand, args)
-    print(f"Pre-posicionando a ANGLE_SET={args.start_angle} (justo antes del contacto)...")
-    open_and_settle(hand, dof, args.start_angle, args.settle_band, args.settle_timeout_s, args.approach_speed)
+    print(f"Pre-posicionando a ANGLE_SET={args.start_angle} "
+          f"({fmt_angle(args.start_angle, dof)}, justo antes del contacto)...")
+    open_and_settle(hand, dof, args.start_angle, args.settle_band,
+                    args.settle_timeout_s, args.approach_speed, hold)
 
     trial = run_trial_A(hand, dof, args.speed, args.fset, args)
     os.makedirs(args.outdir, exist_ok=True)
     path = os.path.join(args.outdir, f'cell_dof{dof}_v{args.speed}_F{args.fset}.csv')
     save_cell_csv(path, trial)
 
-    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))
+    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))
     n = len(trial['samples']); rate = n / max(trial['samples'][-1][0], 1e-9)
     print("\n=== Exp 2 — celda única (modo A, validación) ===")
-    print(f" DOF={dof}  v={args.speed}  Fset={args.fset} g")
+    print(f" DOF={dof} ({DOF_NAMES[dof]})  v={args.speed}  Fset={args.fset} g")
+    print(f" Anclado: {describe_hold(hold)}")
     print(f" F_max = {trial['f_max']} g   ΔF (sobreimpulso) = {trial['delta_f']} g")
     print(f" F_régimen = {trial['f_settle']:.0f} g   t_hasta_pico = "
           f"{trial['t_peak_ms']:.0f} ms" if trial['f_settle'] is not None else " F_régimen = —")
-    print(f" onset de contacto en POS = {trial['onset_pos']}")
-    print(f" Muestras: {n}  ({rate:.0f} Hz)   {'⚠ ABORTADO' if trial['aborted'] else ''}")
+    print(f" onset de contacto en POS = {trial['onset_pos']}   "
+          f"(POS de pre-posición = {trial['start_pos']})")
+    if hold:
+        print(f" máx |FORCE_ACT| en los DOF anclados = {trial['f_max_hold']} g")
+    print(f" Muestras: {n}  ({rate:.0f} Hz)   "
+          f"{'⚠ ABORTADO (' + trial['abort_reason'] + ')' if trial['aborted'] else ''}")
     print(f" CSV: {path}")
 
 
@@ -385,14 +441,16 @@ def run_cell(hand, args):
 
 def run_grid(hand, args):
     dof = args.dof
+    hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
     speeds = [int(x) for x in args.speeds.split(',') if x.strip()]
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
     order = [(v, F, n) for v in speeds for F in fsets for n in range(args.trials)]
     random.Random(args.seed).shuffle(order)
     total = len(order)
-    print(f"Grid modo A: {len(speeds)} v × {len(fsets)} Fset × {args.trials} = "
-          f"{total} trials (orden aleatorio).")
+    print(f"Grid modo A sobre DOF {dof} ({DOF_NAMES[dof]}): {len(speeds)} v × "
+          f"{len(fsets)} Fset × {args.trials} = {total} trials (orden aleatorio).")
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
 
     if not args.no_cal:
         print("Calibrando fuerza (forceClb, palma abierta)...")
@@ -404,14 +462,16 @@ def run_grid(hand, args):
         iw = csv.writer(idx)
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
-                         'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted'])
+                         'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
+                         'hold', 'f_max_hold_g'])
+        hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (v, F, n) in enumerate(order, 1):
             # Recalibración periódica (con el dedo abierto) por la deriva del sensor.
             if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
                 print("  · recalibrando forceClb ...")
                 calibrate(hand, args)
             open_and_settle(hand, dof, args.start_angle, args.settle_band,
-                            args.settle_timeout_s, args.approach_speed)
+                            args.settle_timeout_s, args.approach_speed, hold)
             trial = run_trial_A(hand, dof, v, F, args)
             fname = f"A_dof{dof}_v{v}_F{F}_n{n:02d}.csv"
             save_cell_csv(os.path.join(args.outdir, fname), trial)
@@ -420,13 +480,14 @@ def run_grid(hand, args):
             iw.writerow([fname, dof, v, F, trial['f_max'], trial['delta_f'],
                          f"{trial['f_settle']:.0f}" if trial['f_settle'] is not None else '',
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
-                         trial['onset_pos'], f"{rate:.0f}", int(trial['aborted'])])
+                         trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
+                         hold_txt, trial['f_max_hold']])
             idx.flush()
-            flag = '  ⚠ABORT' if trial['aborted'] else ''
+            flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] v={v:4d} Fset={F:4d} n={n} → "
                   f"F_max={trial['f_max']} g  ΔF={trial['delta_f']} g{flag}")
 
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     print(f"\nListo: {total} trials en {args.outdir}/  (series + grid_index.csv).")
 
 
@@ -438,13 +499,16 @@ def run_hybrid(hand, args):
     de v=25. Barre Fset. Reutiliza run_trial_A (la aproximación cercana + baja
     velocidad hacen el resto)."""
     dof = args.dof
+    hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
     order = [(F, n) for F in fsets for n in range(args.trials)]
     random.Random(args.seed).shuffle(order)
     total = len(order)
-    print(f"Modo B (híbrido): aproximación rápida a ANGLE_SET={args.approach_angle}, "
+    print(f"Modo B (híbrido) sobre DOF {dof} ({DOF_NAMES[dof]}): aproximación rápida a "
+          f"{fmt_angle(args.approach_angle, dof)}, "
           f"luego cierre a v={args.hybrid_speed}.  {len(fsets)} Fset × {args.trials} = {total} trials.")
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
 
     if not args.no_cal:
         print("Calibrando fuerza (forceClb)...")
@@ -456,14 +520,16 @@ def run_hybrid(hand, args):
         iw = csv.writer(idx)
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
-                         'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted'])
+                         'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
+                         'hold', 'f_max_hold_g'])
+        hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (F, n) in enumerate(order, 1):
             if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
                 print("  · recalibrando forceClb ...")
                 calibrate(hand, args)
             # Aproximación RÁPIDA (open_speed) hasta justo antes del contacto.
             open_and_settle(hand, dof, args.approach_angle, args.settle_band,
-                            args.settle_timeout_s, args.open_speed)
+                            args.settle_timeout_s, args.open_speed, hold)
             trial = run_trial_A(hand, dof, args.hybrid_speed, F, args)   # cierre lento
             fname = f"B_dof{dof}_v{args.hybrid_speed}_F{F}_n{n:02d}.csv"
             save_cell_csv(os.path.join(args.outdir, fname), trial)
@@ -472,12 +538,13 @@ def run_hybrid(hand, args):
             iw.writerow([fname, dof, args.hybrid_speed, F, trial['f_max'], trial['delta_f'],
                          f"{trial['f_settle']:.0f}" if trial['f_settle'] is not None else '',
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
-                         trial['onset_pos'], f"{rate:.0f}", int(trial['aborted'])])
+                         trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
+                         hold_txt, trial['f_max_hold']])
             idx.flush()
-            flag = '  ⚠ABORT' if trial['aborted'] else ''
+            flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] Fset={F:4d} n={n} → F_max={trial['f_max']} g  ΔF={trial['delta_f']} g{flag}")
 
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     print(f"\nListo: {total} trials (modo B) en {args.outdir}/.")
 
 
@@ -491,20 +558,30 @@ def run_onset(hand, args):
     """
     import math
     dof = args.dof; v = args.onset_speed; F = args.onset_fset
+    hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
-    print(f"Sub-exp onset: v={v}, Fset={F}, N={args.onset_trials}, "
-          f"margen={args.onset_margin} g sobre baseline. Toque suave (retrae al detectar).")
+    print(f"Sub-exp onset sobre DOF {dof} ({DOF_NAMES[dof]}): v={v}, Fset={F}, "
+          f"N={args.onset_trials}, margen={args.onset_margin} g sobre baseline. "
+          f"Toque suave (retrae al detectar).")
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
     if not args.no_cal:
         print("Calibrando fuerza (forceClb)...")
         calibrate(hand, args)
 
+    # Ancla 1 del mapeo POS→ANGLE: POS medido con el dedo en `open_angle`.
+    open_and_settle(hand, dof, args.open_angle, args.settle_band,
+                    args.settle_timeout_s, args.open_speed, hold)
+    pb_open = hand.read_block(POS_ACT)
+    pos_at_open = pb_open[dof] if pb_open else None
+
     onsets = []
     rows = []
+    start_positions = []
     for k in range(1, args.onset_trials + 1):
         if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
             calibrate(hand, args)
         open_and_settle(hand, dof, args.start_angle, args.settle_band,
-                        args.settle_timeout_s, args.approach_speed)
+                        args.settle_timeout_s, args.approach_speed, hold)
         # baseline de fuerza estacionario (inmune a la deriva entre trials)
         fbase = []
         for _ in range(8):
@@ -515,12 +592,14 @@ def run_onset(hand, args):
         f_base = statistics.median(fbase) if fbase else 0
         pb0 = hand.read_block(POS_ACT)
         start_pos = pb0[dof] if pb0 else 0
+        if pb0:
+            start_positions.append(start_pos)
 
         hand.write_block(SPEED_SET, [v] * NDOF)
         hand.write_block(FORCE_SET, [F] * NDOF)
         onset_pos = None; consec = 0; aborted = False
         t_start = time.perf_counter()
-        hand.write_block(ANGLE_SET, angle_vector(dof, 0))
+        hand.write_block(ANGLE_SET, angle_vector(dof, 0, hold))
         while True:
             elapsed = time.perf_counter() - t_start
             fb = hand.read_block(FORCE_ACT)
@@ -541,7 +620,7 @@ def run_onset(hand, args):
                     consec = 0
             if elapsed >= args.trial_window:
                 break
-        hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))   # retraer
+        hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))   # retraer
         time.sleep(0.15)
         if onset_pos is not None and not aborted:
             onsets.append(onset_pos)
@@ -549,14 +628,29 @@ def run_onset(hand, args):
         flag = '  ⚠ABORT' if aborted else ('' if onset_pos is not None else '  (sin onset)')
         print(f"[{k}/{args.onset_trials}] onset_pos={onset_pos}  (f_base={f_base:.0f} g){flag}")
 
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     path = os.path.join(args.outdir, 'onset_trials.csv')
     with open(path, 'w', newline='') as f:
         w = csv.writer(f)
         w.writerow(['trial', 'onset_pos', 'f_base_g', 'aborted'])
         w.writerows(rows)
 
+    # Mapeo POS→ANGLE_SET a partir de DOS anclas MEDIDAS en este montaje
+    # (open_angle, pos_at_open) y (start_angle, pos_at_start) — sin constantes
+    # heredadas de otro DOF.
+    pos_at_start = statistics.median(start_positions) if start_positions else None
+
+    def pos_to_angle(pos):
+        if (pos_at_open is None or pos_at_start is None
+                or pos_at_start == pos_at_open):
+            return None
+        a = (args.open_angle + (pos - pos_at_open)
+             * (args.start_angle - args.open_angle) / (pos_at_start - pos_at_open))
+        return int(max(0, min(1000, round(a))))
+
     print(f"\n=== Sub-exp onset — resultado (N válidos = {len(onsets)}/{args.onset_trials}) ===")
+    print(f" Anclas POS↔ANGLE medidas: ANGLE {args.open_angle}→POS {pos_at_open} · "
+          f"ANGLE {args.start_angle}→POS {pos_at_start}")
     if len(onsets) >= 4:
         s = sorted(onsets)
         q1, _, q3 = statistics.quantiles(s, n=4)
@@ -565,14 +659,16 @@ def run_onset(hand, args):
         mu = statistics.fmean(clean); sd = statistics.pstdev(clean)
         q = math.ceil(args.onset_k * sd)
         switch = mu - q
-        ang = round(1000 - (switch - 98) / 1902 * 1000)   # POS → ANGLE_SET aprox
+        ang = pos_to_angle(switch)
         print(f" onset POS crudo:   media={statistics.fmean(s):.0f}  σ={statistics.pstdev(s):.1f}  (N={len(s)})")
         print(f" onset POS robusto: media={mu:.0f}  σ={sd:.1f}  min={min(clean)}  "
               f"(N={len(clean)}; {len(s)-len(clean)} outliers de detección excluidos)")
         print(f"   (a v={args.onset_speed} la cuantización de POS por muestra domina la σ medida;")
         print(f"    la repetibilidad mecánica intra-cluster es mucho menor.)")
         print(f" Margen de conmutación  q_sw = ceil({args.onset_k}·σ_robusta) = {q} counts POS")
-        print(f" → modo B: entra al cierre lento en POS ≈ {switch:.0f}  (--approach-angle ≈ {ang}),")
+        print(f" → modo B: entra al cierre lento en POS ≈ {switch:.0f}"
+              + (f"  (--approach-angle ≈ {ang})," if ang is not None
+                 else "  (mapeo a ANGLE no disponible: anclas POS iguales),"))
         print(f"   ANTES del onset mínimo confiable ({min(clean)}).")
     elif len(onsets) >= 2:
         mu = statistics.fmean(onsets); sd = statistics.pstdev(onsets)
@@ -600,6 +696,11 @@ def parse_args(argv=None):
     p.add_argument('--serial-port', default='/dev/ttyUSB0')
     p.add_argument('--baud', type=int, default=115200)
     p.add_argument('--dof', type=int, default=3)
+    p.add_argument('--hold', default='',
+                   help="DOF a ANCLAR durante todo el experimento, 'DOF:ANGLE' o "
+                        "'DOF:GRADOSd', coma-separado. Ej. pulgar: --dof 4 --hold 5:0 "
+                        "(rotación fija; mide el extremo correcto con pose_check.py). "
+                        "Se re-afirma en cada escritura.")
     p.add_argument('--open-angle', type=int, default=1000)
     p.add_argument('--open-speed', type=int, default=1000)
     p.add_argument('--settle-band', type=int, default=6)
@@ -610,6 +711,9 @@ def parse_args(argv=None):
                    help='ANGLE_SET (antes del bloque) para medir el residual por flexión (def 650)')
     # sondeo
     p.add_argument('--probe', action='store_true', help='corre el sondeo de contacto')
+    p.add_argument('--no-block', action='store_true',
+                   help='sondeo SIN el bloque: mapea el recorrido libre del dedo '
+                        '(tope mecánico / auto-colisión) como referencia del sondeo con bloque')
     p.add_argument('--probe-speed', type=int, default=50, help='SPEED_SET del cierre lento (def 50)')
     p.add_argument('--probe-fset', type=int, default=400,
                    help='FORCE_SET del sondeo: el firmware frena suave en contacto (crudo; def 400)')
@@ -662,8 +766,12 @@ def parse_args(argv=None):
                    help='tope máximo por trial (s); v=25 lento necesita ventana amplia (def 20)')
     p.add_argument('--safety-force-g', type=int, default=2200,
                    help='techo |FORCE_ACT| de emergencia (g, def 2200)')
+    p.add_argument('--safety-force-hold-g', type=int, default=None,
+                   help='techo |FORCE_ACT| de los DOF ANCLADOS (def: igual a '
+                        '--safety-force-g; 0 = desactivar esa vigilancia)')
     p.add_argument('--no-cal', action='store_true', help='no calibrar (forceClb) al inicio')
-    p.add_argument('--outdir', default=os.path.join(_HERE, 'data'))
+    p.add_argument('--outdir', default=None,
+                   help='carpeta de salida (def exp2/data para DOF 3, exp2/data_dofN si no)')
     return p.parse_args(argv)
 
 
@@ -679,6 +787,19 @@ def main(argv=None):
     if args.cell and (args.speed is None or args.fset is None):
         print("ERROR: --cell requiere --speed y --fset", file=sys.stderr)
         return 2
+    try:
+        args.hold_map = parse_hold(args.hold)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    if args.dof in args.hold_map:
+        print(f"ERROR: --hold no puede anclar el propio DOF bajo prueba ({args.dof})",
+              file=sys.stderr)
+        return 2
+    if args.outdir is None:
+        args.outdir = default_outdir(args.dof)
+    if args.safety_force_hold_g is None:
+        args.safety_force_hold_g = args.safety_force_g
 
     hand = connect(args)
     if hand is None:
@@ -700,8 +821,9 @@ def main(argv=None):
     except KeyboardInterrupt:
         print("\n[interrumpido]")
     finally:
+        # SEGURIDAD: abrir al salir; los DOF anclados se MANTIENEN en su ángulo.
         try:
-            hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+            hand.write_block(ANGLE_SET, open_vector(args.open_angle, args.hold_map))
         except Exception:
             pass
         hand.close()

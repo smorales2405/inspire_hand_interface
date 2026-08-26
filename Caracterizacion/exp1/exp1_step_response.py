@@ -22,14 +22,28 @@ el dedo contra la palma u otros dedos. VALIDA SIEMPRE primero con:
 y confirma que |FORCE_ACT|max ≈ 0 (sin contacto) antes de correr la campaña.
 Al salir (fin, Ctrl-C o aborto) el script abre todos los dedos.
 
+DOF anclados (`--hold`): un experimento puede exigir que OTRO DOF quede fijo en
+un ángulo mientras se caracteriza `--dof`. Caso pulgar: se caracteriza la
+FLEXIÓN (DOF 4) con la ROTACIÓN (DOF 5) anclada en su ángulo máximo (165°) →
+`--dof 4 --hold 5:<reg>`, donde `<reg>` es el extremo de ANGLE_SET(5) que
+corresponde a 165° — el manual NO lo dice, así que se MIDE una vez con
+`pose_check.py --dof 5`. El ancla se re-afirma en cada escritura de ANGLE_SET
+(mismo bloque de 6 shorts, coste cero) y sobrevive a las aperturas globales del
+script. Los DOF anclados también se vigilan por fuerza.
+
 Ejemplos:
   # validación de un trial (índice, lento, con fuerza por muestra)
-  .venv/bin/python characterization/exp1_step_response.py \
+  .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
       --transport serial --serial-port /dev/ttyUSB1 --single --speed 100 --read full
 
   # campaña completa del protocolo (5 velocidades x 20 trials, orden aleatorio)
-  .venv/bin/python characterization/exp1_step_response.py \
-      --transport serial --serial-port /dev/ttyUSB1 --outdir exp1_out
+  .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
+      --transport serial --serial-port /dev/ttyUSB1
+
+  # flexión del pulgar con la rotación anclada (suponiendo que 165° = ANGLE_SET 0)
+  .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
+      --transport serial --serial-port /dev/ttyUSB1 --dof 4 --hold 5:0 \
+      --single --speed 100 --read full
 """
 from __future__ import annotations
 
@@ -48,26 +62,26 @@ sys.path.insert(0, os.path.dirname(_HERE))
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
+    DOF_NAMES, fmt_angle, parse_hold, describe_hold,
+    angle_vector, open_vector, report_hold,
 )
 
 
 # ── Helpers de comando ─────────────────────────────────────────────────────
 
-def angle_vector(dof, value):
-    """Bloque ANGLE_SET que mueve solo `dof`; -1 = mantener el resto."""
-    v = [-1] * NDOF
-    v[dof] = value
-    return v
+def default_outdir(dof):
+    """exp1/data para el índice (histórico); exp1/data_dofN para el resto."""
+    return os.path.join(_HERE, 'data' if dof == 3 else f'data_dof{dof}')
 
 
-def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000):
+def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000, hold=None):
     """Abre el dedo `dof` a velocidad rápida fija y espera settle de ANGLE_ACT.
 
     La velocidad de reapertura es independiente de la velocidad de prueba del
     trial, para que la reapertura no herede una `SPEED_SET` lenta.
     """
     hand.write_block(SPEED_SET, [open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, angle_vector(dof, open_angle))
+    hand.write_block(ANGLE_SET, angle_vector(dof, open_angle, hold))
     t0 = time.perf_counter()
     while time.perf_counter() - t0 < timeout_s:
         a = hand.read_block(ANGLE_ACT)
@@ -80,16 +94,19 @@ def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000):
 
 # ── Un trial ────────────────────────────────────────────────────────────────
 
-def run_trial(hand, dof, speed, args):
+def run_trial(hand, dof, speed, args, hold=None):
     """Un escalón: baseline → comando ANGLE_SET=target → log POS_ACT hasta window_s."""
     # Configurar velocidad y umbral de fuerza (todos los DOF; solo `dof` se moverá).
     hand.write_block(SPEED_SET, [speed] * NDOF)
     hand.write_block(FORCE_SET, [args.force_set] * NDOF)
 
     full = (args.read == 'full')
+    hold_dofs = sorted(hold or {})
     samples = []            # (t_rel, pos, force|None, current|None)
     max_abs_force = 0
+    max_abs_force_hold = 0
     aborted = False
+    abort_reason = ''
     settled = False
     t_cmd = None
     write_cost = None
@@ -104,7 +121,7 @@ def run_trial(hand, dof, speed, args):
         # Disparo del escalón una sola vez, tras el baseline.
         if not cmd_issued and elapsed >= args.baseline_s:
             tb = time.perf_counter()
-            hand.write_block(ANGLE_SET, angle_vector(dof, args.target_angle))
+            hand.write_block(ANGLE_SET, angle_vector(dof, args.target_angle, hold))
             t_cmd = time.perf_counter()
             write_cost = t_cmd - tb
             cmd_issued = True
@@ -121,9 +138,17 @@ def run_trial(hand, dof, speed, args):
             if fblk is not None:
                 force = fblk[dof]
                 max_abs_force = max(max_abs_force, abs(force))
-                if abs(force) > args.safety_force_g:
-                    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle))
+                # Los DOF anclados también se vigilan: si el DOF bajo prueba
+                # empuja contra uno de ellos, la carga aparece ahí, no en `dof`.
+                f_hold = max((abs(fblk[d]) for d in hold_dofs), default=0)
+                max_abs_force_hold = max(max_abs_force_hold, f_hold)
+                hold_over = (args.safety_force_hold_g > 0
+                             and f_hold > args.safety_force_hold_g)
+                if abs(force) > args.safety_force_g or hold_over:
+                    hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))
                     aborted = True
+                    abort_reason = ('fuerza' if abs(force) > args.safety_force_g
+                                    else 'fuerza_hold')
                     samples.append((elapsed, pos, force, current))
                     break
         if full:
@@ -153,6 +178,8 @@ def run_trial(hand, dof, speed, args):
         't_cmd_rel': (t_cmd - t_start) if t_cmd is not None else None,
         'write_cost': write_cost, 'aborted': aborted, 'settled': settled,
         'max_abs_force_g': max_abs_force,
+        'max_abs_force_hold_g': max_abs_force_hold,
+        'abort_reason': abort_reason,
     }
 
 
@@ -214,16 +241,19 @@ def _fmt(x, spec=''):
     return format(x, spec) if isinstance(x, (int, float)) and x is not None else ''
 
 
-def run_campaign(hand, args):
+def run_campaign(hand, args, hold):
     os.makedirs(args.outdir, exist_ok=True)
     speeds = [int(x) for x in args.speeds.split(',') if x.strip()]
     order = [(v, n) for v in speeds for n in range(args.trials)]
     random.Random(args.seed).shuffle(order)
+    hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
 
-    print(f"Abriendo todos los dedos para despejar el área (DOF de prueba: {args.dof})...")
+    print(f"Abriendo todos los dedos para despejar el área "
+          f"(DOF de prueba: {args.dof} = {DOF_NAMES[args.dof]})...")
     hand.write_block(SPEED_SET, [args.open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     time.sleep(0.6)
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
 
     index_path = os.path.join(args.outdir, 'index.csv')
     new_index = not os.path.exists(index_path)
@@ -234,14 +264,15 @@ def run_campaign(hand, args):
                          't_cmd_s', 'write_cost_s', 'rate_hz', 'latency_ms',
                          'baseline_pos', 'final_pos', 'delta_pos',
                          'force_base_g', 'force_final_dev_g',
-                         'max_abs_force_g', 'settled', 'aborted'])
+                         'max_abs_force_g', 'settled', 'aborted',
+                         'hold', 'max_abs_force_hold_g'])
         total = len(order)
         for k, (v, n) in enumerate(order, 1):
             if not open_and_settle(hand, args.dof, args.open_angle,
                                    args.settle_band, args.settle_timeout_s,
-                                   args.open_speed):
+                                   args.open_speed, hold):
                 print(f"[{k}/{total}] WARN: apertura no asentó (v={v} n={n}); continúo")
-            trial = run_trial(hand, args.dof, v, args)
+            trial = run_trial(hand, args.dof, v, args, hold)
             m = quick_metrics(trial)
             fname = f"trial_dof{args.dof}_v{v}_n{n:02d}.csv"
             save_trial_csv(os.path.join(args.outdir, fname), trial)
@@ -251,9 +282,10 @@ def run_campaign(hand, args):
                          _fmt(m.get('baseline_pos'), '.1f'), _fmt(m.get('final_pos'), '.1f'),
                          _fmt(m.get('delta_pos'), '.1f'),
                          _fmt(m.get('force_base_g'), '.0f'), _fmt(m.get('force_final_dev_g'), '.0f'),
-                         trial['max_abs_force_g'], int(trial['settled']), int(trial['aborted'])])
+                         trial['max_abs_force_g'], int(trial['settled']), int(trial['aborted']),
+                         hold_txt, trial['max_abs_force_hold_g']])
             idx.flush()
-            flag = ('  ⚠ABORTADO' if trial['aborted']
+            flag = (f"  ⚠ABORTADO ({trial['abort_reason']})" if trial['aborted']
                     else ('' if trial['settled'] else '  (no asentó)'))
             print(f"[{k}/{total}] v={v:4d} n={n:02d} → {_fmt(m.get('rate_hz'),'.0f')} Hz, "
                   f"lat={_fmt(m.get('latency_ms'),'.1f')} ms, "
@@ -263,23 +295,26 @@ def run_campaign(hand, args):
     print(f"\nListo: {total} trials en {args.outdir}/  (series por trial + index.csv).")
 
 
-def run_single(hand, args):
-    print(f"Abriendo todos los dedos (DOF de prueba: {args.dof})...")
+def run_single(hand, args, hold):
+    print(f"Abriendo todos los dedos (DOF de prueba: {args.dof} = {DOF_NAMES[args.dof]})...")
     hand.write_block(SPEED_SET, [args.open_speed] * NDOF)
-    hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
     time.sleep(0.6)
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
     open_and_settle(hand, args.dof, args.open_angle, args.settle_band,
-                    args.settle_timeout_s, args.open_speed)
+                    args.settle_timeout_s, args.open_speed, hold)
 
-    trial = run_trial(hand, args.dof, args.speed, args)
+    trial = run_trial(hand, args.dof, args.speed, args, hold)
     m = quick_metrics(trial)
     os.makedirs(args.outdir, exist_ok=True)
     fname = f"single_dof{args.dof}_v{args.speed}.csv"
     save_trial_csv(os.path.join(args.outdir, fname), trial)
 
     print("\n=== Exp 1 — trial único (validación) ===")
-    print(f" DOF={args.dof}  v={args.speed}  target={args.target_angle}  "
+    print(f" DOF={args.dof} ({DOF_NAMES[args.dof]})  v={args.speed}  "
+          f"target={fmt_angle(args.target_angle, args.dof)}  "
           f"force_set={args.force_set}")
+    print(f" Anclado: {describe_hold(hold)}")
     print(f" Muestras: {m.get('n')}   Tasa: {_fmt(m.get('rate_hz'),'.1f')} Hz")
     print(f" t_cmd={_fmt(trial['t_cmd_rel'],'.4f')} s  (write_cost={_fmt(trial['write_cost'],'.5f')} s)")
     print(f" Latencia≈ {_fmt(m.get('latency_ms'),'.1f')} ms   "
@@ -292,10 +327,15 @@ def run_single(hand, args):
     print("   → " + ("⚠ posible CONTACTO: fuerza final muy por encima del baseline"
                      if contact else
                      "sin contacto: la fuerza queda cerca de su baseline en reposo"))
+    if hold:
+        fh = trial['max_abs_force_hold_g']
+        print(f" FORCE_ACT de los DOF anclados: máx |F| = {fh} g   → "
+              + ("OK, el DOF bajo prueba no empuja contra ellos" if fh < args.contact_delta_g
+                 else "⚠ carga apreciable: ¿el dedo choca contra el DOF anclado?"))
     if not trial.get('settled'):
         print("   ⚠ NO asentó dentro de --window-s; sube la ventana o el dedo no llegó al target")
     if trial['aborted']:
-        print("   ⚠ TRIAL ABORTADO por techo de fuerza (--safety-force-g)")
+        print(f"   ⚠ TRIAL ABORTADO por techo de fuerza (--safety-force-g), motivo: {trial['abort_reason']}")
     print(f" CSV: {os.path.join(args.outdir, fname)}")
 
 
@@ -321,6 +361,11 @@ def parse_args(argv=None):
     p.add_argument('--baud', type=int, default=115200)
     # experimento
     p.add_argument('--dof', type=int, default=3, help='DOF a caracterizar (def 3 = índice)')
+    p.add_argument('--hold', default='',
+                   help="DOF a ANCLAR durante todo el experimento, 'DOF:ANGLE' o "
+                        "'DOF:GRADOSd', coma-separado. Ej. pulgar: --dof 4 --hold 5:0 "
+                        "(rotación fija; mide el extremo correcto con pose_check.py). "
+                        "Se re-afirma en cada escritura.")
     p.add_argument('--speeds', default='100,250,500,750,1000',
                    help='SPEED_SET a barrer, coma-separado (def protocolo)')
     p.add_argument('--trials', type=int, default=20, help='trials por velocidad (def 20)')
@@ -344,13 +389,17 @@ def parse_args(argv=None):
                    help="pos=solo POS_ACT ~90 Hz (def) | full=POS+FORCE+CURRENT ~33 Hz")
     p.add_argument('--safety-force-g', type=int, default=1800,
                    help='techo |FORCE_ACT| para abortar y abrir (g, def 1800)')
+    p.add_argument('--safety-force-hold-g', type=int, default=None,
+                   help='techo |FORCE_ACT| de los DOF ANCLADOS (def: igual a '
+                        '--safety-force-g; 0 = desactivar esa vigilancia)')
     p.add_argument('--safety-every', type=int, default=8,
                    help='en modo pos, cada cuántas iters se chequea FORCE_ACT (def 8)')
     p.add_argument('--settle-band', type=int, default=6,
                    help='banda ANGLE_ACT para dar por asentada la apertura (def 6)')
     p.add_argument('--settle-timeout-s', type=float, default=3.0)
     p.add_argument('--seed', type=int, default=0, help='semilla del orden aleatorio (def 0)')
-    p.add_argument('--outdir', default=os.path.join(_HERE, 'data'), help='carpeta de salida (def exp1/data)')
+    p.add_argument('--outdir', default=None,
+                   help='carpeta de salida (def exp1/data para DOF 3, exp1/data_dofN si no)')
     # modo trial único (validación)
     p.add_argument('--single', action='store_true', help='corre un solo trial (validación)')
     p.add_argument('--speed', type=int, default=None, help='velocidad para --single')
@@ -365,6 +414,19 @@ def main(argv=None):
     if args.single and args.speed is None:
         print("ERROR: --single requiere --speed", file=sys.stderr)
         return 2
+    try:
+        hold = parse_hold(args.hold)
+    except ValueError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    if args.dof in hold:
+        print(f"ERROR: --hold no puede anclar el propio DOF bajo prueba ({args.dof})",
+              file=sys.stderr)
+        return 2
+    if args.outdir is None:
+        args.outdir = default_outdir(args.dof)
+    if args.safety_force_hold_g is None:
+        args.safety_force_hold_g = args.safety_force_g
 
     hand = connect(args)
     if hand is None:
@@ -372,15 +434,16 @@ def main(argv=None):
         return 1
     try:
         if args.single:
-            run_single(hand, args)
+            run_single(hand, args, hold)
         else:
-            run_campaign(hand, args)
+            run_campaign(hand, args, hold)
     except KeyboardInterrupt:
         print("\n[interrumpido]")
     finally:
-        # SEGURIDAD: abrir todos los dedos al salir.
+        # SEGURIDAD: abrir todos los dedos al salir. Los DOF anclados se
+        # MANTIENEN en su ángulo (soltarlos movería la postura sin necesidad).
         try:
-            hand.write_block(ANGLE_SET, [args.open_angle] * NDOF)
+            hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
         except Exception:
             pass
         hand.close()

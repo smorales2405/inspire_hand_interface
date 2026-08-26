@@ -1,0 +1,227 @@
+<title>Índice vs Pulgar · RH56DFTP</title>
+<style>
+  :root{--ink:#12181f;--muted:#5a6472;--hair:#dbe2ec;--idx:#285F97;--thb:#B4740F;
+    --bg:#f6f8fb;--panel:#ffffff;}
+  *{box-sizing:border-box;}
+  body{background:var(--bg);margin:0;}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 64px;color:var(--ink);
+    background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    font-variant-numeric:tabular-nums;}
+  .b{font-weight:600;} .ey{letter-spacing:.14em;text-transform:uppercase;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--idx);
+    font-weight:600;}
+  h1{font-size:30px;line-height:1.15;margin:.35rem 0 .5rem;text-wrap:balance;letter-spacing:-.01em;}
+  .dek{color:var(--muted);font-size:16.5px;max-width:64ch;margin:0;}
+  .rule{height:1px;background:var(--hair);border:0;margin:26px 0;}
+  .panel{background:var(--panel);border:1px solid var(--hair);border-radius:10px;
+    padding:18px 18px 12px;box-shadow:0 1px 2px rgba(18,24,31,.04);}
+  .cap{font-size:12px;color:var(--muted);margin:2px 2px 12px;}
+  .cap b{color:var(--ink);}
+  figure{margin:0;}
+  .legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 2px 10px;
+    font-size:12.5px;}
+  .legend .li{display:inline-flex;align-items:center;gap:6px;color:var(--ink);}
+  .legend .sw{width:22px;height:4px;border-radius:2px;display:inline-block;}
+  .legend .note{color:var(--muted);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+  svg{width:100%;height:auto;display:block;}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 22px;}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:14px 16px;}
+  .kpi .n{font-size:24px;font-weight:600;letter-spacing:-.01em;}
+  .kpi .n .u{font-size:14px;color:var(--muted);font-weight:500;}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:2px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:right;padding:8px 10px;border-bottom:1px solid var(--hair);}
+  th:first-child,td:first-child{text-align:left;}
+  th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+  .foot{font-size:12.5px;color:var(--muted);margin-top:22px;}
+  .foot code{font-family:ui-monospace,Menlo,monospace;color:var(--ink);background:#eef2f7;
+    padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+<div class="wrap">
+  <div class="eyebrow">Réplica del protocolo · Índice vs Pulgar</div>
+  <h1>La misma calibración de velocidad en los dos dedos, pero una sola mitigación sobrevive al cambio de dedo</h1>
+  <p class="dek">Inspire RH56DFTP. El protocolo de caracterización dinámica ejecutado sobre el <span class="mono">DOF&nbsp;3</span> (índice) y replicado sobre el <span class="mono">DOF&nbsp;4</span> (flexión del pulgar) con la rotación anclada en oposición. 100 trials de escalón y 200 de contacto por dedo.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">3.04 <span class="u">vs</span> 2.99</div><div class="l">counts/s por unidad de <span class="mono">SPEED_SET</span> — índice y pulgar</div></div>
+    <div class="kpi"><div class="n">39×<span class="u"> peor</span></div><div class="l">ΔF del pulgar con <span class="mono">Fset=100</span> a v=1000: el "setpoint seguro" no generaliza</div></div>
+    <div class="kpi"><div class="n">30–82×</div><div class="l">reducción de ΔF con el modo híbrido en el pulgar</div></div>
+  </div>
+
+  <div class="grid2">
+    <figure class="panel">
+      <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span></div>
+      <svg viewBox="0 0 452 320" role="img" aria-label="Pendiente del tramo lineal frente a SPEED_SET, para el índice y para el pulgar">
+<line x1="62" y1="270.0" x2="390" y2="270.0" stroke="#eef2f7"/>
+<text x="54" y="274.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="62" y1="208.5" x2="390" y2="208.5" stroke="#eef2f7"/>
+<text x="54" y="212.5" fill="#5a6472" font-size="11" text-anchor="end" class="mono">825</text>
+<line x1="62" y1="147.0" x2="390" y2="147.0" stroke="#eef2f7"/>
+<text x="54" y="151.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1650</text>
+<line x1="62" y1="85.5" x2="390" y2="85.5" stroke="#eef2f7"/>
+<text x="54" y="89.5" fill="#5a6472" font-size="11" text-anchor="end" class="mono">2475</text>
+<line x1="62" y1="24.0" x2="390" y2="24.0" stroke="#eef2f7"/>
+<text x="54" y="28.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">3300</text>
+<text x="92.9" y="287" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">100</text>
+<text x="139.4" y="287" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="216.7" y="287" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="294.1" y="287" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="371.4" y="287" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<line x1="62.0" y1="270.0" x2="371.4" y2="43.2" stroke="#5a6472" stroke-width="1" opacity="0.35"/>
+<text x="72.0" y="39.0" fill="#5a6472" font-size="10.5" class="mono">recta k·v · k≈3.04</text>
+<polyline points="92.9,247.3 139.4,213.4 216.7,156.6 294.1,100.0 371.4,52.2" fill="none" stroke="#285F97" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92.9" cy="247.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="139.4" cy="213.4" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="216.7" cy="156.6" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="294.1" cy="100.0" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="371.4" cy="52.2" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<polyline points="92.9,247.5 139.4,214.0 216.7,158.9 294.1,103.2 371.4,74.7" fill="none" stroke="#B4740F" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="92.9" cy="247.5" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="139.4" cy="214.0" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="216.7" cy="158.9" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="294.1" cy="103.2" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="371.4" cy="74.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<text x="379.4" y="48.2" fill="#285F97" font-size="11.5" class="b">índice</text>
+<text x="379.4" y="80.0" fill="#B4740F" font-size="11.5" class="b">pulgar</text>
+<line x1="358.4" y1="43.2" x2="358.4" y2="74.7" stroke="#B4740F" stroke-width="1.2" opacity="0.7"/>
+<text x="353.4" y="63.0" fill="#B4740F" font-size="11" text-anchor="end" class="mono b">−12%</text>
+<line x1="62" y1="270" x2="390" y2="270" stroke="#dbe2ec"/>
+<line x1="62" y1="24" x2="62" y2="270" stroke="#dbe2ec"/>
+<text x="226" y="313" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">SPEED_SET comandado</text>
+<text transform="translate(15,147) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">pendiente (counts/s)</text>
+</svg>
+      <figcaption class="cap"><b>Figura 1.</b> La pendiente del tramo lineal escala igual en los dos dedos: <span class="mono">k ≈ 3.04</span> y <span class="mono">2.99</span> counts/s por unidad de <span class="mono">SPEED_SET</span>. <span class="mono">SPEED_SET</span> calibra el <b>actuador</b>, no el ángulo. El pulgar se despega de la recta solo en el extremo (−12&nbsp;% a v=1000), su techo de velocidad.</figcaption>
+    </figure>
+    <figure class="panel">
+      <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span></div>
+      <svg viewBox="0 0 452 320" role="img" aria-label="Sobreimpulso de fuerza con FORCE_SET de 100 gramos frente a la velocidad, escala logarítmica">
+<line x1="62" y1="225.1" x2="390" y2="225.1" stroke="#eef2f7"/>
+<text x="54" y="229.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">10</text>
+<line x1="62" y1="139.3" x2="390" y2="139.3" stroke="#eef2f7"/>
+<text x="54" y="143.3" fill="#5a6472" font-size="11" text-anchor="end" class="mono">100</text>
+<line x1="62" y1="53.4" x2="390" y2="53.4" stroke="#eef2f7"/>
+<text x="54" y="57.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<text x="70.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">25</text>
+<text x="122.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">50</text>
+<text x="174.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">100</text>
+<text x="226.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">250</text>
+<text x="278.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">500</text>
+<text x="330.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">750</text>
+<text x="382.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">1000</text>
+<polyline points="70.0,238.4 122.0,210.0 174.0,251.0 226.0,177.3 278.0,192.5 330.0,186.7 382.0,177.3" fill="none" stroke="#285F97" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="70.0" cy="238.4" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="122.0" cy="210.0" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="174.0" cy="251.0" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="226.0" cy="177.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="278.0" cy="192.5" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="330.0" cy="186.7" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="382.0" cy="177.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<polyline points="70.0,207.6 122.0,181.7 174.0,154.7 226.0,106.9 278.0,78.2 330.0,49.8 382.0,40.9" fill="none" stroke="#B4740F" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="70.0" cy="207.6" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="122.0" cy="181.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="174.0" cy="154.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="226.0" cy="106.9" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="278.0" cy="78.2" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="330.0" cy="49.8" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="382.0" cy="40.9" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<text x="376.0" y="29.9" fill="#B4740F" font-size="11.5" text-anchor="end" class="b">pulgar · 1397 g</text>
+<text x="278.0" y="222.5" fill="#285F97" font-size="11.5" text-anchor="middle" class="b">índice · plano en 5–36 g</text>
+<line x1="62" y1="270" x2="390" y2="270" stroke="#dbe2ec"/>
+<line x1="62" y1="24" x2="62" y2="270" stroke="#dbe2ec"/>
+<text x="226" y="313" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">SPEED_SET comandado</text>
+<text transform="translate(15,147) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF con Fset=100 g  (log)</text>
+</svg>
+      <figcaption class="cap"><b>Figura 2.</b> El hallazgo central. Con <span class="mono">Fset=100&nbsp;g</span> el índice mantiene el sobreimpulso plano en 5–36&nbsp;g <b>a cualquier velocidad</b>: el firmware frena antes de que se forme el impacto. En el pulgar esa protección <b>no existe</b> — el mismo ajuste crece hasta 1397&nbsp;g. La diferencia sigue a la rigidez del contacto: 6.4 g/count contra 1.6.</figcaption>
+    </figure>
+  </div>
+
+  <hr class="rule">
+  <figure class="panel">
+    <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span><span class="li note">○ modo A a v=1000 &nbsp;·&nbsp; ● modo B híbrido</span></div>
+    <svg viewBox="0 0 936 330" role="img" aria-label="Caída del sobreimpulso al pasar del modo A a velocidad 1000 al modo B híbrido, por FORCE_SET y por dedo">
+<line x1="66" y1="219.7" x2="910" y2="219.7" stroke="#eef2f7"/>
+<text x="58" y="223.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">10</text>
+<line x1="66" y1="151.3" x2="910" y2="151.3" stroke="#eef2f7"/>
+<text x="58" y="155.3" fill="#5a6472" font-size="11" text-anchor="end" class="mono">100</text>
+<line x1="66" y1="82.9" x2="910" y2="82.9" stroke="#eef2f7"/>
+<text x="58" y="86.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<text x="150.4" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">100</text>
+<line x1="133.4" y1="181.6" x2="133.4" y2="267.5" stroke="#285F97" stroke-width="2" opacity="0.42"/>
+<circle cx="133.4" cy="181.6" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
+<circle cx="133.4" cy="267.5" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
+<text x="144.4" y="271.5" fill="#285F97" font-size="10.5" class="mono">2</text>
+<text x="133.4" y="171.6" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">36</text>
+<line x1="167.4" y1="73.0" x2="167.4" y2="203.9" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
+<circle cx="167.4" cy="73.0" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
+<circle cx="167.4" cy="203.9" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
+<text x="167.4" y="221.9" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">17</text>
+<text x="167.4" y="63.0" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">1397</text>
+<text x="319.2" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">250</text>
+<line x1="302.2" y1="47.8" x2="302.2" y2="192.5" stroke="#285F97" stroke-width="2" opacity="0.42"/>
+<circle cx="302.2" cy="47.8" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
+<circle cx="302.2" cy="192.5" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
+<text x="302.2" y="210.5" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">25</text>
+<text x="302.2" y="37.8" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">3263</text>
+<line x1="336.2" y1="70.4" x2="336.2" y2="183.3" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
+<circle cx="336.2" cy="70.4" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
+<circle cx="336.2" cy="183.3" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
+<text x="336.2" y="201.3" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">34</text>
+<text x="336.2" y="60.4" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">1524</text>
+<text x="488.0" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">500</text>
+<line x1="471.0" y1="51.2" x2="471.0" y2="179.3" stroke="#285F97" stroke-width="2" opacity="0.42"/>
+<circle cx="471.0" cy="51.2" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
+<circle cx="471.0" cy="179.3" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
+<text x="471.0" y="197.3" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">39</text>
+<text x="471.0" y="41.2" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">2917</text>
+<line x1="505.0" y1="78.3" x2="505.0" y2="189.1" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
+<circle cx="505.0" cy="78.3" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
+<circle cx="505.0" cy="189.1" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
+<text x="505.0" y="207.1" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">28</text>
+<text x="505.0" y="68.3" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">1169</text>
+<text x="656.8" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">750</text>
+<line x1="639.8" y1="51.7" x2="639.8" y2="161.5" stroke="#285F97" stroke-width="2" opacity="0.42"/>
+<circle cx="639.8" cy="51.7" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
+<circle cx="639.8" cy="161.5" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
+<text x="639.8" y="179.5" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">71</text>
+<text x="639.8" y="41.7" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">2865</text>
+<line x1="673.8" y1="80.6" x2="673.8" y2="181.6" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
+<circle cx="673.8" cy="80.6" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
+<circle cx="673.8" cy="181.6" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
+<text x="673.8" y="199.6" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">36</text>
+<text x="673.8" y="70.6" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">1083</text>
+<text x="825.6" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">1000</text>
+<line x1="808.6" y1="55.7" x2="808.6" y2="153.8" stroke="#285F97" stroke-width="2" opacity="0.42"/>
+<circle cx="808.6" cy="55.7" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
+<circle cx="808.6" cy="153.8" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
+<text x="808.6" y="171.8" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">92</text>
+<text x="808.6" y="45.7" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">2502</text>
+<line x1="842.6" y1="72.9" x2="842.6" y2="180.8" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
+<circle cx="842.6" cy="72.9" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
+<circle cx="842.6" cy="180.8" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
+<text x="842.6" y="198.8" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">37</text>
+<text x="842.6" y="62.9" fill="#B4740F" font-size="10.5" text-anchor="middle" class="mono">1403</text>
+<line x1="66" y1="276" x2="910" y2="276" stroke="#dbe2ec"/>
+<line x1="66" y1="34" x2="66" y2="276" stroke="#dbe2ec"/>
+<text x="488" y="322" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">FORCE_SET  (g)</text>
+<text transform="translate(16,155) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF  (g, log)</text>
+</svg>
+    <figcaption class="cap"><b>Figura 3.</b> La conmutación de velocidad (aproximación rápida + cierre lento) colapsa el sobreimpulso <b>en los dos dedos y para todo <span class="mono">Fset</span></b>, entre 30× y 82×. Ataca la causa —el momento en el instante del contacto— y por eso generaliza, mientras que bajar el <span class="mono">Fset</span> depende de la rigidez del contacto y no.</figcaption>
+  </figure>
+
+  <hr class="rule">
+  <div class="panel" style="padding-bottom:6px">
+    <div style="font-weight:600;font-size:13.5px;margin:2px 2px 12px">ΔF a v=1000: modo A frente a modo B <span class="mono" style="color:var(--muted);font-weight:400">· mediana de 5 trials, g</span></div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>FORCE_SET</th><th>Índice · A</th><th>Índice · B</th><th>Pulgar · A</th><th>Pulgar · B</th><th>Reducción (pulgar)</th></tr></thead>
+      <tbody><tr><td class="mono b">100</td><td class="mono">36</td><td class="mono">2</td><td class="mono">1397</td><td class="mono">17</td><td class="mono b">82×</td></tr><tr><td class="mono b">250</td><td class="mono">3263</td><td class="mono">25</td><td class="mono">1524</td><td class="mono">34</td><td class="mono b">45×</td></tr><tr><td class="mono b">500</td><td class="mono">2917</td><td class="mono">39</td><td class="mono">1169</td><td class="mono">28</td><td class="mono b">42×</td></tr><tr><td class="mono b">750</td><td class="mono">2865</td><td class="mono">71</td><td class="mono">1083</td><td class="mono">36</td><td class="mono b">30×</td></tr><tr><td class="mono b">1000</td><td class="mono">2502</td><td class="mono">92</td><td class="mono">1403</td><td class="mono">37</td><td class="mono b">38×</td></tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <p class="foot">Datos: <code>exp1/data</code>, <code>exp1/data_dof4</code>, <code>exp2/data*</code>. Generado por <code>compare_dof_figure.py</code> (Python puro). Paleta categórica validada con el verificador del skill <code>dataviz</code>: ΔE 22.3 (protan) y 27.2 (visión normal), todas las comprobaciones PASS.</p>
+</div>

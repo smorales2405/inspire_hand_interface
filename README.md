@@ -53,6 +53,12 @@ anclada) está en [`Caracterizacion/RUNBOOK_pulgar.md`](Caracterizacion/RUNBOOK_
   velocidad (R² ≥ 0.98), sobreimpulso de posición ~0.
 - **Exp 2** — sobreimpulso de fuerza en contacto: dominado por la velocidad de
   cierre (hasta ~3300 g), mitigado ~68× por el modo híbrido.
+- **Réplica en el pulgar (DOF 4)** — el protocolo completo repetido sobre la
+  flexión del pulgar con la rotación anclada. `SPEED_SET` calibra el actuador y
+  no el ángulo (misma constante en ambos dedos); el "umbral de fuerza bajo" que
+  protegía al índice **no protege al pulgar**; el modo híbrido sí generaliza
+  (30–82×). Ver `exp1/exp1_results_dof4.md`, `exp2/exp2_results_dof4.md` y
+  `figures/comparativa_indice_pulgar.html`.
 
 Cada `exp*/results.md` tiene la interpretación; las figuras (`exp*/figures/`)
 están en HTML autocontenido + SVG para embeber en la tesis.

@@ -19,6 +19,8 @@ JOBS = [
      ['exp1_overlay_pos_vs_t', 'exp1_slope_vs_speed', 'exp1_latency_vs_speed']),
     (os.path.join(_HERE, 'exp2', 'figures', 'exp2_force_overshoot.html'),
      ['exp2_overshoot_bars', 'exp2_hybrid_comparison']),
+    (os.path.join(_HERE, 'figures', 'comparativa_indice_pulgar.html'),
+     ['cmp_pendiente_vs_speed', 'cmp_fset100_vs_speed', 'cmp_modoA_vs_modoB']),
 ]
 
 

@@ -444,12 +444,25 @@ contra un bloque: no se lanza sin que la celda de validación se vea sana.
 
 ---
 
-## Fase P3 — Análisis, figuras y documento
+## ✔ Fase P3 HECHA (2026-08-26) — figuras y documento
 
-Con los datos del pulgar en mano: figuras propias (`exp1_make_figure.py` y
-`exp2_make_figure.py` están escritas contra las carpetas del índice; se
-parametrizan cuando existan los datos y se conozcan las cifras reales) y una
-sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
+`compare_dof_figure.py` genera las tres figuras comparativas
+(`figures/comparativa_indice_pulgar.html` + SVG vectoriales para la tesis):
+
+1. **Pendiente vs `SPEED_SET`** — la misma constante en los dos dedos (3.04 y
+   2.99 counts/s por unidad, ajustadas sobre el tramo donde ambos son lineales),
+   con la saturación del pulgar a v=1000 anotada.
+2. **ΔF con `Fset=100` vs velocidad** (eje log) — el hallazgo central: el índice
+   plano en 5–36 g, el pulgar hasta 1397 g.
+3. **Modo A a v=1000 → modo B**, por `Fset` y por dedo — el colapso de 30–82×.
+
+Paleta categórica (índice `#285F97`, pulgar `#B4740F`) verificada con el script
+del skill `dataviz`: ΔE 22.3 protan, 27.2 visión normal, todas las
+comprobaciones PASS. Sin capa de hover a propósito: la salida primaria es el SVG
+vectorial embebido en la tesis, donde no sobrevive JS.
+
+`make_summary.py` incorpora la sección **«Réplica en un segundo dedo»** con las
+dos figuras, la Tabla 3 y la lectura de qué generaliza y qué no.
 
 ---
 

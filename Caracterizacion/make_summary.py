@@ -10,6 +10,30 @@ def svgs(path):
 
 e1=svgs(os.path.join(REPO,'exp1/figures/exp1_step_response.html'))
 e2=svgs(os.path.join(REPO,'exp2/figures/exp2_force_overshoot.html'))
+cmp_=svgs(os.path.join(REPO,'figures/comparativa_indice_pulgar.html'))
+
+# datos del pulgar (DOF 4) para la sección comparativa
+import statistics as _st
+_gT=json.load(open(os.path.join(REPO,'exp2/data_dof4/exp2_overshoot_grid.json')))
+_gI=json.load(open(os.path.join(REPO,'exp2/data/exp2_overshoot_grid.json')))
+_sT={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data_dof4/analysis_by_speed.csv')))}
+def _hyb(d):
+    o={}
+    for r in csv.DictReader(open(os.path.join(REPO,d,'grid_index.csv'))):
+        if r['delta_f']: o.setdefault(int(r['fset']),[]).append(float(r['delta_f']))
+    return {k:sorted(v)[len(v)//2] for k,v in o.items()}
+_bT,_bI=_hyb('exp2/data_dof4_hybrid'),_hyb('exp2/data_hybrid')
+_sI={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data/analysis_by_speed.csv')))}
+_LOW=(100,250,500)   # tramo donde AMBOS dedos son lineales: fuera de él el pulgar satura
+_kT=sum(v*float(_sT[v]['slope_cps_mean']) for v in _LOW)/sum(v*v for v in _LOW)
+_kI=sum(v*float(_sI[v]['slope_cps_mean']) for v in _LOW)/sum(v*v for v in _LOW)
+_FS=[int(f) for f in _gI['fsets']]
+_redT={F:_gT['median']['1000'][str(F)]/_bT[F] for F in _FS}
+_cmp_rows=''.join(
+    f'<tr><td class="mono b">{F}</td>'
+    f'<td class="mono">{_gI["median"]["1000"][str(F)]:.0f}</td><td class="mono">{_bI[F]:.0f}</td>'
+    f'<td class="mono">{_gT["median"]["1000"][str(F)]:.0f}</td><td class="mono">{_bT[F]:.0f}</td>'
+    f'<td class="mono b">{_redT[F]:.0f}×</td></tr>' for F in _FS)
 overlay, slope, latency = e1[0], e1[1], e1[2]
 bars, compare = e2[0], e2[1]
 
@@ -56,6 +80,12 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   :root{{--ink:{INK};--muted:{MUTED};--hair:{HAIR};--acc:{ACC};--amber:{AMBER};
     --bg:#f6f8fb;--panel:#ffffff;--soft:#eef2f7;}}
   *{{box-sizing:border-box;}}
+  /* El visor compone sobre un fondo que pinta EL con su propio tema: sin un
+     background explícito en body, los márgenes fuera de .wrap heredarían un
+     ground oscuro y el documento se partiría en dos. Este documento se
+     compromete a un solo mundo visual (papel de instrumento), así que no lleva
+     bloques de tema — pero pinta su fondo y sus colores explícitamente. */
+  body{{background:var(--bg);color:var(--ink);margin:0;}}
   .wrap{{max-width:880px;margin:0 auto;padding:52px 26px 72px;color:var(--ink);background:var(--bg);
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.62;
     font-size:16px;}}
@@ -160,7 +190,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <section>
     <h2>Exp 1 <span class="tag">respuesta al escalón · espacio libre</span></h2>
     <h3>Movimiento lineal con la velocidad y retardo fijo, sin sobreimpulso de posición</h3>
-    <p>El dedo índice ejecuta un escalón de posición <b>en el aire</b> (sin objeto), a cinco velocidades × 20 repeticiones, muestreando la posición del actuador a ~90 Hz. Resultados: (i) el <b>retardo comando→sensor es ≈ 64 ms e independiente de la velocidad</b>; (ii) la velocidad del dedo <b>escala linealmente con el setpoint</b> (pendiente ≈ <span class="mono">{k:.2f} × v</span>, <span class="mono">R² ≥ {r2min:.2f}</span>), es decir, crecimiento lineal sin deceleración; (iii) el <b>sobreimpulso de posición es ≈ 0</b>.</p>
+    <p>El dedo índice ejecuta un escalón de posición <b>en el aire</b> (sin objeto), a cinco velocidades × 20 repeticiones, muestreando la posición del actuador a ~90 Hz. Resultados: (i) el <b>retardo comando→sensor es ≈ 64 ms e independiente de la velocidad</b>; (ii) la velocidad del dedo <b>escala linealmente con el setpoint</b> (pendiente ≈ <span class="mono">{k:.2f} × v</span> sobre todo el barrido, <span class="mono">R² ≥ {r2min:.2f}</span>), es decir, crecimiento lineal sin deceleración; (iii) el <b>sobreimpulso de posición es ≈ 0</b>.</p>
     <figure>
       {overlay}
       <figcaption><b>Figura 1.</b> Trayectorias medias de posición normalizada, alineadas al instante del comando, por velocidad de cierre. El arranque común confirma un retardo independiente de la velocidad; el abanico de pendientes, el escalado lineal.</figcaption>
@@ -200,13 +230,45 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <hr class="rule">
 
   <section>
+    <h2>Réplica en un segundo dedo <span class="tag">índice vs pulgar</span></h2>
+    <h3>Qué del hardware es general y qué es propio de cada dedo</h3>
+    <p class="lead">Todo el protocolo se repitió sobre la <b>flexión del pulgar</b> (DOF&nbsp;4), con la rotación del pulgar anclada en oposición para que la única variable fuera la flexión: 100 trials de escalón y 200 de contacto adicionales. El objetivo no era duplicar resultados sino <b>separar lo que es propiedad de la plataforma de lo que depende del dedo</b> — la distinción que decide si una estrategia de control se puede generalizar.</p>
+
+    <figure>
+      <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span></div>
+      <div class="grid2">{cmp_[0]}{cmp_[1]}</div>
+      <figcaption><b>Figura 5.</b> <b>Izquierda:</b> la velocidad comandada se traduce en movimiento con la <b>misma constante en los dos dedos</b> ({_kI:.2f} y {_kT:.2f} counts/s por unidad de <span class="mono">SPEED_SET</span>, ajustadas sobre el tramo donde ambos son lineales) — el comando calibra el actuador, no el ángulo. El pulgar solo se despega en el extremo (−12&nbsp;% a máxima velocidad: su techo mecánico). <b>Derecha:</b> con un umbral de fuerza bajo (100&nbsp;g) el índice mantiene el sobreimpulso plano a cualquier velocidad, pero el pulgar <b>no tiene esa protección</b> — el mismo ajuste llega a {_gT['median']['1000']['100']:.0f}&nbsp;g. Escala logarítmica.</figcaption>
+    </figure>
+
+    <figure>
+      <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar</span><span class="li" style="color:var(--muted)">○ modo A a máxima velocidad &nbsp;·&nbsp; ● modo B híbrido</span></div>
+      {cmp_[2]}
+      <figcaption><b>Figura 6.</b> La política híbrida colapsa el sobreimpulso <b>en los dos dedos y para todo umbral de fuerza</b>, entre 30× y 82×.</figcaption>
+    </figure>
+
+    <div class="panel">
+      <div class="tt">Tabla 3 · Sobreimpulso a máxima velocidad: modo directo frente a híbrido <span class="tag">mediana, g</span></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Umbral de fuerza (g)</th><th>Índice · directo</th><th>Índice · híbrido</th><th>Pulgar · directo</th><th>Pulgar · híbrido</th><th>Reducción (pulgar)</th></tr></thead>
+        <tbody>{_cmp_rows}</tbody>
+      </table></div>
+    </div>
+
+    <p><b>Lo que generaliza:</b> la calibración velocidad→movimiento, la latencia comando→sensor (~73&nbsp;ms en el pulgar contra ~69 en el índice, sin dependencia de la velocidad) y la ausencia de sobreimpulso de posición. Son propiedades de la plataforma, no del dedo.</p>
+    <p><b>Lo que no:</b> el "umbral de fuerza bajo" que protegía al índice <b>no protege al pulgar</b>. La diferencia sigue a la rigidez del contacto — 6.4 g por count en el pulgar contra 1.6 en el índice: donde el índice recorre ~62 counts acumulando fuerza y da tiempo al firmware a frenar, al pulgar le bastan ~16. <b>La conmutación de velocidad es la única mitigación que sobrevive al cambio de dedo</b>, porque ataca la causa —el momento en el instante del contacto— y no el síntoma.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
       <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso ~68×, con un margen de conmutación (~124 counts) fijado experimentalmente.</li>
       <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
+      <li>La réplica en un <b>segundo dedo</b> separa lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma, pero <b>bajar el umbral de fuerza solo protege a algunos dedos</b>. La política híbrida es la única que generaliza.</li>
     </ul>
-    <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los demás dedos, e integración de la política híbrida en el lazo de agarre.</p>
+    <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los dedos restantes, e integración de la política híbrida en el lazo de agarre.</p>
   </section>
 
   <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU.</p>
@@ -214,4 +276,5 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
 </div>'''
 
 open(DST,'w').write(HTML)
-print("escrito:", DST, f"({len(HTML)} bytes)  k={k:.2f}  R2min={r2min:.3f}  svgs e1={len(e1)} e2={len(e2)}")
+print("escrito:", DST, f"({len(HTML)} bytes)  k={k:.2f} kT={_kT:.2f}  R2min={r2min:.3f}  "
+      f"svgs e1={len(e1)} e2={len(e2)} cmp={len(cmp_)}")

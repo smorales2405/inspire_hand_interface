@@ -311,21 +311,51 @@ registra cada trial da esa corrección medida en la pre-posición exacta.
     --dof 4 --hold 5:0 --probe
 ```
 
-Da el **POS de contacto** → de ahí salen `--start-angle` (pre-posición justo
-antes del contacto, modo A) y `--approach-angle` (modo B). Los valores del
-índice (680 y 475) **no sirven**: dependen del montaje y del DOF.
+### ✔ P2.3 HECHA (2026-08-25) — bloque montado
+
+| | `POS` | `ANGLE` | nota |
+|---|---|---|---|
+| reposo (abierto) | 245 | 1000 | |
+| **onset de contacto** | **771** | **467** | la fuerza se despega de la curva libre |
+| stall / parada del sondeo | 833 | 381 | 371 g crudos, pico 459 g |
+| tope libre (sin bloque) | 1104 | 0 | **271 counts por encima** → el bloque sí está en alcance |
+
+**El bloque está bien montado.** El sondeo se detiene 271 counts antes del tope
+mecánico, así que lo que frena al pulgar es el bloque y no su propio final de
+carrera. Corriente máx 264 mA, pico de fuerza 459 g crudos con el techo en 550.
+
+**La curva libre de P2.2 queda validada**: entre `POS 563` y `771` predice la
+fuerza medida en esta corrida (con bloque, antes de tocar) dentro de **5 g**.
+
+**El contacto es compliant**, igual que en el índice: desde el onset (771) hasta
+el stall (833) el dedo avanza **62 counts** mientras la fuerza externa sube de
+~23 a ~419 g → rigidez ≈ **6.4 g/count** (≈ 76 g/grado). El índice daba ~1.6
+g/count (≈ 20 g/grado): **este contacto es ~4× más rígido**, así que a alta
+velocidad hay que esperar picos de impacto al menos tan duros como los del
+índice. Tras el pico la corriente cae a 0 y la fuerza se relaja a contacto
+pasivo — el mismo comportamiento de "no sostiene el setpoint" ya documentado.
+
+**Parámetros que fija esta fase:**
+
+- `--start-angle 750` → `POS ≈ 501`. Deja **279 counts de pista** hasta el onset
+  (el Exp 1 mostró que ~100 bastan para alcanzar la velocidad comandada a
+  v=1000, así que sobra margen) y un residual libre de **37 g**, o sea **63 g de
+  margen** frente a `Fset = 100` — cumple la restricción de diseño de P2.2.
+- `--approach-angle` (modo B): sale de P2.7, restando `q_sw` al onset `POS 771`.
+
+Los valores del índice (680 y 475) no sirven: dependen del montaje y del DOF.
 
 ```bash
 # P2.4 — una celda de validación antes del grid.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:0 --start-angle <START> \
+    --dof 4 --hold 5:0 --start-angle 750 \
     --cell --speed 100 --fset 500 --safety-force-g 1500
 
 # P2.5 — grid modo A (velocidad constante). Piloto N=5 por celda.
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:0 --start-angle <START> --grid --trials 5
+    --dof 4 --hold 5:0 --start-angle 750 --grid --trials 5
 
 # P2.6 — modo B (híbrido: aproximación rápida + cierre lento).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
@@ -336,7 +366,7 @@ antes del contacto, modo A) y `--approach-angle` (modo B). Los valores del
 # P2.7 — sub-experimento de onset (margen de conmutación del modo B).
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
     --transport serial --serial-port /dev/ttyUSB0 \
-    --dof 4 --hold 5:0 --start-angle <START> --onset --onset-trials 50 \
+    --dof 4 --hold 5:0 --start-angle 750 --onset --onset-trials 50 \
     --outdir Caracterizacion/exp2/data_dof4_onset
 ```
 
@@ -368,7 +398,7 @@ sección comparativa **índice vs pulgar** en `RESUMEN_caracterizacion.html`.
 |---|---|---|---|
 | ancla de rotación `--hold 5:<reg>` | — | **0** (≈90°, oposición) ✔ | P0.1 |
 | `--target-angle` (Exp 1, sin contacto) | 300 | **300** (mismo comando) ✔ | P0.2 |
-| `--start-angle` (pre-posición modo A) | 680 | **?** | P2.3 |
+| `--start-angle` (pre-posición modo A) | 680 | **750** (POS≈501) ✔ | P2.3 |
 | `--approach-angle` (modo B) | 475 | **?** | P2.7 |
 | `--safety-force-g` | 2200 | **400** en Exp 1; en Exp 2 empezar en **1500** | P0.2 / P2.4 |
 | offset de `FORCE_ACT` tras `forceClb` | 241 → 0 g | **?** | P2.1 |

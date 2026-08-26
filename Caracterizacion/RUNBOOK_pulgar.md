@@ -263,9 +263,44 @@ Consecuencias, ya implementadas:
   cancela. Lo que hay que corregir al interpretar es *dónde queda el umbral en
   fuerza externa*, no la magnitud del sobreimpulso.
 - La curva completa `residual(POS)` sale de **P2.2**: es la diferencia
-  `F(POS) − F(abierto)`, que no depende de la tara. `--probe --no-block` da el `POS` libre
-máximo: el sondeo **con** bloque tiene que detenerse **antes** de ese valor —
-si coincide, el bloque está fuera de alcance.
+  `F(POS) − F(abierto)`, que no depende de la tara. ### ✔ P2.2 HECHA (2026-08-25)
+
+Recorrido libre `POS 245 → 1104` (859 counts), parada por tope mecánico, fuerza
+máxima cruda 69 g, corriente máx 118 mA. Coincide con P0.2 (1103). **Ese 1104 es
+la referencia**: el sondeo *con* bloque debe detenerse por debajo; si coincide,
+el bloque está fuera del alcance del pulgar.
+
+Curva `residual(POS)` en espacio libre (`= F(POS) − F(abierto)`, independiente de
+la tara). Datos: `exp2/data_dof4/probe_dof4_libre.csv`.
+
+| `POS` | `ANGLE` | grados | residual | umbral externo efectivo `Fset − residual` |
+|---|---|---|---|---|
+| | | | | `100` · `250` · `500` · `750` · `1000` |
+| 274 | 972 | 67.7° | 17 g | 83 · 233 · 483 · 733 · 983 |
+| 427 | 822 | 55.2° | 35 g | 65 · 215 · 465 · 715 · 965 |
+| 626 | 623 | 38.7° | 36 g | 64 · 214 · 464 · 714 · 964 |
+| 824 | 394 | 19.7° | 42 g | 58 · 208 · 458 · 708 · 958 |
+| 919 | 262 | 8.7° | 47 g | 53 · 203 · 453 · 703 · 953 |
+| 1025 | 111 | −3.8° | 52 g | 48 · 198 · 448 · 698 · 948 |
+| 1104 | 0 | −13.0° | 58 g | 42 · 192 · 442 · 692 · 942 |
+
+El residual salta a ~17 g en los primeros 30 counts y luego crece despacio,
+~+20 g en los 700 counts restantes. Se queda entre **17 y 58 g** en todo el
+recorrido.
+
+**Lectura para el grid:** el sesgo relativo depende del `Fset`. Para
+`Fset ≥ 500` es ≤ 12 % y se puede reportar el nominal; para `Fset = 100` el
+umbral externo real es ~**50 g**, la mitad del nominal. La celda sigue siendo
+válida (es la más suave del barrido, igual que en el índice), pero **hay que
+etiquetarla por su valor efectivo**, no por el comandado. El `f_base_g` que
+registra cada trial da esa corrección medida en la pre-posición exacta.
+
+> ⚠ **Restricción de diseño para P2.3/P2.5.** El residual está presente **ya en
+> la pre-posición**, antes de tocar nada. Si `residual(start_pos) ≥ Fset`, el
+> firmware frena en el aire y el trial no llega nunca al bloque. Con
+> `Fset = 100` el margen es de 58 g en `POS 824` pero baja a 48 g en `POS 1025`.
+> Al elegir `--start-angle` tras el sondeo con bloque, verificar que
+> `f_base_g` reportado quede holgadamente por debajo de 100.
 
 **Ahora monta el bloque.**
 

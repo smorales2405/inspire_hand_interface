@@ -321,6 +321,14 @@ def run_trial_A(hand, dof, speed, fset, args):
     hand.write_block(SPEED_SET, [speed] * NDOF)
     hand.write_block(FORCE_SET, [fset] * NDOF)
 
+    # Baseline de los DOF ANCLADOS: se vigila la DESVIACIÓN, no el absoluto (ese
+    # sensor tiene offset propio y se mueve con la postura del DOF bajo prueba).
+    hold_base = {}
+    if hold_dofs:
+        reads = [fb for fb in (hand.read_block(FORCE_ACT) for _ in range(5)) if fb]
+        if reads:
+            hold_base = {d: statistics.median([r[d] for r in reads]) for d in hold_dofs}
+
     samples = []                 # (t, force, pos|None, cur|None)
     f_max = None; peak_t = None; onset_pos = None
     f_max_hold = 0
@@ -368,7 +376,8 @@ def run_trial_A(hand, dof, speed, fset, args):
                 onset_pos = last_pos
             # Vigilancia de los DOF anclados: si el dedo bajo prueba empuja
             # contra uno de ellos, la carga aparece ahí, no en `dof`.
-            f_h = max((abs(fb[d]) for d in hold_dofs), default=0) if fb else 0
+            f_h = (max((abs(fb[d] - hold_base.get(d, 0)) for d in hold_dofs), default=0)
+                   if fb else 0)
             f_max_hold = max(f_max_hold, f_h)
             hold_over = args.safety_force_hold_g > 0 and f_h > args.safety_force_hold_g
             if abs(force) > args.safety_force_g or hold_over:
@@ -431,7 +440,8 @@ def run_cell(hand, args):
     print(f" onset de contacto en POS = {trial['onset_pos']}   "
           f"(POS de pre-posición = {trial['start_pos']})")
     if hold:
-        print(f" máx |FORCE_ACT| en los DOF anclados = {trial['f_max_hold']} g")
+        print(f" DOF anclados: desviación máx sobre su baseline en reposo = "
+              f"{trial['f_max_hold']} g (no es el valor absoluto)")
     print(f" Muestras: {n}  ({rate:.0f} Hz)   "
           f"{'⚠ ABORTADO (' + trial['abort_reason'] + ')' if trial['aborted'] else ''}")
     print(f" CSV: {path}")
@@ -463,7 +473,7 @@ def run_grid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'f_max_hold_g'])
+                         'hold', 'max_hold_dev_g'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (v, F, n) in enumerate(order, 1):
             # Recalibración periódica (con el dedo abierto) por la deriva del sensor.
@@ -788,8 +798,10 @@ def parse_args(argv=None):
     p.add_argument('--safety-force-g', type=int, default=2200,
                    help='techo |FORCE_ACT| de emergencia (g, def 2200)')
     p.add_argument('--safety-force-hold-g', type=int, default=None,
-                   help='techo |FORCE_ACT| de los DOF ANCLADOS (def: igual a '
-                        '--safety-force-g; 0 = desactivar esa vigilancia)')
+                   help='techo de DESVIACIÓN de FORCE_ACT en los DOF ANCLADOS, sobre su '
+                        'baseline en reposo (def: igual a --safety-force-g; 0 = desactivar). '
+                        'Es desviación y no valor absoluto porque ese sensor tiene offset '
+                        'propio y varía con la postura del DOF bajo prueba.')
     p.add_argument('--no-cal', action='store_true', help='no calibrar (forceClb) al inicio')
     p.add_argument('--outdir', default=None,
                    help='carpeta de salida (def exp2/data para DOF 3, exp2/data_dofN si no)')

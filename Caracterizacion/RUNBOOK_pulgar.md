@@ -45,6 +45,14 @@ igual). El ancla por tanto:
   aparece en `FORCE_ACT(5)` y no en `FORCE_ACT(4)`, y el trial aborta
   (`⚠ABORT (fuerza_hold)`). Techo propio: `--safety-force-hold-g`.
 
+> El criterio es la **desviación sobre el baseline en reposo del propio DOF
+> anclado**, nunca su valor absoluto. Ese sensor tiene offset propio (−88 g en la
+> rotación del pulgar, medido en P0.1) y además se mueve con la postura del DOF
+> bajo prueba: en P1.1 el absoluto llegó a 195 g **sin contacto alguno**. Cada
+> trial mide su propio baseline antes del escalón y registra
+> `FORCE_ACT` del DOF anclado en el CSV (`force_hold_g`), así que el
+> acoplamiento queda documentado en vez de disfrazado de colisión.
+
 Antes de cada campaña el script imprime `ANGLE_ACT` real del DOF anclado y avisa
 si **no** llegó a su ángulo (tope mecánico o colisión).
 

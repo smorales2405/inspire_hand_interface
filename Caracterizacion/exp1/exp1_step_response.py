@@ -101,9 +101,27 @@ def run_trial(hand, dof, speed, args, hold=None):
 
     full = (args.read == 'full')
     hold_dofs = sorted(hold or {})
-    samples = []            # (t_rel, pos, force|None, current|None)
+
+    # Baseline de fuerza de los DOF ANCLADOS, antes del escalón. La vigilancia
+    # se hace sobre la DESVIACIÓN, no sobre el valor absoluto: el sensor de un
+    # DOF anclado tiene su propio offset en reposo (p. ej. −88 g en la rotación
+    # del pulgar) y además se mueve con la postura del DOF bajo prueba
+    # (acoplamiento gravitatorio). Un umbral absoluto confundiría eso con carga.
+    hold_base = {}
+    if hold_dofs:
+        reads = []
+        for _ in range(5):
+            fb = hand.read_block(FORCE_ACT)
+            if fb is not None:
+                reads.append(fb)
+            time.sleep(0.01)
+        if reads:
+            hold_base = {d: statistics.median([r[d] for r in reads]) for d in hold_dofs}
+
+    samples = []            # (t_rel, pos, force|None, current|None, force_hold|None)
     max_abs_force = 0
     max_abs_force_hold = 0
+    max_hold_dev = 0
     aborted = False
     abort_reason = ''
     settled = False
@@ -131,6 +149,7 @@ def run_trial(hand, dof, speed, args, hold=None):
 
         force = None
         current = None
+        force_hold = None
         # FORCE_ACT: por muestra en modo full, si no periódico para seguridad.
         if full or (i % args.safety_every == 0):
             fblk = hand.read_block(FORCE_ACT)
@@ -141,20 +160,24 @@ def run_trial(hand, dof, speed, args, hold=None):
                 # empuja contra uno de ellos, la carga aparece ahí, no en `dof`.
                 f_hold = max((abs(fblk[d]) for d in hold_dofs), default=0)
                 max_abs_force_hold = max(max_abs_force_hold, f_hold)
+                f_hold_dev = max((abs(fblk[d] - hold_base.get(d, 0)) for d in hold_dofs),
+                                 default=0)
+                max_hold_dev = max(max_hold_dev, f_hold_dev)
+                force_hold = fblk[hold_dofs[0]] if hold_dofs else None
                 hold_over = (args.safety_force_hold_g > 0
-                             and f_hold > args.safety_force_hold_g)
+                             and f_hold_dev > args.safety_force_hold_g)
                 if abs(force) > args.safety_force_g or hold_over:
                     hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))
                     aborted = True
                     abort_reason = ('fuerza' if abs(force) > args.safety_force_g
                                     else 'fuerza_hold')
-                    samples.append((elapsed, pos, force, current))
+                    samples.append((elapsed, pos, force, current, force_hold))
                     break
         if full:
             cblk = hand.read_block(CURRENT)
             current = cblk[dof] if cblk else None
 
-        samples.append((elapsed, pos, force, current))
+        samples.append((elapsed, pos, force, current, force_hold))
         i += 1
 
         # Paro-al-asentar: tras el comando y un mínimo de respuesta, si POS_ACT
@@ -162,7 +185,7 @@ def run_trial(hand, dof, speed, args, hold=None):
         t_cmd_rel = (t_cmd - t_start) if t_cmd is not None else None
         if (cmd_issued and t_cmd_rel is not None
                 and elapsed >= t_cmd_rel + args.settle_hold_s + 0.3):
-            recent = [p for (tt, p, f, c) in samples
+            recent = [p for (tt, p, f, c, fh) in samples
                       if p is not None and tt >= elapsed - args.settle_hold_s]
             if len(recent) >= 3 and (max(recent) - min(recent)) <= args.settle_pos_band:
                 settled = True
@@ -178,6 +201,8 @@ def run_trial(hand, dof, speed, args, hold=None):
         'write_cost': write_cost, 'aborted': aborted, 'settled': settled,
         'max_abs_force_g': max_abs_force,
         'max_abs_force_hold_g': max_abs_force_hold,
+        'max_hold_dev_g': max_hold_dev,
+        'hold_base_g': hold_base,
         'abort_reason': abort_reason,
     }
 
@@ -226,12 +251,13 @@ def quick_metrics(trial):
 def save_trial_csv(path, trial):
     with open(path, 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['t_s', 'pos_act', 'force_g', 'current_mA'])
-        for (t, pos, force, cur) in trial['samples']:
+        w.writerow(['t_s', 'pos_act', 'force_g', 'current_mA', 'force_hold_g'])
+        for (t, pos, force, cur, fh) in trial['samples']:
             w.writerow([f"{t:.6f}",
                         '' if pos is None else pos,
                         '' if force is None else force,
-                        '' if cur is None else cur])
+                        '' if cur is None else cur,
+                        '' if fh is None else fh])
 
 
 # ── Campaña ─────────────────────────────────────────────────────────────────
@@ -264,7 +290,8 @@ def run_campaign(hand, args, hold):
                          'baseline_pos', 'final_pos', 'delta_pos',
                          'force_base_g', 'force_final_dev_g',
                          'max_abs_force_g', 'settled', 'aborted',
-                         'hold', 'max_abs_force_hold_g'])
+                         'hold', 'hold_base_g', 'max_abs_force_hold_g',
+                         'max_hold_dev_g'])
         total = len(order)
         for k, (v, n) in enumerate(order, 1):
             if not open_and_settle(hand, args.dof, args.open_angle,
@@ -282,7 +309,9 @@ def run_campaign(hand, args, hold):
                          _fmt(m.get('delta_pos'), '.1f'),
                          _fmt(m.get('force_base_g'), '.0f'), _fmt(m.get('force_final_dev_g'), '.0f'),
                          trial['max_abs_force_g'], int(trial['settled']), int(trial['aborted']),
-                         hold_txt, trial['max_abs_force_hold_g']])
+                         hold_txt,
+                         ';'.join(f"{d}:{v:.0f}" for d, v in sorted(trial['hold_base_g'].items())),
+                         trial['max_abs_force_hold_g'], trial['max_hold_dev_g']])
             idx.flush()
             flag = (f"  ⚠ABORTADO ({trial['abort_reason']})" if trial['aborted']
                     else ('' if trial['settled'] else '  (no asentó)'))
@@ -327,10 +356,15 @@ def run_single(hand, args, hold):
                      if contact else
                      "sin contacto: la fuerza queda cerca de su baseline en reposo"))
     if hold:
-        fh = trial['max_abs_force_hold_g']
-        print(f" FORCE_ACT de los DOF anclados: máx |F| = {fh} g   → "
-              + ("OK, el DOF bajo prueba no empuja contra ellos" if fh < args.contact_delta_g
+        base_txt = ', '.join(f"DOF {d}: {v:+.0f} g" for d, v in sorted(trial['hold_base_g'].items()))
+        dev = trial['max_hold_dev_g']
+        print(f" FORCE_ACT de los DOF anclados: baseline en reposo ({base_txt}), "
+              f"máx |F| absoluto {trial['max_abs_force_hold_g']} g")
+        print(f"   desviación máx sobre ESE baseline = {dev} g   → "
+              + ("OK, el DOF bajo prueba no empuja contra ellos" if dev < args.contact_delta_g
                  else "⚠ carga apreciable: ¿el dedo choca contra el DOF anclado?"))
+        print("   (el valor absoluto NO sirve de criterio: el sensor de un DOF anclado tiene")
+        print("    su propio offset en reposo y se mueve con la postura del DOF bajo prueba.)")
     if not trial.get('settled'):
         print("   ⚠ NO asentó dentro de --window-s; sube la ventana o el dedo no llegó al target")
     if trial['aborted']:
@@ -389,8 +423,10 @@ def parse_args(argv=None):
     p.add_argument('--safety-force-g', type=int, default=1800,
                    help='techo |FORCE_ACT| para abortar y abrir (g, def 1800)')
     p.add_argument('--safety-force-hold-g', type=int, default=None,
-                   help='techo |FORCE_ACT| de los DOF ANCLADOS (def: igual a '
-                        '--safety-force-g; 0 = desactivar esa vigilancia)')
+                   help='techo de DESVIACIÓN de FORCE_ACT en los DOF ANCLADOS, sobre su '
+                        'baseline en reposo (def: igual a --safety-force-g; 0 = desactivar). '
+                        'Es desviación y no valor absoluto porque ese sensor tiene offset '
+                        'propio y varía con la postura del DOF bajo prueba.')
     p.add_argument('--safety-every', type=int, default=8,
                    help='en modo pos, cada cuántas iters se chequea FORCE_ACT (def 8)')
     p.add_argument('--settle-band', type=int, default=6,

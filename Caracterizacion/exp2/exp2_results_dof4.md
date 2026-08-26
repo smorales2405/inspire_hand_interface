@@ -6,6 +6,10 @@ Sensor calibrado con `forceClb` al inicio y cada 20 trials. Pre-posición
 `--start-angle 750` (`POS ≈ 501`, 279 counts de pista hasta el onset en `POS 771`).
 **Grid modo A:** 7 velocidades × 5 `Fset` × 5 trials = **175**, orden aleatorio,
 todos en el mismo montaje del bloque (`mount = m1` en `grid_index.csv`).
+El bloque se desmontó y volvió a montar después; el montaje `m3` resultante tiene
+el onset geométrico en `POS 778–784` contra los 777 de `m1`, **por debajo de la
+precisión del propio sondeo (~6 counts, medida con dos lecturas del mismo
+montaje)**, así que ambos son la misma geometría a efectos de agrupar trials.
 Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
 
 ## Mapa de ΔF (mediana, g)

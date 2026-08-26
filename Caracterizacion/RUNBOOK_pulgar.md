@@ -46,11 +46,21 @@ igual). El ancla por tanto:
   (`⚠ABORT (fuerza_hold)`). Techo propio: `--safety-force-hold-g`.
 
 > **Montajes medidos en esta campaña** (onset geométrico contra la curva libre,
-> que no depende del bloque): `m1` → `POS 777`, `m3` → `POS 778`. El bloque se
-> quitó y se volvió a poner prácticamente en el mismo sitio, así que las dos
-> geometrías son intercambiables — la diferencia (1 count) queda muy por debajo
-> de la σ del propio onset dentro de una tanda (4–6 counts). `m2` no tiene sondeo
-> propio; su desplazamiento (~13 counts) se acotó con el onset a v=25.
+> que no depende del bloque):
+>
+> | | onset | stall |
+> |---|---|---|
+> | `m1` (grid original) | 777 | 840 |
+> | `m3` lectura 1 | 778 | 846 |
+> | `m3` lectura 2 | 784 | 847 |
+>
+> **La precisión del propio sondeo es de ~6 counts**: dos lecturas del *mismo*
+> montaje dieron 778 y 784. La diferencia entre `m1` y `m3` (~4 counts) es
+> **menor que ese ruido**, así que las dos geometrías son indistinguibles y sus
+> trials se pueden agrupar. Ese número acota además el resto: el margen de
+> conmutación `q_sw = 34` counts es 5–6× la precisión del sondeo, con holgura.
+> `m2` no tiene sondeo propio; su desplazamiento (~13 counts) se acotó con el
+> onset a v=25.
 >
 > ⚠ **Cada vez que se mueve el bloque empieza un montaje nuevo.** La geometría
 > del contacto (`--start-angle`, `--approach-angle`, el onset) es propia de cada

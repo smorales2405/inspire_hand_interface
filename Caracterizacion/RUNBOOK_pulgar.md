@@ -199,15 +199,24 @@ que **asentó**. `Δpos` esperado ≈ 655 counts.
     --dof 4 --hold 5:0 --target-angle 300 --safety-force-g 400
 ```
 
-Escribe en `exp1/data_dof4/` (serie por trial + `index.csv` con las columnas
-nuevas `hold` y `max_abs_force_hold_g`). Análisis offline:
+Escribe en `exp1/data_dof4/` (serie por trial + `index.csv`). Análisis offline:
 
 ```bash
 .venv/bin/python Caracterizacion/exp1/exp1_analyze.py --outdir Caracterizacion/exp1/data_dof4
 ```
 
-⏸ **Pausa: mándame la salida.** Métricas esperadas: deadtime ~independiente de
-la velocidad, pendiente ∝ `SPEED_SET` con R² alto, sobreimpulso de posición ≈ 0.
+### ✔ P1 HECHA (2026-08-25) — ver [`exp1/exp1_results_dof4.md`](exp1/exp1_results_dof4.md)
+
+100/100 asentaron, 0 abortos, 86.4 Hz, `Δpos = 649 ± 0.9` counts. Resumen:
+
+- **k = 2.99 counts/s** por unidad de `SPEED_SET`, contra 3.04 del índice:
+  `SPEED_SET` calibra el actuador, no el ángulo.
+- **El pulgar satura a `v=1000`** (−12.3 % bajo la recta `k·v`, R² 0.954; el
+  índice −3.9 %, R² 0.980) — techo de velocidad, con un caveat de resolución.
+- **Deadtime 73 ms**, indistinguible de los 69 ms del índice → es del bus +
+  firmware, no de la mecánica.
+- **Sobreimpulso de posición ≈ 0** (máx 0.02 %).
+- El ancla se sostuvo: desviación de `FORCE_ACT(5)` ≤ 13 g en 100 trials.
 
 ---
 

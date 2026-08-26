@@ -4,7 +4,8 @@
 fijo, con la **rotación (DOF 5) anclada** en oposición (`ANGLE_SET(5)=0 ≈ 90°`).
 Sensor calibrado con `forceClb` al inicio y cada 20 trials. Pre-posición
 `--start-angle 750` (`POS ≈ 501`, 279 counts de pista hasta el onset en `POS 771`).
-**Grid modo A:** 7 velocidades × 5 `Fset` × 5 trials = **175**, orden aleatorio.
+**Grid modo A:** 7 velocidades × 5 `Fset` × 5 trials = **175**, orden aleatorio,
+todos en el mismo montaje del bloque (`mount = m1` en `grid_index.csv`).
 Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
 
 ## Mapa de ΔF (mediana, g)
@@ -73,23 +74,40 @@ abort espurio.
 - **Repetibilidad mecánica excelente:** σ robusta = **10.0 counts** (el índice
   dio ~37 con el mismo método; el paper, ~7.5).
 - **El onset medido a v=1000 llega tarde por construcción.** Detectado en
-  `POS 888` contra el onset **geométrico** de `POS 777` que da el sondeo lento
-  restando la curva libre → **+111 counts de retardo**. El presupuesto lo
-  explica: margen 120 g ÷ 6.4 g/count ≈ 19 counts, más las 2 muestras
+  `POS 888` contra el onset **geométrico** de `POS 777` del sondeo lento.
+  ⚠ **Ojo con la procedencia:** el bloque se movió entre el grid (P2.5) y este
+  sub-experimento, así que esos dos números son de montajes distintos (`m1` y
+  `m2`) y su diferencia mezcla dos efectos. Se separan con el onset a **v=25**,
+  donde el retardo de detección es de ~1 count por muestra:
+
+  | | `POS` de onset a v=25 | montaje |
+  |---|---|---|
+  | grid (P2.5) | 808 (σ 6, N=25) | `m1` |
+  | modo B (P2.6) | 821 (σ 4, N=25) | `m2` |
+
+  El bloque se desplazó **~13 counts**, no más. De los +111 brutos, **~98 son
+  retardo real** y ~13 son el movimiento. El presupuesto teórico del retardo
+  sigue cuadrando: margen 120 g ÷ 6.4 g/count ≈ 19 counts, más las 2 muestras
   consecutivas que exige el detector (≈67 a 78 Hz y 2620 counts/s), más la
-  lectura de `POS` posterior (≈34) ≈ **120 previstos contra 117 observados**. La
-  señal delatora es que 888 cae *más allá* del `POS 833` donde el dedo ya se
-  detenía en el sondeo.
+  lectura de `POS` posterior (≈34) ≈ **120 previstos**. La conclusión no cambia:
+  **la detección a alta velocidad llega sistemáticamente tarde y no sirve como
+  referencia de conmutación.**
 - Por eso el punto de conmutación se ancla en el onset **geométrico** y la σ se
   usa solo para el margen: `q_sw = ceil(3.3·σ) = 34 counts` →
   **conmutar en `POS 777 − 34 = 743`, `--approach-angle 504`**. Restar `q_sw` al
-  valor detectado habría dado `POS 854`, **83 counts pasado el contacto real**.
+  valor detectado habría dado `POS 854`, **~64 counts pasado el contacto real**
+  del montaje `m2` (≈790).
+- **Por qué el modo B funcionó pese al cambio de montaje:** conmutó en `POS 743`
+  contra un contacto real en ≈790 — **47 counts de margen**, suficiente porque el
+  desplazamiento (13) fue mucho menor que el margen. Es un resultado válido, pero
+  el margen que lo salvó no estaba planificado: si el bloque se hubiera movido
+  50 counts hacia el dedo, el modo B habría impactado a velocidad máxima.
 
 ## Modo B — híbrido (aproximación rápida + cierre lento)
 
 Aproximación a `open_speed` hasta `--approach-angle 504` (`POS ≈ 743`), luego
 cierre a v=25. 5 `Fset` × 5 trials = 25, **0 abortos**. Datos:
-`data_dof4_hybrid/`.
+`data_dof4_hybrid/` (montaje `m2`).
 
 | `Fset` | 100 | 250 | 500 | 750 | 1000 |
 |---|---|---|---|---|---|

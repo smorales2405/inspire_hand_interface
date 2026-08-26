@@ -504,7 +504,7 @@ def run_grid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'max_hold_dev_g', 'f_base_g'])
+                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (v, F, n) in enumerate(order, 1):
             # Recalibración periódica (con el dedo abierto) por la deriva del sensor.
@@ -523,7 +523,8 @@ def run_grid(hand, args):
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
                          hold_txt, trial['f_max_hold'],
-                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}"])
+                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}",
+                         args.mount])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] v={v:4d} Fset={F:4d} n={n} → "
@@ -567,7 +568,7 @@ def run_hybrid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'max_hold_dev_g', 'f_base_g'])
+                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (F, n) in enumerate(order, 1):
             if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
@@ -586,7 +587,8 @@ def run_hybrid(hand, args):
                          f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
                          hold_txt, trial['f_max_hold'],
-                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}"])
+                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}",
+                         args.mount])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] Fset={F:4d} n={n} → F_max={trial['f_max']} g  ΔF={trial['delta_f']} g{flag}")
@@ -738,8 +740,8 @@ def run_onset(hand, args):
     path = os.path.join(args.outdir, 'onset_trials.csv')
     with open(path, 'w', newline='') as f:
         w = csv.writer(f)
-        w.writerow(['trial', 'onset_pos', 'f_base_g', 'aborted'])
-        w.writerows(rows)
+        w.writerow(['trial', 'onset_pos', 'f_base_g', 'aborted', 'mount'])
+        w.writerows([r + (args.mount,) for r in rows])
 
     # Mapeo POS→ANGLE_SET. Preferido: la tabla completa de pose_check.py
     # (interpolación a tramos — la relación POS↔ANGLE NO es lineal). Si no hay
@@ -890,6 +892,11 @@ def parse_args(argv=None):
     p.add_argument('--speeds', default='25,50,100,250,500,750,1000', help='SPEED_SET a barrer')
     p.add_argument('--fsets', default='100,250,500,750,1000', help='FORCE_SET a barrer (g, calibrado)')
     p.add_argument('--trials', type=int, default=5, help='trials por celda (def 5, piloto)')
+    p.add_argument('--mount', default='',
+                   help='etiqueta del MONTAJE del bloque (p. ej. m1, m2). Se guarda en cada '
+                        'fila del índice. Mover el bloque cambia la geometría del contacto, y '
+                        'sin esta etiqueta esa procedencia se pierde: trials de montajes '
+                        'distintos no se pueden agrupar en la misma celda.')
     p.add_argument('--trial-start', type=int, default=0,
                    help='primer índice de trial (def 0). Para AMPLIAR una campaña ya '
                         'corrida sin pisarla: --trial-start 5 --trials 15 continúa n=5..19.')

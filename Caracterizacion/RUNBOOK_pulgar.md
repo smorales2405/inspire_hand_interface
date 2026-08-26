@@ -45,6 +45,15 @@ igual). El ancla por tanto:
   aparece en `FORCE_ACT(5)` y no en `FORCE_ACT(4)`, y el trial aborta
   (`⚠ABORT (fuerza_hold)`). Techo propio: `--safety-force-hold-g`.
 
+> ⚠ **Cada vez que se mueve el bloque empieza un montaje nuevo.** La geometría
+> del contacto (`--start-angle`, `--approach-angle`, el onset) es propia de cada
+> montaje, y trials de montajes distintos **no se pueden agrupar en la misma
+> celda**. Etiquétalos con `--mount m1`, `--mount m2`… : la etiqueta viaja en
+> cada fila del índice. Tras mover el bloque, re-derivar con `--probe`. En esta
+> campaña el bloque se movió tras P2.5 y otra vez tras P2.6; el desplazamiento se
+> pudo acotar *a posteriori* (~13 counts) solo porque el onset a v=25 quedó
+> registrado en dos montajes — con la etiqueta habría sido inmediato.
+
 > El criterio es la **desviación sobre el baseline en reposo del propio DOF
 > anclado**, nunca su valor absoluto. Ese sensor tiene offset propio (−88 g en la
 > rotación del pulgar, medido en P0.1) y además se mueve con la postura del DOF

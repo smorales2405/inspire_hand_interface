@@ -45,6 +45,13 @@ igual). El ancla por tanto:
   aparece en `FORCE_ACT(5)` y no en `FORCE_ACT(4)`, y el trial aborta
   (`⚠ABORT (fuerza_hold)`). Techo propio: `--safety-force-hold-g`.
 
+> **Montajes medidos en esta campaña** (onset geométrico contra la curva libre,
+> que no depende del bloque): `m1` → `POS 777`, `m3` → `POS 778`. El bloque se
+> quitó y se volvió a poner prácticamente en el mismo sitio, así que las dos
+> geometrías son intercambiables — la diferencia (1 count) queda muy por debajo
+> de la σ del propio onset dentro de una tanda (4–6 counts). `m2` no tiene sondeo
+> propio; su desplazamiento (~13 counts) se acotó con el onset a v=25.
+>
 > ⚠ **Cada vez que se mueve el bloque empieza un montaje nuevo.** La geometría
 > del contacto (`--start-angle`, `--approach-angle`, el onset) es propia de cada
 > montaje, y trials de montajes distintos **no se pueden agrupar en la misma

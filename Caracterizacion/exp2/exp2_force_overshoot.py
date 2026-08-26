@@ -245,8 +245,8 @@ def run_probe(hand, args):
 
     # 3) Guardar + reportar.
     os.makedirs(args.outdir, exist_ok=True)
-    path = os.path.join(args.outdir,
-                        f'probe_dof{dof}{"_libre" if args.no_block else ""}.csv')
+    suffix = ('_libre' if args.no_block else '') + (f'_{args.mount}' if args.mount else '')
+    path = os.path.join(args.outdir, f'probe_dof{dof}{suffix}.csv')
     with open(path, 'w', newline='') as fp:
         wtr = csv.writer(fp)
         wtr.writerow(['t_s', 'pos_act', 'force_g', 'current_mA'])
@@ -772,10 +772,16 @@ def run_onset(hand, args):
 
     geom, geom_src = args.geom_onset_pos, '(--geom-onset-pos)'
     if geom is None:
-        for cand in (os.path.join(args.outdir, f'probe_dof{dof}.csv'),
-                     os.path.join(default_outdir(dof), f'probe_dof{dof}.csv')):
-            g = geometric_onset_from_probe(
-                cand, cand.replace('.csv', '_libre.csv'))
+        # Solo vale el sondeo del MISMO montaje: mover el bloque cambia la
+        # geometría del contacto, así que un probe de otro montaje daría una
+        # referencia equivocada en silencio. Sin --mount no se adivina.
+        tag = f'_{args.mount}' if args.mount else ''
+        for d in (args.outdir, default_outdir(dof)):
+            cand = os.path.join(d, f'probe_dof{dof}{tag}.csv')
+            free = next((f for f in (os.path.join(d, f'probe_dof{dof}_libre{tag}.csv'),
+                                     os.path.join(d, f'probe_dof{dof}_libre.csv'))
+                         if os.path.exists(f)), None)
+            g = geometric_onset_from_probe(cand, free)
             if g is not None:
                 geom, geom_src = g, cand
                 break

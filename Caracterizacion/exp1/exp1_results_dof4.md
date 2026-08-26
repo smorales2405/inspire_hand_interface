@@ -62,23 +62,34 @@ dispersión.
 ## Velocidad angular (conversión a °/s)
 
 Los counts/s **no** son comparables entre DOF sin convertir: la relación
-`POS_ACT ↔ ANGLE_SET` es propia de cada actuador y no lineal. Con la tabla
-medida en P0.2 el pulgar da **0.0842 °/count** en el tramo 20–80 %:
+`POS_ACT ↔ ANGLE_SET` es propia de cada actuador y **no es lineal en ninguno de
+los dos**. Medida con `pose_check.py` (counts por unidad de `ANGLE_SET`):
 
-| SPEED_SET | pulgar (°/s) | índice (°/s)\* | P/I |
+| tramo `ANGLE_SET` | índice | pulgar |
+|---|---|---|
+| 1000→750 | 2.08 | 1.02 |
+| 750→500 | 2.00 | 0.98 |
+| 500→250 | 1.62 | 0.72 |
+| 250→0 | — | 0.70 |
+
+Ambos actuadores comprimen su avance ~25–30 % al flexionarse. Tomando el factor
+local del tramo 20–80 % de cada campaña — **0.0783 °/count** el índice
+(`data/pose_dof3.csv`) y **0.0842 °/count** el pulgar (`data_dof4/pose_dof4.csv`):
+
+| SPEED_SET | pulgar (°/s) | índice (°/s) | P/I |
 |---|---|---|---|
-| 100 | 25 | 25 | 1.03 |
-| 250 | 63 | 62 | 1.03 |
-| 500 | 126 | 123 | 1.02 |
-| 750 | 189 | 185 | 1.02 |
-| 1000 | 221 | 237 | 0.93 |
+| 100 | 25 | 24 | 1.07 |
+| 250 | 63 | 59 | 1.06 |
+| 500 | 126 | 119 | 1.05 |
+| 750 | 189 | 178 | 1.06 |
+| 1000 | 221 | 229 | 0.97 |
 
-\* **Sin verificar:** el índice no tiene tabla `POS↔ANGLE` medida, así que se
-asume lineal (0.0811 °/count). Para cerrarlo basta un `pose_check.py --dof 3`
-(~2 min). Hasta entonces, la fila del índice es una estimación.
-
-En ambos dedos la velocidad angular supera lo que promete el datasheet a
-`v=1000`; la diferencia entre dedos aparece solo en ese extremo.
+Hasta `v=750` el **pulgar es ~6 % más rápido en grados por segundo** que el
+índice, pese a tener la misma ganancia en counts/s: su carrera de actuador es
+más corta pero cubre proporcionalmente más ángulo. El orden **se invierte a
+`v=1000`**, donde el pulgar satura y el índice no — el mismo efecto del hallazgo
+2, visto ahora en unidades físicas. Ambos superan a `v=1000` lo que promete el
+datasheet (>130 °/s pulgar, >200 °/s cuatro dedos).
 
 ## Figura
 

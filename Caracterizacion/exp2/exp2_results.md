@@ -59,7 +59,11 @@ margen; **retrae al detectar** → toque suave, no impacto). Datos:
   outliers (lecturas Modbus atrasadas), y daba un q_sw irreal (389).
 - **Margen de conmutación**: `q_sw = ceil(3.3·σ_robusta) ≈ 124 counts POS`.
 - **Para el modo B**: entrar al cierre lento en `POS ≈ 895` (`--approach-angle ≈
-  581`), antes del onset mínimo confiable (967). Como la posición del bloque
+  613`), antes del onset mínimo confiable (967).
+  *(Corregido 2026-08-25: el valor publicado antes, 581, salía de linealizar
+  `POS↔ANGLE`. La tabla medida `data/pose_dof3.csv` muestra que la relación no es
+  lineal —2.08 counts/grado al abrir contra 1.62 al cerrar— y da 613. El `POS`
+  de conmutación, que es la magnitud primaria, no cambia.)* Como la posición del bloque
   cambia entre montajes, correr `--onset` tras (re)montar y usar el
   `--approach-angle` que reporta. (El default 475 del modo B ≈ POS 1120 queda
   *después* del onset para este montaje.)

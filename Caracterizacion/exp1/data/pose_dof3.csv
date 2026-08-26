@@ -1,0 +1,5 @@
+angle_set,angle_act,pos_act,force_g,current_mA,stop
+1000,998,100,8,0,detenido
+750,750,621,68,0,detenido
+500,500,1121,76,0,detenido
+250,250,1525,161,0,detenido

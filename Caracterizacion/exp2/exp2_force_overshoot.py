@@ -655,7 +655,8 @@ def run_onset(hand, args):
     for cand in ([args.pos_angle_csv] if args.pos_angle_csv else
                  [os.path.join(args.outdir, f'pose_dof{dof}.csv'),
                   os.path.join(os.path.dirname(_HERE), 'exp1',
-                               f'data_dof{dof}', f'pose_dof{dof}.csv')]):
+                               'data' if dof == 3 else f'data_dof{dof}',
+                               f'pose_dof{dof}.csv')]):
         pmap = load_pos_angle_map(cand)
         if pmap:
             map_src = cand

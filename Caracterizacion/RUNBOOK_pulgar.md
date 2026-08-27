@@ -487,8 +487,13 @@ del skill `dataviz`: ΔE 22.3 protan, 27.2 visión normal, todas las
 comprobaciones PASS. Sin capa de hover a propósito: la salida primaria es el SVG
 vectorial embebido en la tesis, donde no sobrevive JS.
 
+`impact_distribution_figure.py` genera la figura de la distribución de impactos
+(`exp2/figures/exp2_dof4_distribucion.html`): histograma de ΔF a v=1000 con los
+dos regímenes, y la dispersión que muestra qué los acompaña.
+
 `make_summary.py` incorpora la sección **«Réplica en un segundo dedo»** con las
-dos figuras, la Tabla 3 y la lectura de qué generaliza y qué no.
+dos figuras comparativas, la Tabla 3, la subsección **«Por qué la mediana no
+basta»** con el histograma, y la lectura de qué generaliza y qué no.
 
 ---
 

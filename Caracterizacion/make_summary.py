@@ -11,6 +11,7 @@ def svgs(path):
 e1=svgs(os.path.join(REPO,'exp1/figures/exp1_step_response.html'))
 e2=svgs(os.path.join(REPO,'exp2/figures/exp2_force_overshoot.html'))
 cmp_=svgs(os.path.join(REPO,'figures/comparativa_indice_pulgar.html'))
+dist=svgs(os.path.join(REPO,'exp2/figures/exp2_dof4_distribucion.html'))
 
 # datos del pulgar (DOF 4) para la sección comparativa
 import statistics as _st
@@ -23,6 +24,14 @@ def _hyb(d):
         if r['delta_f']: o.setdefault(int(r['fset']),[]).append(float(r['delta_f']))
     return {k:sorted(v)[len(v)//2] for k,v in o.items()}
 _bT,_bI=_hyb('exp2/data_dof4_hybrid'),_hyb('exp2/data_hybrid')
+# distribución de impactos del pulgar a v=1000, Fset=100 (los 40 dedicados + los
+# 15 de esa misma celda y montaje): la mediana esconde que hay DOS regímenes
+_dist=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4_termico/grid_index.csv'))) if r['delta_f']]
+_dist+=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4/grid_index.csv')))
+        if int(r['fset'])==100 and int(r['speed'])==1000 and r.get('mount')=='m3' and r['delta_f']]
+_dist=sorted(_dist); _dmed=_st.median(_dist)
+_dhi=[v for v in _dist if v>1500]; _dlo=[v for v in _dist if v<=1500]
+_bB=sorted(float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4_hybrid/grid_index.csv'))) if int(r['fset'])==100 and r['delta_f'])
 _sI={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data/analysis_by_speed.csv')))}
 _LOW=(100,250,500)   # tramo donde AMBOS dedos son lineales: fuera de él el pulgar satura
 _kT=sum(v*float(_sT[v]['slope_cps_mean']) for v in _LOW)/sum(v*v for v in _LOW)
@@ -254,6 +263,16 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
       </table></div>
     </div>
 
+    <h3>Por qué la mediana no basta</h3>
+    <p>El mapa de arriba reporta medianas, y para dimensionar un agarre eso induce a error. Repitiendo <b>{len(_dist)} veces</b> el caso más desfavorable del pulgar —velocidad máxima con el umbral de fuerza más bajo— la distribución de los impactos resulta no tener un valor típico, sino <b>dos</b>.</p>
+
+    <figure>
+      {dist[0]}
+      <figcaption><b>Figura 7.</b> {len(_dlo)} impactos se agrupan entre {min(_dlo):.0f} y {max(_dlo):.0f}&nbsp;g; después hay <b>500&nbsp;g sin un solo impacto</b>; y {len(_dhi)} llegan a {min(_dhi):.0f}–{max(_dhi):.0f}&nbsp;g, más del doble de la mediana. El régimen duro <b>no se anuncia</b>: ocurre con el mismo comando, en la misma posición de contacto y con el mismo residual de fuerza que los suaves. A la izquierda, el modo híbrido: sus trials caben en {min(_bB):.0f}–{max(_bB):.0f}&nbsp;g.</figcaption>
+    </figure>
+
+    <p>La consecuencia es concreta: un objeto dimensionado para aguantar la mediana (~{_dmed:.0f}&nbsp;g) no falla «de vez en cuando», falla en <b>1 de cada {len(_dist)//len(_dhi)} agarres</b>, y cuando falla recibe además presión sostenida y no solo un pico. Como nada en la señal permite anticipar cuál de los dos regímenes va a ocurrir, <b>acotar el pico en promedio no es una mitigación</b>. La conmutación de velocidad sí lo es, porque suprime el régimen duro entero en vez de promediarlo.</p>
+
     <p><b>Lo que generaliza:</b> la calibración velocidad→movimiento, la latencia comando→sensor (~73&nbsp;ms en el pulgar contra ~69 en el índice, sin dependencia de la velocidad) y la ausencia de sobreimpulso de posición. Son propiedades de la plataforma, no del dedo.</p>
     <p><b>Lo que no:</b> el "umbral de fuerza bajo" que protegía al índice <b>no protege al pulgar</b>. La diferencia sigue a la rigidez del contacto — 6.4 g por count en el pulgar contra 1.6 en el índice: donde el índice recorre ~62 counts acumulando fuerza y da tiempo al firmware a frenar, al pulgar le bastan ~16. <b>La conmutación de velocidad es la única mitigación que sobrevive al cambio de dedo</b>, porque ataca la causa —el momento en el instante del contacto— y no el síntoma.</p>
   </section>
@@ -277,4 +296,4 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
 
 open(DST,'w').write(HTML)
 print("escrito:", DST, f"({len(HTML)} bytes)  k={k:.2f} kT={_kT:.2f}  R2min={r2min:.3f}  "
-      f"svgs e1={len(e1)} e2={len(e2)} cmp={len(cmp_)}")
+      f"svgs e1={len(e1)} e2={len(e2)} cmp={len(cmp_)} dist={len(dist)}")

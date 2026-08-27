@@ -1,0 +1,186 @@
+<title>Dos regímenes de impacto</title>
+<style>
+  :root{--ink:#12181f;--muted:#5a6472;--hair:#dbe2ec;--low:#D9A441;--high:#B4740F;
+    --bg:#f6f8fb;--panel:#ffffff;}
+  *{box-sizing:border-box;}
+  body{background:var(--bg);color:var(--ink);margin:0;}
+  .wrap{max-width:1000px;margin:0 auto;padding:44px 24px 64px;background:var(--bg);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.55;}
+  .mono{font-family:ui-monospace,"SF Mono","JetBrains Mono",Menlo,monospace;
+    font-variant-numeric:tabular-nums;}
+  .b{font-weight:600;} .ey{letter-spacing:.14em;text-transform:uppercase;}
+  .eyebrow{font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--high);
+    font-weight:600;}
+  h1{font-size:30px;line-height:1.15;margin:.35rem 0 .5rem;text-wrap:balance;letter-spacing:-.01em;}
+  .dek{color:var(--muted);font-size:16.5px;max-width:64ch;margin:0;}
+  .rule{height:1px;background:var(--hair);border:0;margin:26px 0;}
+  .panel{background:var(--panel);border:1px solid var(--hair);border-radius:10px;
+    padding:18px 18px 12px;box-shadow:0 1px 2px rgba(18,24,31,.04);}
+  .cap{font-size:12px;color:var(--muted);margin:2px 2px 12px;}
+  .cap b{color:var(--ink);}
+  figure{margin:0;}
+  .legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:2px 2px 10px;font-size:12.5px;}
+  .legend .li{display:inline-flex;align-items:center;gap:6px;}
+  .legend .sw{width:22px;height:10px;border-radius:3px;display:inline-block;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr;}}
+  svg{width:100%;height:auto;display:block;}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 22px;}
+  .kpi{background:var(--panel);border:1px solid var(--hair);border-radius:10px;padding:14px 16px;}
+  .kpi .n{font-size:25px;font-weight:600;letter-spacing:-.01em;}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:2px;}
+  .foot{font-size:12.5px;color:var(--muted);margin-top:22px;}
+  .foot code{font-family:ui-monospace,Menlo,monospace;color:var(--ink);background:#eef2f7;
+    padding:1px 5px;border-radius:4px;font-size:12px;}
+</style>
+<div class="wrap">
+  <div class="eyebrow">Pulgar · velocidad máxima · umbral 100 g</div>
+  <h1>El sobreimpulso no tiene un valor típico: tiene dos</h1>
+  <p class="dek">55 impactos del pulgar contra el bloque rígido a <span class="mono">SPEED_SET&nbsp;=&nbsp;1000</span> con el umbral de fuerza en su valor más bajo. El mapa de ΔF reporta la mediana, y la mediana esconde justo lo que decide si un objeto delicado sobrevive.</p>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">4/55</div><div class="l">impactos que llegan a ~1812 g en vez de ~891</div></div><div class="kpi"><div class="n">2.2×</div><div class="l">el peor impacto frente a la mediana</div></div><div class="kpi"><div class="n">29 g</div><div class="l">el peor sobreimpulso del modo B, contra 1934 g del modo directo</div></div>
+  </div>
+
+  <figure class="panel">
+    <div class="legend">
+      <span class="li"><span class="sw" style="background:#D9A441"></span>el dedo rebota y se relaja</span>
+      <span class="li"><span class="sw" style="background:#B4740F"></span>el dedo se queda cargado</span>
+      <span class="li" style="color:var(--muted)">▮ modo B (híbrido), como referencia</span>
+    </div>
+    <svg viewBox="0 0 936 320" role="img" aria-label="Histograma del sobreimpulso de fuerza del pulgar a velocidad máxima: 51 impactos agrupados cerca de 900 gramos, un hueco, y 4 impactos aislados por encima de 1600">
+<line x1="52" y1="264.0" x2="910" y2="264.0" stroke="#eef2f7"/>
+<text x="44" y="268.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">0</text>
+<line x1="52" y1="186.0" x2="910" y2="186.0" stroke="#eef2f7"/>
+<text x="44" y="190.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">10</text>
+<line x1="52" y1="108.0" x2="910" y2="108.0" stroke="#eef2f7"/>
+<text x="44" y="112.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">20</text>
+<line x1="52" y1="30.0" x2="910" y2="30.0" stroke="#eef2f7"/>
+<text x="44" y="34.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">30</text>
+<text x="52.0" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">0</text>
+<text x="156.6" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">250</text>
+<text x="261.3" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
+<text x="365.9" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
+<text x="470.5" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
+<text x="575.2" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1250</text>
+<text x="679.8" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1500</text>
+<text x="784.4" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1750</text>
+<text x="889.1" y="281" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">2000</text>
+<rect x="346.0" y="256.2" width="39.9" height="7.8" fill="#D9A441" rx="3"/>
+<rect x="387.8" y="45.6" width="39.9" height="218.4" fill="#D9A441" rx="3"/>
+<text x="407.8" y="39.6" fill="#D9A441" font-size="11" text-anchor="middle" class="mono b">28</text>
+<rect x="429.7" y="170.4" width="39.9" height="93.6" fill="#D9A441" rx="3"/>
+<text x="449.6" y="164.4" fill="#D9A441" font-size="11" text-anchor="middle" class="mono b">12</text>
+<rect x="471.5" y="186.0" width="39.9" height="78.0" fill="#D9A441" rx="3"/>
+<text x="491.5" y="180.0" fill="#D9A441" font-size="11" text-anchor="middle" class="mono b">10</text>
+<rect x="722.7" y="256.2" width="39.9" height="7.8" fill="#B4740F" rx="3"/>
+<rect x="764.5" y="256.2" width="39.9" height="7.8" fill="#B4740F" rx="3"/>
+<rect x="806.4" y="256.2" width="39.9" height="7.8" fill="#B4740F" rx="3"/>
+<rect x="848.2" y="256.2" width="39.9" height="7.8" fill="#B4740F" rx="3"/>
+<line x1="55.8" y1="264.0" x2="67.1" y2="264.0" stroke="#12181f" stroke-width="4"/>
+<line x1="60.0" y1="264.0" x2="60.0" y2="212.0" stroke="#12181f" stroke-width="1"/>
+<text x="67.0" y="208.0" fill="#12181f" font-size="11.5" class="b">modo B</text>
+<text x="67.0" y="222.0" fill="#5a6472" font-size="11" class="mono">9–29 g · N=5</text>
+<text x="617.0" y="250.0" fill="#5a6472" font-size="11" text-anchor="middle">500 g sin un solo impacto</text>
+<path d="M 721.7 241.0 L 721.7 234.0 L 889.1 234.0 L 889.1 241.0" fill="none" stroke="#B4740F" stroke-width="1.4"/>
+<text x="805.4" y="227.0" fill="#B4740F" font-size="11.5" text-anchor="middle" class="b">4 impactos · 2.2× la mediana</text>
+<line x1="427.8" y1="30" x2="427.8" y2="264.0" stroke="#12181f" stroke-width="1" opacity="0.45"/>
+<text x="433.8" y="41" fill="#12181f" font-size="11" class="mono">mediana 898</text>
+<line x1="52" y1="264.0" x2="910" y2="264.0" stroke="#dbe2ec"/>
+<text x="481" y="312" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">ΔF = F_max − Fset  (g)</text>
+<text transform="translate(14,147) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">impactos</text>
+</svg>
+    <figcaption class="cap"><b>Figura 1.</b> La distribución no es unimodal: 51 impactos se agrupan entre 798 y 1059&nbsp;g, no hay <b>ninguno</b> en los 500&nbsp;g siguientes, y 4 llegan a 1685–1934&nbsp;g. El modo B, a la izquierda, no está en la misma escala del problema: sus 5 trials caben en 9–29&nbsp;g.</figcaption>
+  </figure>
+
+  <hr class="rule">
+  <div class="grid2">
+    <figure class="panel">
+      <svg viewBox="0 0 452 320" role="img" aria-label="Sobreimpulso frente a fuerza de régimen: los impactos altos son los que no se relajan tras tocar">
+<line x1="58" y1="266.0" x2="428" y2="266.0" stroke="#eef2f7"/>
+<text x="50" y="270.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">600</text>
+<line x1="58" y1="202.0" x2="428" y2="202.0" stroke="#eef2f7"/>
+<text x="50" y="206.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<line x1="58" y1="138.0" x2="428" y2="138.0" stroke="#eef2f7"/>
+<text x="50" y="142.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1400</text>
+<line x1="58" y1="74.0" x2="428" y2="74.0" stroke="#eef2f7"/>
+<text x="50" y="78.0" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1800</text>
+<text x="58.0" y="283" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">0</text>
+<text x="181.3" y="283" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">300</text>
+<text x="304.7" y="283" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">600</text>
+<text x="428.0" y="283" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">900</text>
+<circle cx="95.4" cy="208.7" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="85.5" cy="218.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="106.9" cy="213.0" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="128.3" cy="221.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="80.6" cy="226.6" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="106.9" cy="213.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="84.7" cy="216.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="120.1" cy="65.8" r="4.6" fill="#B4740F" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="134.5" cy="218.0" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="81.8" cy="227.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="109.0" cy="214.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="81.4" cy="227.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="378.7" cy="52.6" r="4.6" fill="#B4740F" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="85.5" cy="219.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="118.8" cy="195.8" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="95.4" cy="193.8" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="81.4" cy="230.8" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="126.2" cy="214.0" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="95.8" cy="193.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="82.3" cy="226.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="73.2" cy="228.6" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="106.5" cy="200.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="99.9" cy="218.8" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="73.2" cy="234.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="113.1" cy="199.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="95.8" cy="211.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="77.3" cy="223.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="93.4" cy="221.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="123.0" cy="225.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="74.0" cy="230.6" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="108.2" cy="211.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="128.3" cy="222.8" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="74.9" cy="232.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="99.5" cy="221.7" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="120.1" cy="227.6" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="76.1" cy="229.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="334.7" cy="92.4" r="4.6" fill="#B4740F" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="76.5" cy="229.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="84.7" cy="201.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="76.5" cy="229.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="106.5" cy="194.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="103.6" cy="213.0" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="86.4" cy="222.0" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="98.7" cy="196.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="127.9" cy="192.6" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="337.6" cy="78.2" r="4.6" fill="#B4740F" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="82.7" cy="223.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="74.9" cy="232.1" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="80.2" cy="224.2" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="100.3" cy="211.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="76.5" cy="225.5" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="100.3" cy="218.3" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="84.3" cy="200.9" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="78.1" cy="224.7" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<circle cx="109.4" cy="203.4" r="4.6" fill="#D9A441" stroke="#fff" stroke-width="1.6" opacity="0.95"/>
+<text x="181.3" y="227.6" fill="#D9A441" font-size="11.5" class="b">rebota y se relaja · 51</text>
+<text x="354.0" y="40.4" fill="#B4740F" font-size="11.5" text-anchor="middle" class="b">se queda cargado · 3</text>
+<text x="133.1" y="69.8" fill="#5a6472" font-size="11">…pero el 4º sí se relajó</text>
+<line x1="58" y1="266" x2="428" y2="266" stroke="#dbe2ec"/>
+<line x1="58" y1="26" x2="58" y2="266" stroke="#dbe2ec"/>
+<text x="243" y="313" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">fuerza de régimen tras el impacto (g)</text>
+<text transform="translate(14,146) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF  (g)</text>
+</svg>
+      <figcaption class="cap"><b>Figura 2.</b> Lo que <b>no</b> los separa: la posición del contacto es la misma dentro de 4&nbsp;counts, y el residual por flexión es idéntico. Lo que sí acompaña al régimen duro es que el dedo <b>no se relaja</b>: <b>3 de los 4</b> quedan en 673–780&nbsp;g de fuerza sostenida frente a ~91&nbsp;g del grupo suave. El cuarto sí se relajó, así que con N=4 esto es una pista del mecanismo, <b>no una explicación establecida</b>.</figcaption>
+    </figure>
+    <div class="panel">
+      <div class="b" style="font-size:13.5px;margin:2px 2px 10px">Por qué importa para el agarre</div>
+      <p style="font-size:14.5px;margin:0 0 12px">Dimensionar el agarre con la mediana (~898&nbsp;g) da una respuesta equivocada. Un objeto que aguante esa fuerza no falla «a veces»: falla en <b>1 de cada 13</b> agarres, y cuando falla recibe además <b>presión sostenida</b>, no solo un pico.</p>
+      <p style="font-size:14.5px;margin:0 0 12px">El régimen duro <b>no se anuncia</b>: ocurre en la misma posición de contacto, con el mismo residual y el mismo comando. Nada en la señal permite anticiparlo desde el lado del control. En 3 de los 4 casos el dedo además se queda cargado en vez de relajarse, pero con N=4 eso es una pista, no una explicación.</p>
+      <p style="font-size:14.5px;margin:0">Por eso la mitigación correcta no es acotar el pico en promedio sino <b>no llegar a impactar</b>. El modo B suprime el régimen duro entero: sus 5 trials caben en 29&nbsp;g, un orden de magnitud por debajo del grupo suave.</p>
+    </div>
+  </div>
+
+  <p class="foot">N=55: 40 trials dedicados (<code>data_dof4_termico/</code>) + 15 de la misma celda y montaje en <code>data_dof4/</code>. Modo B: <code>data_dof4_hybrid/</code>. Generado por <code>impact_distribution_figure.py</code>. Rampa ordinal de un tono verificada con el validador del skill <code>dataviz</code>.</p>
+</div>

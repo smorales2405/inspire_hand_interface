@@ -21,6 +21,8 @@ JOBS = [
      ['exp2_overshoot_bars', 'exp2_hybrid_comparison']),
     (os.path.join(_HERE, 'figures', 'comparativa_indice_pulgar.html'),
      ['cmp_pendiente_vs_speed', 'cmp_fset100_vs_speed', 'cmp_modoA_vs_modoB']),
+    (os.path.join(_HERE, 'exp2', 'figures', 'exp2_dof4_distribucion.html'),
+     ['exp2_dof4_hist_deltaF', 'exp2_dof4_regimenes']),
 ]
 
 

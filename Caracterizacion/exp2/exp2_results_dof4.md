@@ -117,6 +117,10 @@ son lecturas corruptas: la fuerza se sostiene varias muestras y decae con la
 misma forma que en los impactos normales. Eso explica también por qué el `N=5`
 original parecía alto — capturó parte de esa cola.
 
+**Figura:** `figures/exp2_dof4_distribucion.html` (+ SVG
+`exp2_dof4_hist_deltaF.svg`, `exp2_dof4_regimenes.svg`). Regenerar con
+`python Caracterizacion/impact_distribution_figure.py`.
+
 **Consecuencia práctica:** a máxima velocidad el número que importa para
 dimensionar el riesgo **no es la mediana sino la cola**. Un objeto que aguante
 900 g fallaría en ~1 de cada 14 agarres. Es un argumento más a favor de la

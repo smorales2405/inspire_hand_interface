@@ -87,28 +87,44 @@ un N=5 produce por azar con esa varianza. **El valor de referencia pasa de 1397
 a 936 g.** El hallazgo no cambia —sigue siendo 26× el del índice en la misma
 celda— pero la cifra ahora descansa en N=20 y no en cinco impactos.
 
-### Una deriva sin explicar
+### La "deriva" no existía — pero la cola sí
 
-Dentro de los 105 trials nuevos, el sobreimpulso **baja a lo largo de la tanda**,
-y el efecto escala con la velocidad:
+Al mirar los 105 trials por mitades pareció haber una caída del sobreimpulso a lo
+largo de la tanda (a `v=1000`, 1035 → 880). **Puesto a prueba, no resiste:** un
+test de permutación exacto sobre esas dos mitades da **p = 0.140**. Era una
+diferencia de medias reportada sin contrastar — el mismo error que el `N=5`.
 
-| v | 1ª mitad | 2ª mitad | dif |
-|---|---|---|---|
-| 500 | 511 | 471 | −40 |
-| 750 | 1213 | 1085 | −128 |
-| 1000 | 1035 | 880 | −156 |
+Para zanjarlo se corrieron **40 trials dedicados** a `v=1000, Fset=100`
+(`data_dof4_termico/`): 30 seguidos desde frío y 10 más tras 5 minutos de
+descanso, registrando la temperatura del actuador por trial.
 
-**No es desgaste del contacto:** la rigidez medida en los sondeos es estable
-(6.1 g/count antes del grid, 5.8 y 6.0 tras ~250 impactos). Queda como candidata
-la **deriva térmica del actuador**, que es justo lo que el protocolo (§0.6) manda
-registrar — y que en esta campaña **no se registró**. Es un hueco de método, no
-un problema de los datos: los valores son válidos, pero la deriva no se puede
-diagnosticar *a posteriori*.
+- **Sin tendencia con el número de trial:** Spearman `ρ = −0.216`, `p = 0.181`.
+- **La temperatura no es un factor:** el actuador pasó de **28 a 30 °C** en 30
+  impactos seguidos. Dos grados. Y tras el descanso el `ΔF` **no se recuperó**
+  (855 g), que es lo que habría hecho si el efecto fuera térmico.
 
-`exp2_force_overshoot.py` ya lee el registro de temperatura del actuador
-(`TEMP`, 1618+) una vez por trial y lo guarda como `temp_c` en el índice, así que
-la próxima campaña permite comprobarlo directamente. Si se confirma, la
-consecuencia práctica es intercalar descansos, como pide el protocolo.
+**Lo que sí hay es una cola pesada.** Sobre `N=55` en esa celda (los 40 dedicados
+más los 15 del grid del mismo montaje):
+
+| | ΔF |
+|---|---|
+| mediana | 898 g |
+| p90 | 1054 g |
+| **máximo** | **1934 g** |
+
+**El 7 % de los impactos supera 1.5× la mediana**, y el peor llega a **2.2×**. No
+son lecturas corruptas: la fuerza se sostiene varias muestras y decae con la
+misma forma que en los impactos normales. Eso explica también por qué el `N=5`
+original parecía alto — capturó parte de esa cola.
+
+**Consecuencia práctica:** a máxima velocidad el número que importa para
+dimensionar el riesgo **no es la mediana sino la cola**. Un objeto que aguante
+900 g fallaría en ~1 de cada 14 agarres. Es un argumento más a favor de la
+conmutación de velocidad, que elimina el impacto en lugar de acotarlo en promedio.
+
+*(El registro de temperatura por trial —`temp_c`, exigido por el §0.6 del
+protocolo— faltaba y se añadió. El resultado es negativo, pero medido: el
+actuador del pulgar apenas se calienta en estas campañas.)*
 
 ## Calidad de los datos
 

@@ -284,7 +284,7 @@ HTML = f'''<title>Índice vs Pulgar · RH56DFTP</title>
     <figure class="panel">
       {legend(FINGERS)}
       {fset100_svg()}
-      <figcaption class="cap"><b>Figura 2.</b> El hallazgo central. Con <span class="mono">Fset=100&nbsp;g</span> el índice mantiene el sobreimpulso plano en 5–36&nbsp;g <b>a cualquier velocidad</b>: el firmware frena antes de que se forme el impacto. En el pulgar esa protección <b>no existe</b> — el mismo ajuste crece hasta 1397&nbsp;g. La diferencia sigue a la rigidez del contacto: 6.4 g/count contra 1.6.</figcaption>
+      <figcaption class="cap"><b>Figura 2.</b> El hallazgo central. Con <span class="mono">Fset=100&nbsp;g</span> el índice mantiene el sobreimpulso plano en 5–36&nbsp;g <b>a cualquier velocidad</b>: el firmware frena antes de que se forme el impacto. En el pulgar esa protección <b>no existe</b> — el mismo ajuste crece hasta {G_T['median']['1000']['100']:.0f}&nbsp;g. La diferencia sigue a la rigidez del contacto: 6.1 g/count contra 1.6.</figcaption>
     </figure>
   </div>
 

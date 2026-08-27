@@ -479,7 +479,7 @@ contra un bloque: no se lanza sin que la celda de validación se vea sana.
    2.99 counts/s por unidad, ajustadas sobre el tramo donde ambos son lineales),
    con la saturación del pulgar a v=1000 anotada.
 2. **ΔF con `Fset=100` vs velocidad** (eje log) — el hallazgo central: el índice
-   plano en 5–36 g, el pulgar hasta 1397 g.
+   plano en 5–36 g, el pulgar hasta ~940 g (fila con N=20).
 3. **Modo A a v=1000 → modo B**, por `Fset` y por dedo — el colapso de 30–82×.
 
 Paleta categórica (índice `#285F97`, pulgar `#B4740F`) verificada con el script

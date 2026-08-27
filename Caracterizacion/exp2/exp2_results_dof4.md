@@ -16,16 +16,21 @@ Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
 
 | v \ Fset | 100 | 250 | 500 | 750 | 1000 |
 |---|---|---|---|---|---|
-| 25   | 16   | 21    | 27   | 29    | 36   |
-| 50   | 32   | 38    | 53   | 78    | 69   |
-| 100  | 66   | 97    | 102  | 155   | 137  |
-| 250  | 238  | 305   | 296  | 355   | 350  |
-| 500  | 514  | 741   | 904  | 746   | 1072*|
-| 750  | 1101 | 964   | 1344 | 1096  | 1028 |
-| 1000 | 1397 | 1524* | 1169 | 1083* | 1403*|
+| 25   | **14**   | 21    | 27   | 29    | 36   |
+| 50   | **26**   | 38    | 53   | 78    | 69   |
+| 100  | **74**   | 97    | 102  | 155   | 137  |
+| 250  | **228**  | 305   | 296  | 355   | 350  |
+| 500  | **508**  | 741   | 904  | 746   | 1072*|
+| 750  | **1114** | 964   | 1344 | 1096  | 1028 |
+| 1000 | **936** | 1524* | 1169 | 1083* | 1403*|
 
 `*` = celda con ≥1 abort (techo 2200 g). **8/175 abortos (5 %)** contra 59/175
 (34 %) del índice.
+
+> **La fila `Fset = 100` se amplió a N=20** (105 trials adicionales, montaje `m3`;
+> el resto de la matriz sigue en N=5). Es la fila que sostiene el hallazgo
+> principal, así que merecía el N. Ver *Ampliación* más abajo: el único valor que
+> cambió de forma apreciable fue `v=1000`, de 1397 (N=5) a **936** (N=20).
 
 ## Hallazgos
 
@@ -37,8 +42,8 @@ Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
 2. **Pero NO existe el "setpoint seguro" del índice.** Ese fue el hallazgo más
    útil del DOF 3: con `Fset = 100` su ΔF se quedaba plano en **5–36 g a
    cualquier velocidad**, porque el firmware frenaba antes de que se formara el
-   impacto. En el pulgar esa columna **no protege**: crece 16 → **1397 g** con
-   la velocidad, hasta **39× peor** que el índice en la misma celda.
+   impacto. En el pulgar esa columna **no protege**: crece 14 → **936 g** con
+   la velocidad, hasta **26× peor** que el índice en la misma celda.
 3. **Mecanismo probable: la rigidez del contacto** (medida en P2.3): 6.4 g/count
    en el pulgar contra 1.6 g/count en el índice. El índice necesita recorrer
    ~62 counts pasado el onset para acumular 100 g, y en ese trecho el firmware
@@ -54,6 +59,56 @@ Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
    índice bastaba; en el pulgar es inútil. Eso refuerza el argumento del paper:
    la mitigación robusta es la **conmutación de velocidad (modo B)**, que ataca
    la causa (el momento en el instante del contacto) y no el síntoma.
+
+## Ampliación de la fila `Fset = 100` a N=20
+
+105 trials adicionales (15 por velocidad) en el montaje `m3`, sumados a los 5
+originales de `m1`. Los dos montajes son la misma geometría: el onset geométrico
+del sondeo da `POS 777` (`m1`) y `778`–`784` (`m3`, dos lecturas), y **la
+precisión del propio sondeo es de ~6 counts**, así que la diferencia entre
+montajes queda por debajo del ruido de medirla.
+
+| v | `m1` (N=5) | `m3` (N=15) | σ de `m3` | **N=20** |
+|---|---|---|---|---|
+| 25 | 16 | 14 | 3 | **14** |
+| 50 | 32 | 25 | 10 | **26** |
+| 100 | 66 | 84 | 26 | **74** |
+| 250 | 238 | 210 | 50 | **228** |
+| 500 | 514 | 504 | 59 | **508** |
+| 750 | 1101 | 1127 | 301 | **1114** |
+| 1000 | 1397 | 931 | 224 | **936** |
+
+Seis de las siete celdas reproducen dentro de la dispersión de la propia celda.
+**La excepción es `v=1000`**, donde la muestra de 5 de `m1` (846, 913, 1397,
+1471, 1572) capturó los valores altos de una distribución con σ ≈ 300, mientras
+que los 15 de `m3` se agrupan entre 812 y 1059. Un test de permutación exacto
+sobre las medias da **p = 0.047**: diferencia apenas significativa, del tipo que
+un N=5 produce por azar con esa varianza. **El valor de referencia pasa de 1397
+a 936 g.** El hallazgo no cambia —sigue siendo 26× el del índice en la misma
+celda— pero la cifra ahora descansa en N=20 y no en cinco impactos.
+
+### Una deriva sin explicar
+
+Dentro de los 105 trials nuevos, el sobreimpulso **baja a lo largo de la tanda**,
+y el efecto escala con la velocidad:
+
+| v | 1ª mitad | 2ª mitad | dif |
+|---|---|---|---|
+| 500 | 511 | 471 | −40 |
+| 750 | 1213 | 1085 | −128 |
+| 1000 | 1035 | 880 | −156 |
+
+**No es desgaste del contacto:** la rigidez medida en los sondeos es estable
+(6.1 g/count antes del grid, 5.8 y 6.0 tras ~250 impactos). Queda como candidata
+la **deriva térmica del actuador**, que es justo lo que el protocolo (§0.6) manda
+registrar — y que en esta campaña **no se registró**. Es un hueco de método, no
+un problema de los datos: los valores son válidos, pero la deriva no se puede
+diagnosticar *a posteriori*.
+
+`exp2_force_overshoot.py` ya lee el registro de temperatura del actuador
+(`TEMP`, 1618+) una vez por trial y lo guarda como `temp_c` en el índice, así que
+la próxima campaña permite comprobarlo directamente. Si se confirma, la
+consecuencia práctica es intercalar descansos, como pide el protocolo.
 
 ## Calidad de los datos
 
@@ -117,8 +172,8 @@ cierre a v=25. 5 `Fset` × 5 trials = 25, **0 abortos**. Datos:
 |---|---|---|---|---|---|
 | **ΔF modo B** | 17 | 34 | 28 | 36 | 37 |
 | modo A a v=25 | 16 | 21 | 27 | 29 | 36 |
-| modo A a v=1000 | 1397 | 1524 | 1169 | 1083 | 1403 |
-| **reducción vs v=1000** | **82×** | 45× | 42× | 30× | 38× |
+| modo A a v=1000 | 936 | 1524 | 1169 | 1083 | 1403 |
+| **reducción vs v=1000** | **55×** | 45× | 42× | 30× | 38× |
 | `F_max` | 117 | 284 | 528 | 786 | 1037 |
 | `F_régimen` | 88 | 239 | 421 | 684 | 935 |
 

@@ -47,7 +47,7 @@ sys.path.insert(0, os.path.dirname(_HERE))
 
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,
-    POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT,
+    POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT, TEMP,
     DOF_NAMES, fmt_angle, parse_hold, describe_hold,
     angle_vector, open_vector, report_hold,
     load_pos_angle_map, pos_to_angle,
@@ -333,6 +333,11 @@ def run_trial_A(hand, dof, speed, fset, args):
     # Fset − f_base. En el índice ese residual era ~9 g (despreciable); en el
     # pulgar P2.1 midió ~51 g, así que hay que registrarlo por trial.
     f_base = statistics.median([r[dof] for r in reads]) if reads else None
+    # Temperatura del actuador (protocolo §0.6): los servos derivan al calentarse.
+    # Una lectura por trial es despreciable frente al resto del lazo, y sin ella
+    # una deriva a lo largo de la campaña queda sin diagnosticar.
+    tb_ = hand.read_temps()
+    temp_c = tb_[dof] if tb_ else None
 
     samples = []                 # (t, force, pos|None, cur|None)
     f_max = None; peak_t = None; onset_pos = None
@@ -405,6 +410,7 @@ def run_trial_A(hand, dof, speed, fset, args):
         'f_settle': f_settle, 't_peak_ms': (peak_t - t_cmd) * 1000 if peak_t else None,
         'onset_pos': onset_pos, 'aborted': aborted, 'abort_reason': abort_reason,
         'f_max_hold': f_max_hold, 'start_pos': start_pos, 'f_base': f_base,
+        'temp_c': temp_c,
     }
 
 
@@ -504,7 +510,7 @@ def run_grid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount'])
+                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount', 'temp_c'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (v, F, n) in enumerate(order, 1):
             # Recalibración periódica (con el dedo abierto) por la deriva del sensor.
@@ -524,7 +530,8 @@ def run_grid(hand, args):
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
                          hold_txt, trial['f_max_hold'],
                          '' if trial['f_base'] is None else f"{trial['f_base']:.0f}",
-                         args.mount])
+                         args.mount,
+                         '' if trial['temp_c'] is None else trial['temp_c']])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] v={v:4d} Fset={F:4d} n={n} → "
@@ -568,7 +575,7 @@ def run_hybrid(hand, args):
         if new_index:
             iw.writerow(['trial_file', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
                          'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
-                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount'])
+                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount', 'temp_c'])
         hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
         for k, (F, n) in enumerate(order, 1):
             if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
@@ -588,7 +595,8 @@ def run_hybrid(hand, args):
                          trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
                          hold_txt, trial['f_max_hold'],
                          '' if trial['f_base'] is None else f"{trial['f_base']:.0f}",
-                         args.mount])
+                         args.mount,
+                         '' if trial['temp_c'] is None else trial['temp_c']])
             idx.flush()
             flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
             print(f"[{k}/{total}] Fset={F:4d} n={n} → F_max={trial['f_max']} g  ΔF={trial['delta_f']} g{flag}")

@@ -45,10 +45,16 @@ from hand_modbus import (
 )
 
 
-def goto(hand, dof, angle, args, hold):
+def goto(hand, dof, angle, args, hold, watch=()):
     """Comanda ANGLE_SET y espera a que POS_ACT se detenga (o al timeout).
 
-    Devuelve (pos, angle_act, force, current, motivo).
+    `watch` son DOF que solo se OBSERVAN (nunca se comandan): de cada uno se
+    registra cuánto se movió y cuánta fuerza/corriente acusó MIENTRAS el DOF
+    barrido estaba en movimiento. Sirve para convertir un "el vecino oscila un
+    poco" en counts, y para separar el acoplamiento mecánico (aparece con y sin
+    ancla) del rebote del servo contra su tope (solo con ancla).
+
+    Devuelve (pos, angle_act, force, current, motivo, obs).
     """
     hand.write_block(SPEED_SET, [args.speed] * NDOF)
     hand.write_block(FORCE_SET, [args.force_set] * NDOF)
@@ -59,6 +65,7 @@ def goto(hand, dof, angle, args, hold):
     pos = ang = force = cur = None
     reason = 'timeout'
     cur_over = 0
+    obs = {d: {'pos': [], 'force': [], 'cur': 0} for d in watch}
     while time.perf_counter() - t0 < args.timeout_move_s:
         t = time.perf_counter()
         pb = hand.read_block(POS_ACT)
@@ -67,6 +74,10 @@ def goto(hand, dof, angle, args, hold):
         pos = pb[dof] if pb else pos
         force = fb[dof] if fb else force
         cur = cb[dof] if cb else cur
+        for d, o in obs.items():
+            if pb: o['pos'].append(pb[d])
+            if fb: o['force'].append(fb[d])
+            if cb: o['cur'] = max(o['cur'], cb[d])
 
         if force is not None and abs(force) > args.force_ceiling:
             reason = 'techo_fuerza'; break
@@ -86,7 +97,13 @@ def goto(hand, dof, angle, args, hold):
 
     ab = hand.read_block(ANGLE_ACT)
     ang = ab[dof] if ab else None
-    return pos, ang, force, cur, reason
+    for o in obs.values():
+        # Desviación de fuerza sobre la PRIMERA lectura del tramo, nunca sobre el
+        # valor absoluto: ese sensor tiene offset propio y depende de la postura.
+        o['pos_p2p'] = max(o['pos']) - min(o['pos']) if o['pos'] else None
+        o['dforce'] = (max(abs(f - o['force'][0]) for f in o['force'])
+                       if o['force'] else None)
+    return pos, ang, force, cur, reason, obs
 
 
 def main(argv=None):
@@ -123,6 +140,12 @@ def main(argv=None):
     p.add_argument('--force-ceiling', type=int, default=600,
                    help='techo |FORCE_ACT| de emergencia (g crudos, def 600)')
     p.add_argument('--current-max', type=int, default=1000, help='corriente máx (mA, def 1000)')
+    p.add_argument('--watch', default=None,
+                   help='DOF a OBSERVAR durante el barrido, separados por coma (nunca se '
+                        'comandan). Por defecto, los mismos que --hold. Reporta cuánto se '
+                        'movió cada vecino y qué fuerza acusó mientras el DOF barrido se '
+                        'movía: corre una vez CON --hold y otra SIN él para separar el '
+                        'acoplamiento mecánico del rebote del servo contra su tope.')
     p.add_argument('--csv', default=None, help='ruta opcional para volcar la tabla')
     args = p.parse_args(argv)
 
@@ -134,6 +157,11 @@ def main(argv=None):
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
+    if args.watch is None:
+        watch = sorted(hold)
+    else:
+        watch = sorted({int(x) for x in args.watch.split(',') if x.strip() != ''})
+    watch = [d for d in watch if d != args.dof]
     if args.dof in hold:
         print(f"ERROR: --hold no puede anclar el propio DOF barrido ({args.dof})", file=sys.stderr)
         return 2
@@ -169,21 +197,53 @@ def main(argv=None):
 
         hdr = f"\n{'ANGLE_SET':>10} {'ANGLE_ACT':>10} {'POS_ACT':>9} {'FORCE_g':>8} {'mA':>6}  parada"
         print(hdr); print('-' * (len(hdr) - 1))
+        obs_rows = []
         for a in angles:
-            pos, ang, force, cur, reason = goto(hand, dof, a, args, hold)
+            pos, ang, force, cur, reason, obs = goto(hand, dof, a, args, hold, watch)
+            obs_rows.append((a, obs))
             deg = reg_to_deg(a, dof)
             print(f"{a:>10} {('—' if ang is None else ang):>10} "
                   f"{('—' if pos is None else pos):>9} {('—' if force is None else force):>8} "
                   f"{('—' if cur is None else cur):>6}  {reason}"
                   + (f"   ({deg}°)" if deg is not None else ""))
-            rows.append({'angle_set': a, 'angle_act': ang, 'pos_act': pos,
-                         'force_g': force, 'current_mA': cur, 'stop': reason})
+            row = {'angle_set': a, 'angle_act': ang, 'pos_act': pos,
+                   'force_g': force, 'current_mA': cur, 'stop': reason}
+            for d in watch:
+                o = obs[d]
+                row[f'w{d}_pos_p2p'] = o['pos_p2p']
+                row[f'w{d}_dforce_g'] = o['dforce']
+                row[f'w{d}_mA_max'] = o['cur']
+            rows.append(row)
             time.sleep(args.dwell_s)     # pausa para observar la mano
 
         poss = [r['pos_act'] for r in rows if r['pos_act'] is not None]
         if len(poss) >= 2:
             print(f"\nRecorrido de POS_ACT en el barrido: {min(poss)} … {max(poss)} "
                   f"({max(poss) - min(poss)} counts).")
+        if watch:
+            print(f"\n=== Vecinos observados mientras se movía el DOF {dof} ===")
+            print("   (recorrido de su POS_ACT · desviación de fuerza sobre el inicio del "
+                  "tramo · corriente máx)")
+            h = f"{'ANGLE_SET':>10} " + ' '.join(
+                f"{'DOF ' + str(d) + ' (' + DOF_NAMES[d][:9] + ')':>26}" for d in watch)
+            print(h); print('-' * len(h))
+            for a, obs in obs_rows:
+                cells = []
+                for d in watch:
+                    o = obs[d]
+                    cells.append(f"{('—' if o['pos_p2p'] is None else str(o['pos_p2p']) + 'c'):>8}"
+                                 f"{('—' if o['dforce'] is None else str(o['dforce']) + 'g'):>9}"
+                                 f"{str(o['cur']) + 'mA':>9}")
+                print(f"{a:>10} " + ' '.join(cells))
+            worst = {d: max((obs[d]['pos_p2p'] or 0) for _, obs in obs_rows) for d in watch}
+            for d, w in worst.items():
+                # El anclado se re-afirma en cada escritura, así que un recorrido
+                # grande no es deriva: es el servo moviéndose de verdad.
+                note = ('quieto' if w <= 8 else
+                        'se mueve — repite SIN --hold para ver si es acoplamiento mecánico'
+                        if d in hold else
+                        'se mueve sin estar comandado → acoplamiento mecánico o eléctrico')
+                print(f"  DOF {d} ({DOF_NAMES[d]}): recorrido máx {w} counts → {note}")
         stalled = [r for r in rows if r['stop'] != 'detenido']
         if stalled:
             print(f"⚠ {len(stalled)} parada(s) NO se detuvieron limpio "

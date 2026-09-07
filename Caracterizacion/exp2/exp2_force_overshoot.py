@@ -269,6 +269,10 @@ def run_probe(hand, args):
         # mecánico o auto-colisión). El sondeo CON bloque debe detenerse ANTES.
         print(f"   → POS libre de referencia. El sondeo CON bloque debe parar por debajo de")
         print(f"     este valor; si para en el mismo punto, el bloque está fuera de alcance.")
+        if reason == 'timeout':
+            print(f"   ⚠ Se acabó la ventana ({args.probe_window} s) sin que el dedo se")
+            print(f"     detuviera: el recorrido libre es MAYOR que {max(poss) if poss else '—'}. "
+                  f"Sube --probe-window.")
     elif contact_pos is not None:
         src = '' if reason == 'contacto' else f'  (inferido del punto de parada por {reason})'
         print(f" POS de contacto  : {contact_pos}{src}")
@@ -1097,9 +1101,26 @@ def parse_args(argv=None):
     p.add_argument('--probe-ceiling', type=int, default=550,
                    help='techo |FORCE_ACT| crudo de emergencia (g, def 550)')
     p.add_argument('--current-max', type=int, default=1200, help='corriente máx antes de abortar (mA)')
-    p.add_argument('--stall-band', type=int, default=8, help='avance de POS bajo el cual se considera detenido')
-    p.add_argument('--stall-hold', type=float, default=0.12, help='tiempo detenido para declarar contacto (s)')
-    p.add_argument('--probe-window', type=float, default=15.0, help='tope máximo del sondeo (s)')
+    # El detector de parada resuelve DOS fenómenos opuestos, así que sus defaults
+    # dependen de --no-block:
+    #  · CON bloque el contacto es COMPLIANT — el dedo sigue avanzando ~5
+    #    counts/muestra mientras la fuerza sube — así que hay que declarar
+    #    contacto pronto (banda ancha, espera corta) o se pasa de largo.
+    #  · SIN bloque no hay nada que detectar hasta el tope mecánico, y el dedo
+    #    llega ahí FRENANDO: en el meñique bajó de 5 a 2 counts/muestra con la
+    #    corriente plana, y una banda de 8 counts con 0.12 s lo dio por detenido
+    #    en POS 1340 cuando su recorrido real llega a 1896 (medido con
+    #    pose_check). Ahí hace falta lo contrario: banda estrecha y espera larga,
+    #    que solo se cumplen con el dedo de verdad parado.
+    p.add_argument('--stall-band', type=int, default=None,
+                   help='avance de POS bajo el cual se considera detenido '
+                        '(def 8 con bloque, 3 sin bloque)')
+    p.add_argument('--stall-hold', type=float, default=None,
+                   help='tiempo detenido para declarar contacto, s '
+                        '(def 0.12 con bloque, 0.35 sin bloque)')
+    p.add_argument('--probe-window', type=float, default=None,
+                   help='tope máximo del sondeo, s (def 15 con bloque, 30 sin bloque: '
+                        'el recorrido completo a v=50 es largo)')
     p.add_argument('--runup-counts', type=int, default=250,
                    help='counts de pista antes del onset para la pre-posición del modo A '
                         '(def 250; el pulgar usó 279). Menos pista y el dedo toca el bloque '
@@ -1217,6 +1238,10 @@ def main(argv=None):
         print("Vigilados SIN comandar: "
               + ' · '.join(f"DOF {d} ({DOF_NAMES[d]})" for d in only_watch)
               + "  (su desviación de fuerza entra en el mismo watchdog)")
+    for name, with_block, free in (('stall_band', 8, 3), ('stall_hold', 0.12, 0.35),
+                                   ('probe_window', 15.0, 30.0)):
+        if getattr(args, name) is None:
+            setattr(args, name, free if args.no_block else with_block)
     if args.outdir is None:
         args.outdir = default_outdir(args.dof)
     if args.safety_force_hold_g is None:

@@ -22,6 +22,9 @@ Campañas de referencia: [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md), `exp1/exp1_re
 | | Índice (DOF 3) | Pulgar flexión (DOF 4) |
 |---|---|---|
 | `k` (ajuste por el origen, `v ≤ 500`) | **3.042** | **2.986** (−1.8 %) |
+
+> Meñique (DOF 0), medido en esta campaña: **k = 3.046** (+0.2 %), deadtime
+> 55.3 ms, R² 0.995, sobreimpulso 0.03 %.
 | R² mínimo en `v ≤ 500` | 0.995 | 0.986 |
 | Deadtime medio | 69.3 ms | 73.1 ms |
 | Sobreimpulso de posición (máx) | 0.393 % | 0.022 % |
@@ -229,10 +232,28 @@ conmutación de 40 counts era conservador solo frente al pulgar (34) y no frente
   frenado y ΔF de los **cinco** DOF; veredicto por dedo; conclusión sobre H-A/H-B.
 - `compare_dof_figure.py` extendido a los DOF nuevos.
 
+## Parámetros medidos
+
+### Meñique (DOF 0)
+
+| | Valor | Fase |
+|---|---|---|
+| Recorrido `POS` (`ANGLE_SET` 1000→0) | 96 … **1893** (1797 counts) | V0.2 |
+| Mapa `POS↔ANGLE` | `exp1/data_dof0/pose_dof0.csv` (5 puntos) | V0.1 |
+| Residual de flexión (crudo, sin tarar) | −57 g abierto → +141 g al tope | V0.2 |
+| **`k`** | **3.046** counts/s por unidad (+0.2 % vs 3.04) | V1 |
+| Deadtime medio | 55.3 ms | V1 |
+| R² mínimo (`v ≤ 500`) | 0.9948 | V1 |
+| Sobreimpulso de posición | 0.029 % máx | V1 |
+| `--start-angle` / `--approach-angle` | TODO (salen de V0.3) | |
+
+`k` sale de dos estimaciones independientes que coinciden al 0.1 %: 3.049
+(`v=250`) y 3.045 (`v=500`).
+
 ## Estado
 
 | Dedo | V0.1 | V0.2 | V1 | V0.3 | V0.4 | V2 | Veredicto |
 |---|---|---|---|---|---|---|---|
-| Meñique (0) | ✔ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
+| Meñique (0) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
 | Anular (1) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
 | Medio (2) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |

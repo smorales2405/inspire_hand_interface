@@ -200,6 +200,14 @@ def main(argv=None):
     _here = os.path.dirname(os.path.abspath(__file__))
     p.add_argument('--outdir', default=os.path.join(_here, 'data'))
     p.add_argument('--settle-pct', type=float, default=2.0)
+    p.add_argument('--k-max-speed', type=int, default=500,
+                   help='velocidad máxima incluida en el ajuste de k (def 500). El tramo '
+                        'lineal termina ahí: a v=1000 el actuador satura y el R² cae por '
+                        'debajo de 0.98 incluso en los DOF ya caracterizados (pulgar 0.954), '
+                        'así que incluirlo haría fallar el criterio a un dedo que se comporta '
+                        'exactamente como la referencia.')
+    p.add_argument('--k-ref', type=float, default=None,
+                   help='k de referencia para el veredicto (índice = 3.04)')
     p.add_argument('--grid-dt', type=float, default=0.01)
     p.add_argument('--grid-max', type=float, default=6.0)
     args = p.parse_args(argv)
@@ -263,6 +271,42 @@ def main(argv=None):
         overlay['traces'][str(v)] = mean_trace(trials, None, grid)
     ovp = os.path.join(args.outdir, 'overlay_traces.json')
     json.dump(overlay, open(ovp, 'w'))
+
+    # ── Constante del actuador y veredicto de la verificación por muestreo ──
+    # k es la pendiente por unidad de SPEED_SET, ajustada POR EL ORIGEN sobre el
+    # tramo lineal: la hipótesis H-A dice que es del actuador y no del dedo.
+    lin = [(r['speed'], r['slope_cps_mean']) for r in agg_rows
+           if r['speed'] <= args.k_max_speed and r['slope_cps_mean'] is not None]
+    if lin:
+        k = sum(v * m for v, m in lin) / sum(v * v for v, _ in lin)
+        print(f"\n=== Constante SPEED_SET → pendiente (ajuste por el origen, v ≤ {args.k_max_speed}) ===")
+        for v, m in lin:
+            print(f"  v={v:>5}  pendiente {m:>8.1f} counts/s   →  k = {m / v:.3f}")
+        print(f"  k = {k:.3f} counts/s por unidad de SPEED_SET   (N = {len(lin)} velocidades)")
+
+        print("\n=== Criterios de aceptación ===")
+        def verdict(label, value, ok, detail=''):
+            print(f"  {'PASA' if ok else 'NO PASA'}  {label:<34} {value}{detail}")
+
+        if args.k_ref:
+            dev = 100 * (k - args.k_ref) / args.k_ref
+            verdict('k dentro de ±5 % de la referencia', f"{k:.3f} vs {args.k_ref:.2f}",
+                    abs(dev) <= 5, f"  ({dev:+.1f} %)")
+        r2s = [r['r2_mean'] for r in agg_rows
+               if r['speed'] <= args.k_max_speed and r['r2_mean'] is not None]
+        if r2s:
+            verdict(f'R² ≥ 0.98 en v ≤ {args.k_max_speed}', f"mín {min(r2s):.4f}", min(r2s) >= 0.98)
+        dts = [r['L_band_ms_mean'] for r in agg_rows if r['L_band_ms_mean'] is not None]
+        if dts:
+            dt = sum(dts) / len(dts)
+            verdict('deadtime medio en 40–110 ms', f"{dt:.1f} ms", 40 <= dt <= 110)
+        ovs = [r['overshoot_pct_mean'] for r in agg_rows if r['overshoot_pct_mean'] is not None]
+        if ovs:
+            verdict('sobreimpulso de posición < 1 %', f"máx {max(ovs):.3f} %", max(ovs) < 1.0)
+        sat = [r for r in agg_rows if r['speed'] > args.k_max_speed]
+        for r in sat:
+            print(f"  (diagnóstico, fuera del criterio) v={r['speed']}: k = "
+                  f"{r['slope_cps_mean'] / r['speed']:.3f}  R² = {r['r2_mean']:.4f}")
 
     print(f"\nEscritos:\n  {ptp}\n  {abp}\n  {ovp}")
     return 0

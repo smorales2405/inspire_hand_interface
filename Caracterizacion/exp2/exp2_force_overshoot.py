@@ -50,7 +50,7 @@ from hand_modbus import (
     POS_ACT, ANGLE_ACT, FORCE_ACT, CURRENT, TEMP,
     DOF_NAMES, fmt_angle, parse_hold, describe_hold,
     angle_vector, open_vector, report_hold,
-    load_pos_angle_map, pos_to_angle,
+    load_pos_angle_map, pos_to_angle, reg_to_deg,
 )
 
 # Lectura de bloque ancho: POS_ACT(1534)…CURRENT(1599) en una sola transacción.
@@ -284,14 +284,113 @@ def run_probe(hand, args):
           f"lectura: {'ancha' if wide_ok else 'separada'}")
     print(f" CSV              : {path}")
     if reason == 'contacto' and not args.no_block:
-        print(" ✔ Contacto detectado por stall y dedo abierto. Mándame el CSV y "
-              "caracterizo la curva libre F(POS) + onset para diseñar el grid.")
+        print(" ✔ Contacto detectado por stall y dedo abierto.")
     elif reason == 'contacto':
         print(" ✔ El dedo se detuvo solo (tope mecánico / auto-colisión): ese es el POS libre.")
     elif reason == 'techo_fuerza':
         print(" ⚠ Se llegó al techo de fuerza antes del stall: baja --probe-speed "
               + ("o revisa que el bloque frene el dedo." if not args.no_block else
                  "— sin bloque, esto indica auto-colisión con carga: revisa la postura anclada."))
+
+    if not args.no_block:
+        report_contact_geometry(args, dof, path, contact_pos)
+
+
+def report_contact_geometry(args, dof, path, contact_pos):
+    """Onset geométrico, rigidez, distancia de frenado y los dos ángulos que
+    necesitan el modo A y el modo B. Todo sale del sondeo lento: el sub-experimento
+    de onset (50 toques a v=1000) mide la dispersión de la DETECCIÓN, que llega
+    ~100 counts tarde, y no hace falta para fijar estos parámetros."""
+    # ── Onset geométrico, rigidez del contacto y punto de conmutación ───────
+    # Todo lo que el modo B necesita sale de AQUÍ, no del sub-experimento de
+    # onset (50 toques a v=1000): ese mide la dispersión de la DETECCIÓN, que
+    # llega ~100 counts tarde. El sondeo corre a v=50 y ve la geometría real.
+    free = free_probe_path(args.outdir, dof, args.mount)
+    geom = geometric_onset_from_probe(path, free)
+    pmap, map_src = find_pos_angle_map(args, dof)
+    resid, _f0b = _free_residual(_load_probe(path) or [], _load_probe(free) if free else None)
+
+    def ang(pos):
+        return pos_to_angle(pmap, int(round(pos))) if pmap else None
+
+    def show(pos):
+        a = ang(pos)
+        return f"POS {pos:.0f}" + (f" = {fmt_angle(a, dof)}" if a is not None else "")
+
+    print("\n--- Onset geométrico, rigidez y modo B ---")
+    if free:
+        print(f" Curva libre      : {os.path.relpath(free)}  "
+              f"(fuerza externa = cruda − offset − residual de flexión)")
+    else:
+        print(" ⚠ SIN curva libre de este DOF (`--probe --no-block`): el onset sale del")
+        print("   detector por salto, que dispara TARDE, y la rigidez queda SOBREESTIMADA")
+        print("   porque incluye el residual de flexión. Córrela y repite este sondeo.")
+    if pmap:
+        print(f" Mapa POS↔ANGLE   : {len(pmap)} puntos, interpolado a tramos "
+              f"({os.path.relpath(map_src)})")
+    else:
+        print(f" ⚠ Sin `pose_dof{dof}.csv`: no puedo dar el --approach-angle en unidades de")
+        print(f"   ANGLE_SET. Corre `pose_check.py --dof {dof} --csv` y repite este sondeo.")
+
+    if geom is None:
+        print(" ⚠ Onset geométrico NO detectado: revisa el montaje (¿el dedo llega al bloque?).")
+        return
+    print(f" Onset geométrico : {show(geom)}")
+
+    st = contact_stiffness(path, free, geom, contact_pos)
+    if st is None:
+        print(" Rigidez k_c      : — (sin stall válido por encima del onset)")
+    else:
+        deg = None
+        if pmap:
+            a_on, a_st = ang(st['onset_pos']), ang(st['stall_pos'])
+            if a_on is not None and a_st is not None:
+                d = abs(reg_to_deg(a_st, dof) - reg_to_deg(a_on, dof))
+                deg = st['k_c'] * st['dpos'] / d if d > 0 else None
+        print(f" Contacto compliant: del onset al stall el dedo avanza {st['dpos']} counts "
+              f"mientras la fuerza externa sube de {st['f_onset_g']:.0f} a {st['f_stall_g']:.0f} g")
+        print(f" Rigidez k_c media: {st['k_c']:.2f} g/count"
+              + (f"  (≈ {deg:.0f} g/grado)" if deg else "")
+              + ("" if st['free_corrected'] else "   [SOBREESTIMADA: sin curva libre]"))
+        d = st['d_target']
+        print(f" Distancia de frenado hasta {st['f_target']} g: "
+              + (f"{d} counts desde el onset" if d is not None else
+                 f"nunca llegó a {st['f_target']} g en este sondeo")
+              + ("" if st['free_corrected'] else "   [SUBESTIMADA: sin curva libre]"))
+        print(f"   → es la métrica que decide si `Fset` bajo protege: es el trecho que el")
+        print(f"     firmware tiene para frenar. Referencias: índice ~220 counts (SÍ protege) ·")
+        print(f"     pulgar 22–26 (NO protege). El k_c medio es secundario: un contacto de dos")
+        print(f"     fases (blando y luego duro) da una pendiente media que no describe ninguna.")
+
+    def margin_note(pos):
+        if resid is None:
+            return ""
+        r = resid(pos)
+        # La curva libre da una COTA INFERIOR del residual: en el pulgar el
+        # `f_base_g` medido con forceClb quedó ~20 g por encima de lo que esta
+        # curva predecía (42 vs 21 g en POS 501). Por eso el margen se verifica
+        # en la celda de validación, no aquí.
+        return (f"   residual de flexión estimado ahí: {r:.0f} g (cota inferior; súmale ~20 g "
+                f"de sesgo de forceClb) → margen contra Fset=100 ≈ {100 - r - 20:.0f} g"
+                + ("" if r < 50 else "  ⚠ MUY JUSTO: el firmware puede frenar en el aire"))
+
+    sw = geom - args.switch_margin
+    print(f" Modo B → conmutar en {show(sw)}  (onset {geom} − margen {args.switch_margin})")
+    if pmap and ang(sw) is not None:
+        print(f"   --approach-angle {ang(sw)}")
+    if margin_note(sw):
+        print(margin_note(sw))
+
+    ru = geom - args.runup_counts
+    print(f" Modo A → pre-posición en {show(ru)}  ({args.runup_counts} counts de pista "
+          f"hasta el onset, para que el dedo alcance su velocidad antes de tocar)")
+    if pmap and ang(ru) is not None:
+        print(f"   --start-angle {ang(ru)}")
+    if margin_note(ru):
+        print(margin_note(ru))
+    if contact_pos is not None and sw >= contact_pos:
+        print("   ⚠ El punto de conmutación cae DESPUÉS del stall: el margen no cabe en")
+        print("     este recorrido. Revisa el montaje o baja --switch-margin.")
 
 
 # ── Grid modo A: una celda (v, Fset) ────────────────────────────────────────
@@ -613,6 +712,32 @@ def _load_probe(path):
         return None
 
 
+def _free_residual(rows, free):
+    """`(resid, f0b)` para pasar de fuerza CRUDA a fuerza EXTERNA.
+
+    `resid(pos)` es la fuerza que el propio dedo genera al flexionar hasta `pos`
+    SIN tocar nada (sondeo `--no-block`), y `f0b` el offset en reposo del sondeo
+    con bloque. La fuerza externa en un punto es `(f - f0b) - resid(pos)`. Sin
+    curva libre `resid` es None: solo se puede descontar el offset, y todo lo que
+    dependa de la flexión queda dentro de la medida.
+    """
+    f0b = statistics.median([f for p, f in rows[:12]])
+    if not free:
+        return None, f0b
+    f0f = statistics.median([f for p, f in free[:12]])
+    pts = sorted(((p, f - f0f) for p, f in free))
+
+    def resid(pos):
+        if pos <= pts[0][0]:
+            return pts[0][1]
+        for (p0, r0), (p1, r1) in zip(pts, pts[1:]):
+            if p0 <= pos <= p1:
+                return r0 if p1 == p0 else r0 + (pos - p0) * (r1 - r0) / (p1 - p0)
+        return pts[-1][1]
+
+    return resid, f0b
+
+
 def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_pos=300):
     """POS del contacto GEOMÉTRICO a partir del sondeo lento (`--probe`).
 
@@ -632,20 +757,8 @@ def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_po
     rows = _load_probe(path)
     if not rows:
         return None
-    free = _load_probe(free_path) if free_path else None
-    if free:
-        f0b = statistics.median([f for p, f in rows[:12]])
-        f0f = statistics.median([f for p, f in free[:12]])
-        pts = sorted(((p, f - f0f) for p, f in free))
-
-        def resid(pos):
-            if pos <= pts[0][0]:
-                return pts[0][1]
-            for (p0, r0), (p1, r1) in zip(pts, pts[1:]):
-                if p0 <= pos <= p1:
-                    return r0 if p1 == p0 else r0 + (pos - p0) * (r1 - r0) / (p1 - p0)
-            return pts[-1][1]
-
+    resid, f0b = _free_residual(rows, _load_probe(free_path) if free_path else None)
+    if resid is not None:
         run = 0
         for pos, f in rows:
             if pos <= min_pos:
@@ -662,6 +775,77 @@ def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_po
             return pos
         prev = f
     return None
+
+
+def contact_stiffness(path, free_path, onset_pos, stall_pos, win=3, f_target=100):
+    """Rigidez del contacto `k_c = ΔF_externa / ΔPOS` entre el onset y el stall.
+
+    Es la pendiente que decide si un `Fset` bajo protege: cuántos counts de
+    avance cuesta acumular fuerza una vez tocado el objeto. El índice necesita
+    ~62 counts para 100 g (1.6 g/count) y en ese trecho el firmware frena; al
+    pulgar le bastan ~16 (6.4 g/count) y el umbral se cruza antes de que la
+    reacción sirva. Con curva libre se descuenta el residual de flexión; sin
+    ella `k_c` queda SOBREESTIMADA, porque ese residual sube con POS aunque no
+    haya contacto.
+    """
+    rows = _load_probe(path)
+    if not rows or onset_pos is None or stall_pos is None or stall_pos <= onset_pos:
+        return None
+    resid, f0b = _free_residual(rows, _load_probe(free_path) if free_path else None)
+
+    def ext(f_raw, pos):
+        return (f_raw - f0b) - (resid(pos) if resid is not None else 0.0)
+
+    near = sorted(rows, key=lambda r: abs(r[0] - onset_pos))[:win]
+    f_on = ext(statistics.median([f for _, f in near]), onset_pos)
+    # En el stall el POS ya no avanza pero la fuerza sigue subiendo: la referencia
+    # es el final del sondeo (el instante en que se declaró el contacto).
+    f_st = ext(statistics.median([f for _, f in rows[-win:]]), stall_pos)
+    dpos = stall_pos - onset_pos
+
+    # DISTANCIA DE FRENADO: counts desde el onset hasta que la fuerza externa
+    # alcanza `f_target`. Es la métrica que decide si un `Fset` bajo protege —
+    # el trecho que el firmware tiene para frenar antes de cruzar el umbral— y a
+    # diferencia de un k_c medio NO se deja engañar por contactos de dos fases
+    # (el índice tiene un tramo blando largo y otro duro corto; promediarlos da
+    # una pendiente que no describe ninguno de los dos).
+    d_target = None
+    run = 0
+    for pos, f_raw in rows:
+        if pos < onset_pos:
+            continue
+        if ext(f_raw, pos) >= f_target:
+            run += 1
+            if run >= 2:
+                d_target = pos - onset_pos
+                break
+        else:
+            run = 0
+
+    return {'onset_pos': onset_pos, 'stall_pos': stall_pos, 'dpos': dpos,
+            'f_onset_g': f_on, 'f_stall_g': f_st, 'k_c': (f_st - f_on) / dpos,
+            'f_target': f_target, 'd_target': d_target,
+            'free_corrected': resid is not None}
+
+
+def find_pos_angle_map(args, dof):
+    """`(puntos, ruta)` del mapa POS↔ANGLE medido con `pose_check.py --csv`."""
+    for cand in ([args.pos_angle_csv] if args.pos_angle_csv else
+                 [os.path.join(args.outdir, f'pose_dof{dof}.csv'),
+                  os.path.join(os.path.dirname(_HERE), 'exp1',
+                               'data' if dof == 3 else f'data_dof{dof}',
+                               f'pose_dof{dof}.csv')]):
+        pmap = load_pos_angle_map(cand)
+        if pmap:
+            return pmap, cand
+    return None, None
+
+
+def free_probe_path(outdir, dof, mount):
+    """Sondeo `--no-block` de referencia: primero el del mismo montaje."""
+    cands = ([os.path.join(outdir, f'probe_dof{dof}_libre_{mount}.csv')] if mount else [])
+    cands.append(os.path.join(outdir, f'probe_dof{dof}_libre.csv'))
+    return next((c for c in cands if os.path.exists(c)), None)
 
 
 # ── Sub-experimento: variabilidad del onset de contacto ──────────────────────
@@ -757,16 +941,7 @@ def run_onset(hand, args):
     # start_angle): sin constantes heredadas de otro DOF, pero con el error de
     # linealizar todo el recorrido.
     pos_at_start = statistics.median(start_positions) if start_positions else None
-    pmap = None
-    for cand in ([args.pos_angle_csv] if args.pos_angle_csv else
-                 [os.path.join(args.outdir, f'pose_dof{dof}.csv'),
-                  os.path.join(os.path.dirname(_HERE), 'exp1',
-                               'data' if dof == 3 else f'data_dof{dof}',
-                               f'pose_dof{dof}.csv')]):
-        pmap = load_pos_angle_map(cand)
-        if pmap:
-            map_src = cand
-            break
+    pmap, map_src = find_pos_angle_map(args, dof)
 
     def to_angle(pos):
         if pmap:
@@ -890,6 +1065,16 @@ def parse_args(argv=None):
     p.add_argument('--stall-band', type=int, default=8, help='avance de POS bajo el cual se considera detenido')
     p.add_argument('--stall-hold', type=float, default=0.12, help='tiempo detenido para declarar contacto (s)')
     p.add_argument('--probe-window', type=float, default=15.0, help='tope máximo del sondeo (s)')
+    p.add_argument('--runup-counts', type=int, default=250,
+                   help='counts de pista antes del onset para la pre-posición del modo A '
+                        '(def 250; el pulgar usó 279). Menos pista y el dedo toca el bloque '
+                        'antes de alcanzar la velocidad comandada.')
+    p.add_argument('--switch-margin', type=int, default=120,
+                   help='counts de POS que el modo B conmuta ANTES del onset geométrico '
+                        '(def 120). No es 40: el índice necesitó q_sw=124 y el pulgar 34, '
+                        'así que 40 solo es conservador para el pulgar. Conmutar antes cuesta '
+                        'solo tiempo (~1 s por cada 80 counts a v=25) y ADEMÁS baja el residual '
+                        'de flexión en la pre-posición; conmutar tarde invalida el modo B.')
     # grid modo A — celda única
     p.add_argument('--cell', action='store_true', help='corre una celda (v, Fset) del grid modo A')
     p.add_argument('--speed', type=int, default=None, help='SPEED_SET para --cell')

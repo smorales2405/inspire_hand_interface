@@ -235,15 +235,18 @@ def main(argv=None):
                                  f"{('—' if o['dforce'] is None else str(o['dforce']) + 'g'):>9}"
                                  f"{str(o['cur']) + 'mA':>9}")
                 print(f"{a:>10} " + ' '.join(cells))
-            worst = {d: max((obs[d]['pos_p2p'] or 0) for _, obs in obs_rows) for d in watch}
+            # La PRIMERA parada hereda la apertura inicial (`open_vector` manda a
+            # TODOS los dedos a --open-angle), así que ahí el vecino se mueve por
+            # orden nuestra y no dice nada del barrido. El veredicto usa el resto.
+            rest = obs_rows[1:] or obs_rows
+            worst = {d: max((obs[d]['pos_p2p'] or 0) for _, obs in rest) for d in watch}
             for d, w in worst.items():
-                # El anclado se re-afirma en cada escritura, así que un recorrido
-                # grande no es deriva: es el servo moviéndose de verdad.
                 note = ('quieto' if w <= 8 else
-                        'se mueve — repite SIN --hold para ver si es acoplamiento mecánico'
-                        if d in hold else
-                        'se mueve sin estar comandado → acoplamiento mecánico o eléctrico')
-                print(f"  DOF {d} ({DOF_NAMES[d]}): recorrido máx {w} counts → {note}")
+                        'se mueve — repite SIN --hold: si se calla, es el servo '
+                        'rebotando contra su tope, no acoplamiento' if d in hold else
+                        'se mueve SIN estar comandado → acoplamiento mecánico o eléctrico')
+                print(f"  DOF {d} ({DOF_NAMES[d]}): recorrido máx {w} counts "
+                      f"(sin contar la 1ª parada, que hereda la apertura) → {note}")
         stalled = [r for r in rows if r['stop'] != 'detenido']
         if stalled:
             print(f"⚠ {len(stalled)} parada(s) NO se detuvieron limpio "

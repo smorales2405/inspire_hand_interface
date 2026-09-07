@@ -1,0 +1,6 @@
+angle_set,angle_act,pos_act,force_g,current_mA,stop,w1_pos_p2p,w1_dforce_g,w1_mA_max,w3_pos_p2p,w3_dforce_g,w3_mA_max
+1000,999,95,1,0,detenido,0,0,0,0,1,0
+750,748,627,-9,0,detenido,0,1,0,0,1,0
+500,500,1129,-4,0,detenido,0,1,0,0,1,0
+250,250,1528,16,0,detenido,0,5,0,0,4,0
+0,0,1915,99,0,detenido,0,1,0,0,1,0

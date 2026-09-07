@@ -23,8 +23,8 @@ Campañas de referencia: [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md), `exp1/exp1_re
 |---|---|---|
 | `k` (ajuste por el origen, `v ≤ 500`) | **3.042** | **2.986** (−1.8 %) |
 
-> Meñique (DOF 0), medido en esta campaña: **k = 3.046** (+0.2 %), deadtime
-> 55.3 ms, R² 0.995, sobreimpulso 0.03 %.
+> Medidos en esta campaña: meñique **3.046**, anular **3.012**, medio **3.013**.
+> Ver la tabla completa de los cinco DOF más abajo.
 | R² mínimo en `v ≤ 500` | 0.995 | 0.986 |
 | Deadtime medio | 69.3 ms | 73.1 ms |
 | Sobreimpulso de posición (máx) | 0.393 % | 0.022 % |
@@ -234,26 +234,54 @@ conmutación de 40 counts era conservador solo frente al pulgar (34) y no frente
 
 ## Parámetros medidos
 
-### Meñique (DOF 0)
+### V1 — la constante `k` en los cinco DOF
 
-| | Valor | Fase |
-|---|---|---|
-| Recorrido `POS` (`ANGLE_SET` 1000→0) | 96 … **1893** (1797 counts) | V0.2 |
-| Mapa `POS↔ANGLE` | `exp1/data_dof0/pose_dof0.csv` (5 puntos) | V0.1 |
-| Residual de flexión (crudo, sin tarar) | −57 g abierto → +141 g al tope | V0.2 |
-| **`k`** | **3.046** counts/s por unidad (+0.2 % vs 3.04) | V1 |
-| Deadtime medio | 55.3 ms | V1 |
-| R² mínimo (`v ≤ 500`) | 0.9948 | V1 |
-| Sobreimpulso de posición | 0.029 % máx | V1 |
-| `--start-angle` / `--approach-angle` | TODO (salen de V0.3) | |
+| DOF | `k` | Δ vs 3.04 | Deadtime | R² mín (`v ≤ 500`) | Sobreimpulso | Campaña |
+|---|---|---|---|---|---|---|
+| 0 Meñique | **3.046** | +0.2 % | 55.3 ms | 0.9948 | 0.029 % | 2 vel × 10 |
+| 1 Anular | **3.012** | −0.9 % | 76.7 ms | 0.9948 | 0.044 % | 2 vel × 10 |
+| 2 Medio | **3.013** | −0.9 % | 79.7 ms | 0.9960 | 0.139 % | 2 vel × 10 |
+| 3 Índice | 3.042 | +0.1 % | 69.3 ms | 0.9949 | 0.393 % | 5 vel × 20 |
+| 4 Pulgar flex. | 2.986 | −1.8 % | 73.1 ms | 0.9859 | 0.022 % | 5 vel × 20 |
 
-`k` sale de dos estimaciones independientes que coinciden al 0.1 %: 3.049
-(`v=250`) y 3.045 (`v=500`).
+**Media 3.020, σ 0.022, rango 2.986–3.046: 2.0 % de dispersión total sobre los
+cinco DOF.** Los tres dedos nuevos pasan los cuatro criterios. Dentro de cada
+dedo las dos velocidades dan estimaciones independientes que coinciden al
+0.1–0.8 %, así que la dispersión entre dedos es real y no ruido de ajuste — y
+aun así cabe holgadamente dentro del ±5 %.
+
+**H-A queda confirmada:** `SPEED_SET` calibra el actuador, no el ángulo. El
+único que se aparta de forma apreciable es el pulgar (−1.8 %), que es también
+el único con una cinemática y un recorrido distintos.
+
+### V0.2 — recorrido libre y residual (sondeo lento, sin bloque)
+
+| DOF | `POS` en reposo | `POS` al tope | Recorrido | Fuerza cruda: reposo → tope |
+|---|---|---|---|---|
+| 0 Meñique | 96 | 1893 | 1797 | −57 g → +141 g |
+| 1 Anular | 61 | 1842 | 1781 | +30 g → +155 g |
+| 2 Medio | 93 | 1913 | 1820 | −2 g → +134 g |
+| 4 Pulgar flex. | 245 | 1103 | 858 | — |
+
+Los tres topes coinciden con el barrido de `pose_check` dentro de **3 counts**
+(1893/1896, 1842/1843, 1913/1915). El offset en reposo cambia de signo entre
+dedos (−57 a +30 g), que es exactamente por lo que la vigilancia va sobre
+desviación y el `forceClb` se corre al empezar cada campaña.
+
+### Vecinos
+
+Con `--watch` y sin anclar, los vecinos se quedaron en **0–1 counts y 0 mA** en
+los tres barridos. No hay acoplamiento mecánico entre dedos adyacentes en
+espacio libre.
+
+### Pendiente por dedo
+
+`--start-angle` y `--approach-angle` salen de V0.3 y necesitan el bloque montado.
 
 ## Estado
 
 | Dedo | V0.1 | V0.2 | V1 | V0.3 | V0.4 | V2 | Veredicto |
 |---|---|---|---|---|---|---|---|
 | Meñique (0) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
-| Anular (1) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
-| Medio (2) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
+| Anular (1) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
+| Medio (2) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |

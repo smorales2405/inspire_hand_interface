@@ -37,9 +37,17 @@ Campañas de referencia: [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md), `exp1/exp1_re
 
 - Un proceso, un hilo, un cliente Modbus, **GUI cerrada**. `/dev/ttyUSB0`
   (ojo: `exp1_step_response.py` tiene `ttyUSB1` por defecto — pásalo siempre).
-- **Vecinos anclados** con `--hold <dof>:1000`: cuesta cero (`angle_vector` deja
-  los demás DOF en −1) y activa el watchdog de **desviación** de fuerza sobre su
-  baseline — nunca sobre el valor absoluto, que tiene offset de sesión.
+- **Los vecinos se VIGILAN, no se anclan** (`--watch`, no `--hold`). Medido en el
+  meñique el 2026-09-07: anclar el anular lo hace moverse **13–36 counts y tirar
+  101–194 mA en cada parada**, y en `950` —bien dentro del rango— sigue igual
+  (20–24 counts, 110–136 mA). Sin comandarlo se queda en **0–1 counts y 0 mA**.
+  El firmware re-ejecuta el movimiento en **cada** escritura de `ANGLE_SET`, y su
+  banda muerta de ~4 counts hace que nunca aterrice exacto, así que cada
+  re-afirmación es un empujón real. `--watch` mira la **desviación** de fuerza
+  sobre el baseline —nunca el valor absoluto, que tiene offset de sesión— sin
+  comandar nada. Detalle: [`exp2/exp2_results_vecinos.md`](exp2/exp2_results_vecinos.md).
+- El pulgar **sí** necesitaba `--hold 5:0`: ahí el ancla *define la postura del
+  experimento*. Un vecino que solo estorba no necesita ancla ninguna.
 - Techo de fuerza, timeout y apertura en abort siempre activos.
 - Nada de constantes heredadas de otro dedo: `--start-angle` y `--approach-angle`
   salen del sondeo **de ese** dedo, en **ese** montaje.
@@ -47,20 +55,25 @@ Campañas de referencia: [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md), `exp1/exp1_re
   dedo necesita otro, va en `--mount` (`b2m1`, `b3m1`, …): sin esa etiqueta, su
   `k_c` no es comparable con el de los demás y no hay forma de saberlo después.
 
-## Anclas por dedo
+## Vecinos por dedo
 
-| DOF | Dedo | `--hold` | Carpetas |
-|---|---|---|---|
-| 0 | Meñique | `1:1000` | `exp1/data_dof0`, `exp2/data_dof0`, `exp2/data_dof0_hybrid` |
-| 1 | Anular | `0:1000,2:1000` | `exp1/data_dof1`, … |
-| 2 | Medio | `1:1000,3:1000` | `exp1/data_dof2`, … |
+| DOF | Dedo | Espacio libre (V0.1, V0.2, V1) | Con bloque (V0.3, V0.4, V2) | Carpetas |
+|---|---|---|---|---|
+| 0 | Meñique | sin `--hold` | `--watch 1` | `exp1/data_dof0`, `exp2/data_dof0`, `exp2/data_dof0_hybrid` |
+| 1 | Anular | sin `--hold` | `--watch 0,2` | `exp1/data_dof1`, … |
+| 2 | Medio | sin `--hold` | `--watch 1,3` | `exp1/data_dof2`, … |
+
+En espacio libre no hay nada que vigilar: sin comandarlos, los vecinos no se
+mueven (0–1 counts, 0 mA a lo largo de todo el recorrido del meñique). Con el
+bloque montado sí, porque un bloque ancho puede transmitir la carga al vecino —
+y eso es precisamente lo que el watchdog tiene que ver.
 
 ---
 
 # Sesión A — sin bloque montado
 
 Todo lo que no necesita el bloque, de una sentada. Repite el bloque de comandos
-para `N = 0, 1, 2` cambiando `--hold` según la tabla.
+para `N = 0, 1, 2` cambiando `--watch` según la tabla.
 
 ### V0.0 + V0.1 — mapeo POS↔ANGLE y confirmación visual del dedo
 
@@ -70,7 +83,7 @@ confirmar. En el pulgar esa comprobación ya cambió una conclusión publicada.
 
 ```bash
 .venv/bin/python Caracterizacion/pose_check.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> \
+    --serial-port /dev/ttyUSB0 --dof N --watch <vecinos> \
     --angles 1000,750,500,250,0 \
     --csv Caracterizacion/exp1/data_dofN/pose_dofN.csv
 ```
@@ -83,7 +96,7 @@ ella el sondeo no puede dar los ángulos de `--start-angle` / `--approach-angle`
 
 ```bash
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> --probe --no-block
+    --serial-port /dev/ttyUSB0 --dof N --probe --no-block
 ```
 
 Da el tope mecánico (el sondeo con bloque debe parar **antes**) y la curva
@@ -96,7 +109,7 @@ sobreestimada** — el índice es el ejemplo: sin curva libre su `k_c` aparente 
 
 ```bash
 .venv/bin/python Caracterizacion/exp1/exp1_step_response.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> \
+    --serial-port /dev/ttyUSB0 --dof N \
     --speeds 250,500 --trials 10
 
 .venv/bin/python Caracterizacion/exp1/exp1_analyze.py \
@@ -132,7 +145,7 @@ Monta el bloque frente al dedo `N` y no lo toques hasta terminar sus tres fases.
 
 ```bash
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> --probe --mount m1
+    --serial-port /dev/ttyUSB0 --dof N --watch <vecinos> --probe --mount m1
 ```
 
 Reporta onset geométrico, stall, `k_c`, **distancia de frenado hasta 100 g** y los
@@ -146,7 +159,7 @@ dos ángulos listos para copiar (`--start-angle`, `--approach-angle`). Comprueba
 
 ```bash
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> --mount m1 \
+    --serial-port /dev/ttyUSB0 --dof N --watch <vecinos> --mount m1 \
     --start-angle <de V0.3> --cell --speed 250 --fset 500 --trials 3
 ```
 
@@ -159,7 +172,7 @@ pulgar el valor medido quedó ~20 g por encima).
 
 ```bash
 .venv/bin/python Caracterizacion/exp2/exp2_force_overshoot.py \
-    --serial-port /dev/ttyUSB0 --dof N --hold <ancla> --mount m1 \
+    --serial-port /dev/ttyUSB0 --dof N --watch <vecinos> --mount m1 \
     --approach-angle <de V0.3> --hybrid --fsets 100,1000 --trials 5 \
     --outdir Caracterizacion/exp2/data_dofN_hybrid
 
@@ -220,6 +233,6 @@ conmutación de 40 counts era conservador solo frente al pulgar (34) y no frente
 
 | Dedo | V0.1 | V0.2 | V1 | V0.3 | V0.4 | V2 | Veredicto |
 |---|---|---|---|---|---|---|---|
-| Meñique (0) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
+| Meñique (0) | ✔ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
 | Anular (1) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |
 | Medio (2) | ☐ | ☐ | ☐ | ☐ | ☐ | ☐ | — |

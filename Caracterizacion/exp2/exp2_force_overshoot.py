@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import os
 import random
 import statistics
@@ -395,6 +396,32 @@ def report_contact_geometry(args, dof, path, contact_pos):
 
 # ── Grid modo A: una celda (v, Fset) ────────────────────────────────────────
 
+def save_campaign_meta(args, mode):
+    """Anexa a `campaign.json` los parámetros con los que se corrió esta tanda.
+
+    Los CSV de trial guardan la medida; esto guarda las CONDICIONES. Es un fichero
+    aparte, y no columnas nuevas en `grid_index.csv`, porque ese índice se abre en
+    modo append: añadirle una columna desincroniza la cabecera de las campañas ya
+    empezadas (ya pasó una vez).
+    """
+    path = os.path.join(args.outdir, 'campaign.json')
+    try:
+        prev = json.load(open(path))
+    except (OSError, ValueError):
+        prev = []
+    prev.append({
+        'ts': time.strftime('%Y-%m-%dT%H:%M:%S'), 'mode': mode, 'dof': args.dof,
+        'hold': {str(d): a for d, a in sorted(args.hold_map.items())},
+        'watch': args.watch_dofs, 'mount': args.mount, 'seed': args.seed,
+        'trials': args.trials, 'trial_start': args.trial_start,
+        'speeds': args.speeds, 'fsets': args.fsets,
+        'start_angle': args.start_angle, 'approach_angle': args.approach_angle,
+        'hybrid_speed': args.hybrid_speed, 'argv': sys.argv[1:],
+    })
+    with open(path, 'w') as f:
+        json.dump(prev, f, indent=1)
+
+
 def calibrate(hand, args):
     """forceClb con la palma abierta (fuerza ≈ externa tras esto).
 
@@ -416,16 +443,21 @@ def run_trial_A(hand, dof, speed, fset, args):
     firmware frena en `fset`. Muestrea FORCE_ACT a alta tasa (pico) + POS/CURRENT
     periódicos. Devuelve series y métricas."""
     hold = args.hold_map
-    hold_dofs = sorted(hold)
+    # VIGILAR no es ANCLAR. Re-afirmar un ANGLE_SET hace que el firmware reejecute
+    # el movimiento: con el anular anclado en 1000 se movia 13-36 counts y tiraba
+    # 101-194 mA en CADA parada, y en 950 (bien dentro del rango) seguia igual
+    # — sin comandarlo se quedaba en 0-1 counts y 0 mA. Asi que un vecino que solo
+    # hay que vigilar se pone en --watch y no se comanda nunca.
+    watch_dofs = args.watch_dofs
     hand.write_block(SPEED_SET, [speed] * NDOF)
     hand.write_block(FORCE_SET, [fset] * NDOF)
 
-    # Baseline de los DOF ANCLADOS: se vigila la DESVIACIÓN, no el absoluto (ese
+    # Baseline de los DOF VIGILADOS: se vigila la DESVIACIÓN, no el absoluto (ese
     # sensor tiene offset propio y se mueve con la postura del DOF bajo prueba).
     hold_base = {}
     reads = [fb for fb in (hand.read_block(FORCE_ACT) for _ in range(5)) if fb]
-    if hold_dofs and reads:
-        hold_base = {d: statistics.median([r[d] for r in reads]) for d in hold_dofs}
+    if watch_dofs and reads:
+        hold_base = {d: statistics.median([r[d] for r in reads]) for d in watch_dofs}
     # Fuerza del DOF bajo prueba EN LA PRE-POSICIÓN, antes de cerrar: es el
     # residual por flexión (sin contacto) en ese punto. `FORCE_SET` se compara
     # contra la lectura CRUDA, así que el umbral efectivo en fuerza externa es
@@ -483,9 +515,9 @@ def run_trial_A(hand, dof, speed, fset, args):
             if (onset_pos is None and force > args.onset_thr
                     and (last_pos - start_pos) > 50):
                 onset_pos = last_pos
-            # Vigilancia de los DOF anclados: si el dedo bajo prueba empuja
+            # Vigilancia de los DOF observados: si el dedo bajo prueba empuja
             # contra uno de ellos, la carga aparece ahí, no en `dof`.
-            f_h = (max((abs(fb[d] - hold_base.get(d, 0)) for d in hold_dofs), default=0)
+            f_h = (max((abs(fb[d] - hold_base.get(d, 0)) for d in watch_dofs), default=0)
                    if fb else 0)
             f_max_hold = max(f_max_hold, f_h)
             hold_over = args.safety_force_hold_g > 0 and f_h > args.safety_force_hold_g
@@ -536,6 +568,7 @@ def run_cell(hand, args):
 
     trial = run_trial_A(hand, dof, args.speed, args.fset, args)
     os.makedirs(args.outdir, exist_ok=True)
+    save_campaign_meta(args, 'cell')
     path = os.path.join(args.outdir, f'cell_dof{dof}_v{args.speed}_F{args.fset}.csv')
     save_cell_csv(path, trial)
 
@@ -584,6 +617,7 @@ def run_grid(hand, args):
     dof = args.dof
     hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
+    save_campaign_meta(args, 'grid')
     speeds = [int(x) for x in args.speeds.split(',') if x.strip()]
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
     n0 = args.trial_start
@@ -650,6 +684,7 @@ def run_hybrid(hand, args):
     dof = args.dof
     hold = args.hold_map
     os.makedirs(args.outdir, exist_ok=True)
+    save_campaign_meta(args, 'hybrid')
     fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
     n0 = args.trial_start
     order = [(F, n) for F in fsets for n in range(n0, n0 + args.trials)]
@@ -1091,6 +1126,12 @@ def parse_args(argv=None):
     p.add_argument('--speeds', default='25,50,100,250,500,750,1000', help='SPEED_SET a barrer')
     p.add_argument('--fsets', default='100,250,500,750,1000', help='FORCE_SET a barrer (g, calibrado)')
     p.add_argument('--trials', type=int, default=5, help='trials por celda (def 5, piloto)')
+    p.add_argument('--watch', default='',
+                   help='DOF a VIGILAR sin comandarlos, separados por coma. Su desviación '
+                        'de fuerza entra en el mismo watchdog que los de --hold. Es lo que '
+                        'hay que usar para un vecino que solo estorba: anclarlo lo hace '
+                        're-ejecutar el movimiento en cada escritura (100-190 mA y ~10 '
+                        'counts por escritura, incluso con el objetivo dentro del rango).')
     p.add_argument('--mount', default='',
                    help='etiqueta del MONTAJE del bloque (p. ej. m1, m2). Se guarda en cada '
                         'fila del índice. Mover el bloque cambia la geometría del contacto, y '
@@ -1158,6 +1199,12 @@ def main(argv=None):
         return 2
     try:
         args.hold_map = parse_hold(args.hold)
+        extra = {int(x) for x in args.watch.split(',') if x.strip()}
+        if any(not (0 <= d < NDOF) for d in extra):
+            raise ValueError(f"--watch: DOF fuera de rango 0..{NDOF-1}")
+        if args.dof in extra:
+            raise ValueError("--watch no puede incluir el propio DOF bajo prueba")
+        args.watch_dofs = sorted(set(args.hold_map) | extra)
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
@@ -1165,6 +1212,11 @@ def main(argv=None):
         print(f"ERROR: --hold no puede anclar el propio DOF bajo prueba ({args.dof})",
               file=sys.stderr)
         return 2
+    only_watch = [d for d in args.watch_dofs if d not in args.hold_map]
+    if only_watch:
+        print("Vigilados SIN comandar: "
+              + ' · '.join(f"DOF {d} ({DOF_NAMES[d]})" for d in only_watch)
+              + "  (su desviación de fuerza entra en el mismo watchdog)")
     if args.outdir is None:
         args.outdir = default_outdir(args.dof)
     if args.safety_force_hold_g is None:

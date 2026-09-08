@@ -282,6 +282,9 @@ espacio libre.
 
 | Dedo | V0.1 | V0.2 | V1 | V0.3 | V0.4 | V2 | Veredicto |
 |---|---|---|---|---|---|---|---|
-| Meñique (0) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
-| Anular (1) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
-| Medio (2) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa los 4 criterios |
+| Meñique (0) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
+| Anular (1) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
+| Medio (2) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
+
+Resultados y parámetros medidos:
+[`verificacion_muestreo_results.md`](verificacion_muestreo_results.md).

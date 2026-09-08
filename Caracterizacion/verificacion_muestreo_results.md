@@ -39,16 +39,32 @@ N=5 por celda, 0 abortos, contacto confirmado en los 20 trials.
 
 | DOF | `Fset` | ΔF mediana | Rango | Externa mínima |
 |---|---|---|---|---|
-| 0 Meñique | 250 | **50 g** | 32–124 | 245 g |
+| 0 Meñique | 250 † | **50 g** | 32–124 | 245 g |
 | 0 Meñique | 1000 | **111 g** | 91–133 | 1055 g |
 | 1 Anular | 100 | **46 g** | 33–78 | 129 g |
 | 1 Anular | 1000 | **56 g** | 6–116 | 1000 g |
+| 2 Medio | 100 | **42 g** | 20–58 | 128 g |
+| 2 Medio | 1000 | **114 g** | 97–129 | 1107 g |
 
-Criterio de V2 cumplido en los dos dedos. En el anular ΔF **apenas escala con
-`Fset`** (46 → 56 g mientras `Fset` se multiplica por 10), que es la firma del
-modo B: el sobreimpulso lo fija el momento en el instante del contacto, no el
-umbral. Como referencia, la celda de validación en **modo A** a `v=250,
-Fset=500` dio **819 g** (meñique) y **1086 g** (anular) en los mismos montajes.
+† En el meñique `Fset=100` no es ejecutable (ver abajo); se sustituyó por 250.
+
+**Criterio de V2 cumplido en los tres dedos.** ΔF apenas escala con `Fset` —en el
+anular 46 → 56 g mientras `Fset` se multiplica por 10— que es la firma del modo
+B: el sobreimpulso lo fija el momento en el instante del contacto, no el umbral.
+
+Como referencia, la celda de validación en **modo A** a `v=250, Fset=500` en los
+mismos montajes: **819 g** (meñique), **1086 g** (anular), **1287 g** (medio).
+El modo B los deja en 50–114 g pidiendo un `Fset` igual o mayor.
+
+### H-B, la parte que esta verificación **no** prueba
+
+V2 solo corre **modo B**. Que la conmutación de velocidad generaliza queda
+confirmado en los cinco DOF. Pero la otra mitad del hallazgo del pulgar —que
+*"usar un `Fset` bajo"* **no** generaliza— solo está probada directamente en el
+meñique, donde el ajuste ni siquiera es ejecutable. Para el anular y el medio
+haría falta una celda en **modo A a `v=1000, Fset=100`**: 3 trials por dedo. Es
+la prueba directa de la afirmación del índice sobre dos dedos más, y es un
+impacto duro, así que no se corrió sin decidirlo.
 
 ### El hallazgo: en el meñique `Fset = 100` **no es ejecutable**
 
@@ -63,10 +79,11 @@ en los dos modos:
 | 0 | B (`v=25`) | 100 | 104 g | 105 g | **1 g** | — | 5 g |
 | 0 | A (`v=250`) | 500 | 100 g | 1319 g | 1219 g | 1342 | 819 g |
 | 1 | B (`v=25`) | 100 | 37 g | 110 g | **73 g** | 1393 | 10 g |
+| 2 | B (`v=25`) | 100 | 5 g | 158 g | **153 g** | 1428 | 58 g |
 
 **Ese ΔF de 5–6 g del meñique es un espejismo**: leído sin mirar diría
-"protección perfecta", cuando el dedo ni siquiera tocó el objeto. El anular, con
-la mitad de residual, sí llega. Es la tercera forma —y la más radical— en que la
+"protección perfecta", cuando el dedo ni siquiera tocó el objeto. El anular
+(residual 50 g) y el medio (30 g) sí llegan; el meñique, con 117 g, no. Es la tercera forma —y la más radical— en que la
 mitigación "usa un `Fset` bajo" falla: en el índice funciona, en el pulgar no
 protege, y en el meñique **no existe como opción**.
 
@@ -84,16 +101,27 @@ protege, y en el meñique **no existe como opción**.
 |---|---|---|---|---|---|
 | 0 Meñique | POS 1458 | 11.0 g/count | 18 counts | 117 g | **~147 g** |
 | 1 Anular | POS 1414 | 17.0 g/count | 12 counts | 50 g | **~80 g** |
+| 2 Medio | POS 1467 | 11.7 g/count | 11 counts | 30 g | **~60 g** |
 | 4 Pulgar | POS 775 | 5.7–5.9 g/count | 28–31 counts | 23 g | ~53 g |
 | 3 Índice | — | ~1.6 g/count † | ~220 counts † | ~9 g | — |
 
-† El índice es el único que **no** pasa por este pipeline: no tiene sondeo
-`--no-block`, así que su onset se fijó a ojo (`POS ~1200`) sobre un sondeo sin
-curva libre de referencia. Un `--probe --no-block` de 15 s con el bloque
-desmontado lo pondría en igualdad con los demás.
+Los umbrales mínimos predichos por la curva libre coinciden con lo medido en los
+tres dedos: meñique 147 g (y `Fset=100` falló), anular 80 g y medio 60 g (y
+funcionó en ambos).
 
-Los umbrales mínimos predichos por la curva libre coinciden con lo medido:
-meñique 147 g (y `Fset=100` falló), anular 80 g (y `Fset=100` funcionó).
+† **El índice es el único que no pasa por este pipeline** y su número es ahora el
+más sospechoso del conjunto. No tiene sondeo `--no-block`, así que su onset se
+fijó a ojo (`POS ~1200`) sobre un sondeo sin curva libre de referencia. Los tres
+dedos nuevos —mecánicamente casi idénticos entre sí, con el mismo bloque— dan
+**11–17 g/count**, y el pulgar 5.7; que el índice diera 1.6 lo deja **7 veces por
+debajo del más blando de los otros cuatro**.
+
+Esto **no** toca el resultado de comportamiento del índice, que está medido: con
+`Fset=100` su ΔF se queda plano en 5–36 g a cualquier velocidad, con contacto
+confirmado (`F_max` 100–143 g sobre un residual de ~9 g). Lo que queda en el aire
+es la **explicación** —los ~220 counts de distancia de frenado— que es justo lo
+que la tesis usa como mecanismo. Un `--probe --no-block` + `--probe` de 30 s con
+el bloque desmontado lo resuelve, y es la medición pendiente de mayor valor.
 
 ---
 
@@ -132,17 +160,17 @@ con el bloque sujeto.
 |---|---|---|---|---|---|---|---|
 | Meñique (0) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
 | Anular (1) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
-| Medio (2) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa; falta Sesión B |
+| Medio (2) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
 
 ### Parámetros por dedo
 
-| | Meñique (`m2`) | Anular (`fijo`) |
-|---|---|---|
-| Recorrido libre `POS` | 96 … 1893 | 61 … 1842 |
-| Onset geométrico | POS 1458 (`ANGLE_SET` 274) | POS 1414 (`ANGLE_SET` 284) |
-| `--start-angle` (modo A) | 427 (residual medido 100 g) | 443 (medido 36 g) |
-| `--approach-angle` (modo B) | 348 | 360 |
-| `Fset` mínimo utilizable | ≈ 147 g | ≈ 80 g |
+| | Meñique (`m2`) | Anular (`fijo`) | Medio (`fijo`) |
+|---|---|---|---|
+| Recorrido libre `POS` | 96 … 1893 | 61 … 1842 | 93 … 1913 |
+| Onset geométrico | POS 1458 (`ANGLE_SET` 274) | POS 1414 (284) | POS 1467 (288) |
+| `--start-angle` (modo A) | 427 (residual medido 100 g) | 443 (medido 36 g) | 445 (medido 5 g) |
+| `--approach-angle` (modo B) | 348 | 360 | 363 |
+| `Fset` mínimo utilizable | ≈ 147 g | ≈ 80 g | ≈ 60 g |
 
 La campaña del meñique corrió con `--approach-angle 343` (POS 1345), derivado
 antes de la corrección de alineación: quedan 113 counts antes del onset en vez
@@ -153,7 +181,8 @@ de 120. Sin efecto — el margen existe para conmutar de sobra.
 `exp1/data_dof0/` · `exp2/data_dof0/` (sondeos `_libre`, `_m1`, `_m2`,
 `_m1_falsostall`) · `exp2/data_dof0_hybrid/` · `exp2/data_dof0_fset100_sin_contacto/`
 · `exp2/data_dof0_hybrid_m1_descartado/` (montaje suelto, no usar) ·
-`exp1/data_dof1/` · `exp2/data_dof1/` · `exp2/data_dof1_hybrid/`.
+`exp1/data_dof1/` · `exp2/data_dof1/` · `exp2/data_dof1_hybrid/` ·
+`exp1/data_dof2/` · `exp2/data_dof2/` · `exp2/data_dof2_hybrid/`.
 
 ## Dos correcciones al pipeline durante esta campaña
 

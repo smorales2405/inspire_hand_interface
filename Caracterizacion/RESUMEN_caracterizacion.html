@@ -617,12 +617,13 @@
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
+      <li>Bajar el umbral de fuerza <b>no es una alternativa</b>: por debajo de la fuerza de flexión propia del dedo el firmware frena sin llegar al objeto, y por encima no contiene el impacto.</li>
       <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso 27–131× en el índice y 30–55× en el pulgar, con un margen de conmutación (~124 counts) fijado experimentalmente, y se verificó después en los otros tres dedos.</li>
       <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
       <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
       <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>
     </ul>
-    <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los dedos restantes, e integración de la política híbrida en el lazo de agarre.</p>
+    <p class="lead"><b>Próximos pasos:</b> los tres dedos restantes ya están <b>verificados por muestreo</b> (la constante de velocidad y el modo híbrido se sostienen en los cinco); queda subir el N por celda en las campañas completas e integrar la política híbrida en el lazo de agarre.</p>
   </section>
 
   <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU.</p>

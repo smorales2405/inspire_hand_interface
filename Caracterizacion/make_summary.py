@@ -19,10 +19,11 @@ _gT=json.load(open(os.path.join(REPO,'exp2/data_dof4/exp2_overshoot_grid.json'))
 _gI=json.load(open(os.path.join(REPO,'exp2/data/exp2_overshoot_grid.json')))
 _sT={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data_dof4/analysis_by_speed.csv')))}
 def _hyb(d):
-    o={}
-    for r in csv.DictReader(open(os.path.join(REPO,d,'grid_index.csv'))):
-        if r['delta_f']: o.setdefault(int(r['fset']),[]).append(float(r['delta_f']))
-    return {k:sorted(v)[len(v)//2] for k,v in o.items()}
+    """ΔF del modo B por Fset, desde el JSON analizado: ya excluye los trials en
+    los que el dedo no llegó al objeto (ver exp2_analyze.drop_*)."""
+    g=json.load(open(os.path.join(REPO,d,'exp2_overshoot_grid.json')))
+    med=g['median'][str(g['speeds'][0])]
+    return {int(f):med[str(f)] for f in g['fsets'] if med.get(str(f)) is not None}
 _bT,_bI=_hyb('exp2/data_dof4_hybrid'),_hyb('exp2/data_hybrid')
 # distribución de impactos del pulgar a v=1000, Fset=100 (los 40 dedicados + los
 # 15 de esa misma celda y montaje): la mediana esconde que hay DOS regímenes
@@ -37,11 +38,22 @@ _LOW=(100,250,500)   # tramo donde AMBOS dedos son lineales: fuera de él el pul
 _kT=sum(v*float(_sT[v]['slope_cps_mean']) for v in _LOW)/sum(v*v for v in _LOW)
 _kI=sum(v*float(_sI[v]['slope_cps_mean']) for v in _LOW)/sum(v*v for v in _LOW)
 _FS=[int(f) for f in _gI['fsets']]
+_gapI=sum(1 for v in _gI['speeds'] if _gI['median'][str(v)]['100'] is None)
 _redT={F:_gT['median']['1000'][str(F)]/_bT[F] for F in _FS}
+# Reducción del modo B en el índice, solo sobre los Fset que SÍ alcanzan el objeto
+_redI={F:_gI['median']['1000'][str(F)]/_bI[F] for F in _FS
+       if _gI['median']['1000'].get(str(F)) is not None and _bI.get(F)}
+def _c(v):
+    """'—' donde el dedo no llegó a tocar el objeto: esa celda no existe, no es 0."""
+    return '—' if v is None else f'{v:.0f}'
+
+
 _cmp_rows=''.join(
     f'<tr><td class="mono b">{F}</td>'
-    f'<td class="mono">{_gI["median"]["1000"][str(F)]:.0f}</td><td class="mono">{_bI[F]:.0f}</td>'
-    f'<td class="mono">{_gT["median"]["1000"][str(F)]:.0f}</td><td class="mono">{_bT[F]:.0f}</td>'
+    f'<td class="mono">{_c(_gI["median"]["1000"].get(str(F)))}</td>'
+    f'<td class="mono">{_c(_bI.get(F))}</td>'
+    f'<td class="mono">{_c(_gT["median"]["1000"].get(str(F)))}</td>'
+    f'<td class="mono">{_c(_bT.get(F))}</td>'
     f'<td class="mono b">{_redT[F]:.0f}×</td></tr>' for F in _FS)
 overlay, slope, latency = e1[0], e1[1], e1[2]
 bars, compare = e2[0], e2[1]
@@ -153,7 +165,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <div class="eyebrow">Trabajo de tesis · Resultados iniciales</div>
     <h1>Caracterización dinámica de la mano robótica Inspire RH56DFTP</h1>
     <p class="byline"><span class="mono">Sergio Morales</span> · Universidad de Ingeniería y Tecnología (UTEC) · Julio 2026 · <span class="ey" style="font-size:11px">documento de trabajo</span></p>
-    <p class="abstract">Se caracterizó experimentalmente la respuesta dinámica de la mano robótica Inspire RH56DFTP (comunicación Modbus RTU a 115 200 baud) con experimentos de <b>hardware en el lazo</b>. El hallazgo central: el <b>sobreimpulso de fuerza</b> al cerrar los dedos está dominado por la velocidad de cierre —llega a <b>triplicar la fuerza deseada</b>— y una estrategia de aproximación <b>híbrida</b> (rápida hasta el borde del contacto, luego lenta) lo reduce <b>~68×</b>. Se cuantificaron además la latencia comando→sensor, la respuesta al escalón y la repetibilidad del contacto para fijar los parámetros de dicha estrategia.</p>
+    <p class="abstract">Se caracterizó experimentalmente la respuesta dinámica de la mano robótica Inspire RH56DFTP (comunicación Modbus RTU a 115 200 baud) con experimentos de <b>hardware en el lazo</b>. El hallazgo central: el <b>sobreimpulso de fuerza</b> al cerrar los dedos está dominado por la velocidad de cierre —llega a <b>triplicar la fuerza deseada</b>— y una estrategia de aproximación <b>híbrida</b> (rápida hasta el borde del contacto, luego lenta) lo reduce <b>{min(_redI.values()):.0f}–{max(_redI.values()):.0f}×</b>. Se cuantificaron además la latencia comando→sensor, la respuesta al escalón y la repetibilidad del contacto para fijar los parámetros de dicha estrategia.</p>
   </header>
 
   <div class="kpis">
@@ -216,10 +228,12 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <section>
     <h2>Exp 2 <span class="tag">sobreimpulso de fuerza · en contacto</span></h2>
     <h3>El sobreimpulso lo domina la velocidad de cierre — y la estrategia híbrida lo elimina</h3>
-    <p>La yema del índice cierra contra un <b>bloque rígido</b>; se mide el sobreimpulso <span class="mono">ΔF = F_max − Fset</span> en función de la velocidad y del setpoint de fuerza (5 réplicas por celda). Resultados: (i) el sobreimpulso <b>crece dramáticamente con la velocidad</b> — a alta velocidad el impacto de la yema alcanza <b>~3300 g (≈33 N)</b>, casi independiente del setpoint, superando el techo de seguridad; (ii) con un <b>setpoint bajo</b> (100 g) el firmware frena antes de golpear y el sobreimpulso queda <b>≤ 36 g</b> a toda velocidad; (iii) la <b>política híbrida</b> —aproximación rápida hasta el borde del contacto y luego cierre lento— <b>colapsa el sobreimpulso ~68×</b>, al nivel del cierre lento, alcanzando el setpoint sin impactos.</p>
+    <p>La yema del índice cierra contra un <b>bloque rígido</b>; se mide el sobreimpulso <span class="mono">ΔF = F_max − Fset</span> en función de la velocidad y del setpoint de fuerza (5 réplicas por celda). Resultados: (i) el sobreimpulso <b>crece dramáticamente con la velocidad</b> — a alta velocidad el impacto de la yema alcanza <b>~3300 g (≈33 N)</b>, casi independiente del setpoint, superando el techo de seguridad; (ii) un <b>setpoint bajo</b> (100 g) <b>no es una zona segura sino un ajuste inalcanzable</b>: queda por debajo de la fuerza que el propio dedo genera al flexionarse, así que el firmware frena <b>en el aire</b> y el dedo no llega a tocar el objeto en {_gapI} de las 7 velocidades — y en la única en que el momento lo mete dentro (<span class="mono">v=1000</span>) golpea con <b>{_gI['median']['1000']['100']:.0f} g</b>; (iii) la <b>política híbrida</b> —aproximación rápida hasta el borde del contacto y luego cierre lento— <b>colapsa el sobreimpulso ~35×</b>, al nivel del cierre lento, alcanzando el setpoint sin impactos.</p>
+
+    <div class="callout"><b>Corrección (2026-09-07).</b> El punto (ii) decía antes que el setpoint de 100 g mantenía el sobreimpulso «plano y bajo a toda velocidad», y así se presentó como el hallazgo central. Al medir por fin la <b>curva de fuerza del dedo en espacio libre</b> —que faltaba— se vio que esos ensayos <b>nunca alcanzaban el objeto</b>: terminan en <span class="mono">POS 791–851</span> con el bloque en <span class="mono">POS 1416</span>, siempre en el mismo punto sea cual sea la velocidad, que es la firma de frenar contra la propia fuerza de flexión. El sobreimpulso «bajo» era <b>ausencia de impacto</b>. La verificación posterior en los otros tres dedos confirma el patrón y da el criterio para detectarlo.</div>
     <figure>
       {bars}
-      <figcaption><b>Figura 2.</b> Sobreimpulso de fuerza por celda (velocidad × setpoint). ▲ marca los impactos que superaron el techo de seguridad de 2200 g. Con setpoint 100 g el sobreimpulso queda plano y bajo.</figcaption>
+      <figcaption><b>Figura 2.</b> Sobreimpulso de fuerza por celda (velocidad × setpoint). ▲ marca los impactos que superaron el techo de seguridad de 2200 g. La columna de setpoint 100 g está <b>vacía</b> en casi todo el barrido: ahí el dedo no llegaba a tocar el objeto.</figcaption>
     </figure>
     <figure>
       {compare}
@@ -246,7 +260,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <figure>
       <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span></div>
       <div class="grid2">{cmp_[0]}{cmp_[1]}</div>
-      <figcaption><b>Figura 5.</b> <b>Izquierda:</b> la velocidad comandada se traduce en movimiento con la <b>misma constante en los dos dedos</b> ({_kI:.2f} y {_kT:.2f} counts/s por unidad de <span class="mono">SPEED_SET</span>, ajustadas sobre el tramo donde ambos son lineales) — el comando calibra el actuador, no el ángulo. El pulgar solo se despega en el extremo (−12&nbsp;% a máxima velocidad: su techo mecánico). <b>Derecha:</b> con un umbral de fuerza bajo (100&nbsp;g) el índice mantiene el sobreimpulso plano a cualquier velocidad, pero el pulgar <b>no tiene esa protección</b> — el mismo ajuste llega a {_gT['median']['1000']['100']:.0f}&nbsp;g. Escala logarítmica.</figcaption>
+      <figcaption><b>Figura 5.</b> <b>Izquierda:</b> la velocidad comandada se traduce en movimiento con la <b>misma constante en los dos dedos</b> ({_kI:.2f} y {_kT:.2f} counts/s por unidad de <span class="mono">SPEED_SET</span>, ajustadas sobre el tramo donde ambos son lineales) — el comando calibra el actuador, no el ángulo. El pulgar solo se despega en el extremo (−12&nbsp;% a máxima velocidad: su techo mecánico). <b>Derecha:</b> un umbral de fuerza bajo (100&nbsp;g) <b>no protege a ninguno de los dos</b>. En el pulgar deja de contener el impacto en cuanto sube la velocidad, hasta {_gT['median']['1000']['100']:.0f}&nbsp;g. En el índice el umbral queda por debajo de su propia fuerza de flexión, así que el dedo <b>no llega al objeto</b> (franja gris) salvo a máxima velocidad, donde golpea con {_gI['median']['1000']['100']:.0f}&nbsp;g. Escala logarítmica.</figcaption>
     </figure>
 
     <figure>
@@ -274,7 +288,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <p>La consecuencia es concreta: un objeto dimensionado para aguantar la mediana (~{_dmed:.0f}&nbsp;g) no falla «de vez en cuando», falla en <b>1 de cada {len(_dist)//len(_dhi)} agarres</b>, y cuando falla recibe además presión sostenida y no solo un pico. Como nada en la señal permite anticipar cuál de los dos regímenes va a ocurrir, <b>acotar el pico en promedio no es una mitigación</b>. La conmutación de velocidad sí lo es, porque suprime el régimen duro entero en vez de promediarlo.</p>
 
     <p><b>Lo que generaliza:</b> la calibración velocidad→movimiento, la latencia comando→sensor (~73&nbsp;ms en el pulgar contra ~69 en el índice, sin dependencia de la velocidad) y la ausencia de sobreimpulso de posición. Son propiedades de la plataforma, no del dedo.</p>
-    <p><b>Lo que no:</b> el "umbral de fuerza bajo" que protegía al índice <b>no protege al pulgar</b>. La diferencia sigue a la rigidez del contacto — 6.4 g por count en el pulgar contra 1.6 en el índice: donde el índice recorre ~62 counts acumulando fuerza y da tiempo al firmware a frenar, al pulgar le bastan ~16. <b>La conmutación de velocidad es la única mitigación que sobrevive al cambio de dedo</b>, porque ataca la causa —el momento en el instante del contacto— y no el síntoma.</p>
+    <p><b>Lo que no:</b> el "umbral de fuerza bajo" <b>no protege en ningún dedo</b>. Cuando el umbral queda por debajo de la fuerza que el propio dedo genera al flexionarse, el firmware frena en el aire y el dedo ni siquiera alcanza el objeto — eso pasa en el índice y en el meñique, donde el ajuste directamente <b>no es ejecutable</b>. Y cuando el dedo sí llega, como el pulgar, el umbral no contiene el impacto: {_gT['median']['1000']['100']:.0f}&nbsp;g a máxima velocidad. <b>La conmutación de velocidad es la única mitigación que sobrevive</b>, verificada en los cinco grados de libertad, porque ataca la causa —el momento en el instante del contacto— y no el síntoma.</p>
   </section>
 
   <hr class="rule">
@@ -283,9 +297,10 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
-      <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso ~68×, con un margen de conmutación (~124 counts) fijado experimentalmente.</li>
+      <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso {min(_redI.values()):.0f}–{max(_redI.values()):.0f}× en el índice y {min(_redT.values()):.0f}–{max(_redT.values()):.0f}× en el pulgar, con un margen de conmutación (~124 counts) fijado experimentalmente, y se verificó después en los otros tres dedos.</li>
       <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
-      <li>La réplica en un <b>segundo dedo</b> separa lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma, pero <b>bajar el umbral de fuerza solo protege a algunos dedos</b>. La política híbrida es la única que generaliza.</li>
+      <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
+      <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>
     </ul>
     <p class="lead"><b>Próximos pasos:</b> campaña completa (mayor N por celda), extensión a los dedos restantes, e integración de la política híbrida en el lazo de agarre.</p>
   </section>

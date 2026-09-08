@@ -10,6 +10,7 @@ DST=os.path.join(_HERE,'figures','exp2_force_overshoot.html')
 grid=json.load(open(os.path.join(OUT,'exp2_overshoot_grid.json')))
 speeds=grid['speeds']; fsets=grid['fsets']
 med=grid['median']; q1=grid['q1']; q3=grid['q3']; ab=grid['abort']
+_gap=sum(1 for v in grid['speeds'] if med[str(v)]['100'] is None)
 def M(v,F): return med[str(v)][str(F)]
 def Q1(v,F): return q1[str(v)][str(F)]
 def Q3(v,F): return q3[str(v)][str(F)]
@@ -23,12 +24,11 @@ INK='#12181f'; MUTED='#5a6472'; HAIR='#dbe2ec'; GRID='#eef2f7'
 y1=max(M(v,F) for v in speeds for F in fsets if M(v,F) is not None)*1.10
 total_ab=sum(AB(v,F) for v in speeds for F in fsets)
 
-# Modo B (híbrido): mediana de ΔF por Fset
-_bd=defaultdict(list)
-for _r in csv.DictReader(open(os.path.join(_HERE,'data_hybrid','grid_index.csv'))):
-    try: _bd[int(_r['fset'])].append(float(_r['delta_f']))
-    except (ValueError,TypeError): pass
-modeB={F:statistics.median(_bd[F]) for F in fsets if _bd[F]}
+# Modo B (híbrido): mediana de ΔF por Fset, desde el JSON analizado — que ya
+# descarta los trials en los que el dedo no llegó a tocar el objeto.
+_bg=json.load(open(os.path.join(_HERE,'data_hybrid','exp2_overshoot_grid.json')))
+_bm=_bg['median'][str(_bg['speeds'][0])]
+modeB={int(f):_bm[str(f)] for f in _bg['fsets'] if _bm.get(str(f)) is not None}
 # factor de reducción B vs A rápido (v=1000), promediado sobre Fset>=250
 _red=[M(1000,F)/modeB[F] for F in fsets if F>=250 and modeB.get(F)]
 red_factor=round(sum(_red)/len(_red)) if _red else None
@@ -176,7 +176,7 @@ HTML=f'''<title>Exp 2 — Sobreimpulso de fuerza en contacto · RH56DFTP</title>
 
   <div class="kpis">
     <div class="kpi"><div class="n">~3300<span class="u"> g</span></div><div class="l">sobreimpulso máx (v=1000, Fset=250) — el momento del impacto</div></div>
-    <div class="kpi"><div class="n">≤36<span class="u"> g</span></div><div class="l">sobreimpulso con Fset=100 a TODA velocidad — setpoint seguro</div></div>
+    <div class="kpi"><div class="n">{_gap}<span class="u"> de 7</span></div><div class="l">velocidades en las que con <span class="mono">Fset=100</span> el dedo <b>no llega a tocar el bloque</b>: el firmware frena sobre su propia fuerza de flexión</div></div>
     <div class="kpi"><div class="n">~{red_factor}&times;<span class="u"> menor</span></div><div class="l">sobreimpulso del modo B híbrido vs modo A rápido (ΔF ≤ {b_max:.0f} g, 0 aborts)</div></div>
   </div>
 
@@ -184,7 +184,7 @@ HTML=f'''<title>Exp 2 — Sobreimpulso de fuerza en contacto · RH56DFTP</title>
   <figure class="panel">
     {legend}
     {bars_svg()}
-    <figcaption class="cap"><b>Figura 2.</b> Sobreimpulso <span class="mono">ΔF = F_max − Fset</span> por celda (v, Fset). Crece de forma dramática con la velocidad de cierre y satura ~v=750 por el impacto de la yema (efecto de momento, casi independiente de Fset). Con <span class="mono">Fset=100</span> el firmware frena antes de golpear y el sobreimpulso queda plano y bajo. ▲ marca celdas cuyo pico superó el techo de seguridad de 2200 g.</figcaption>
+    <figcaption class="cap"><b>Figura 2.</b> Sobreimpulso <span class="mono">ΔF = F_max − Fset</span> por celda (v, Fset). Crece de forma dramática con la velocidad de cierre y satura ~v=750 por el impacto de la yema (efecto de momento, casi independiente de Fset). La columna <span class="mono">Fset=100</span> está <b>vacía en casi todo el barrido</b>: ahí el umbral queda por debajo de la fuerza que el propio dedo genera al flexionarse, el firmware frena en el aire y <b>no hay impacto que medir</b>. Solo a <span class="mono">v=1000</span> el momento mete el dedo dentro, y entonces golpea con {med['1000']['100']:.0f} g. ▲ marca celdas cuyo pico superó el techo de seguridad de 2200 g.</figcaption>
   </figure>
 
   <hr class="rule">

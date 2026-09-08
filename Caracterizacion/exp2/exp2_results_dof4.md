@@ -34,31 +34,45 @@ Métrica `ΔF = F_max − Fset` sobre la mediana por celda. Datos: `data_dof4/`.
 
 ## Hallazgos
 
+> **⚠ Reencuadre 2026-09-07.** Estos hallazgos se escribieron comparando contra
+> la fila `Fset = 100` del índice, que resultó **no medir impactos**: ese dedo
+> frenaba sobre su propio residual de flexión y no llegaba al bloque
+> (ver `exp2_results.md`). Los datos del pulgar son buenos —su fila `Fset=100`
+> alcanza `POS 808–941` pasando su onset en 775, con onset registrado en las 140
+> filas— pero la comparación enfrentaba una fila **sin contacto** contra una
+> **con contacto**. Los puntos 2, 3 y 5 están reescritos.
+
 1. **En absoluto el pulgar golpea MÁS SUAVE que el índice.** Para `Fset ≥ 250`
    su ΔF es **0.3–0.6×** el del índice en toda la matriz, y la saturación a alta
    velocidad se queda en **~1200 g** (máx de celda 1524) contra los ~2270 g
    (máx 3263) del índice. De ahí los 8 abortos frente a 59. Menos inercia en
-   movimiento explica la diferencia.
-2. **Pero NO existe el "setpoint seguro" del índice.** Ese fue el hallazgo más
-   útil del DOF 3: con `Fset = 100` su ΔF se quedaba plano en **5–36 g a
-   cualquier velocidad**, porque el firmware frenaba antes de que se formara el
-   impacto. En el pulgar esa columna **no protege**: crece 14 → **936 g** con
-   la velocidad, hasta **26× peor** que el índice en la misma celda.
-3. **Mecanismo probable: la rigidez del contacto** (medida en P2.3): 6.4 g/count
-   en el pulgar contra 1.6 g/count en el índice. El índice necesita recorrer
-   ~62 counts pasado el onset para acumular 100 g, y en ese trecho el firmware
-   frena; al pulgar le bastan **~16 counts**, así que el umbral se cruza antes de
-   que la reacción sirva de nada. Dicho de otro modo: **cualquier distancia de
-   frenado se traduce en 4× más fuerza**. (Interpretación, no medición directa.)
+   movimiento explica la diferencia. *(Sin cambios: se apoya en `Fset ≥ 250`.)*
+2. **El "setpoint seguro" contra el que se comparaba no existía.** El pulgar sí
+   alcanza el objeto con `Fset = 100`, y ahí su ΔF crece 14 → **936 g** con la
+   velocidad. El índice, con el mismo ajuste, **no llega al objeto** salvo a
+   `v = 1000`, donde el momento lo mete dentro y da **295 g**. Así que la lectura
+   correcta no es «el pulgar pierde una protección que el índice tiene», sino
+   **ningún dedo tiene esa protección**: en uno el ajuste no protege, en el otro
+   ni siquiera es alcanzable.
+3. **El mecanismo tampoco era el que se publicó.** Se atribuyó la diferencia a la
+   rigidez del contacto, «6.4 g/count en el pulgar contra 1.6 en el índice».
+   Con el sondeo libre del índice medido y el mismo pipeline aplicado a los
+   cinco DOF, esa asimetría desaparece: **índice 8.5, pulgar 5.7, meñique 11.0,
+   anular 17.0, medio 11.7 g/count**. El índice no es un contacto blando; el
+   1.6 salía de situar su onset 200 counts antes de tiempo, dentro de su propio
+   residual. **No hay outlier que explicar.**
 4. **A alta velocidad ΔF es casi independiente de `Fset`** en el pulgar: a
    `v ≥ 750` varía solo un 34 % entre columnas (1083–1524 g). Es el mismo
    régimen dominado por el momento que ya mostraba el índice — pero en el pulgar
-   abarca **todas** las columnas, incluida `Fset = 100`.
-5. **Consecuencia para la política de agarre:** la mitigación "usa un `Fset`
-   bajo" es **específica del dedo y del contacto, no generalizable**. En el
-   índice bastaba; en el pulgar es inútil. Eso refuerza el argumento del paper:
-   la mitigación robusta es la **conmutación de velocidad (modo B)**, que ataca
-   la causa (el momento en el instante del contacto) y no el síntoma.
+   abarca **todas** las columnas, incluida `Fset = 100`. *(Sin cambios.)*
+5. **Consecuencia para la política de agarre:** la mitigación «usa un `Fset`
+   bajo» **no funciona en ningún dedo de esta mano**. O el umbral queda por
+   debajo del residual de flexión del propio dedo y el firmware frena en el aire
+   —índice y meñique, donde el ajuste ni siquiera es ejecutable— o el dedo
+   alcanza el objeto y el umbral no contiene el impacto (pulgar). La mitigación
+   robusta es la **conmutación de velocidad (modo B)**, verificada en los cinco
+   DOF, que ataca la causa (el momento en el instante del contacto) y no el
+   síntoma.
 
 ## Ampliación de la fila `Fset = 100` a N=20
 

@@ -45,23 +45,28 @@ def grid(d):
 
 
 def hybrid(d):
-    out = {}
-    for r in csv.DictReader(open(os.path.join(_HERE, d, 'grid_index.csv'))):
-        if r['delta_f']:
-            out.setdefault(int(r['fset']), []).append(float(r['delta_f']))
-    return {k: sorted(v)[len(v) // 2] for k, v in out.items()}
+    """ΔF del modo B por Fset, desde el JSON analizado — que ya descarta los
+    trials en los que el dedo no llegó al objeto (ver exp2_analyze)."""
+    g = grid(d)
+    med = g['median'][str(g['speeds'][0])]
+    return {int(f): med[str(f)] for f in g['fsets'] if med.get(str(f)) is not None}
 
 
 S_I, S_T = by_speed('exp1/data'), by_speed('exp1/data_dof4')
 G_I, G_T = grid('exp2/data'), grid('exp2/data_dof4')
 B_I, B_T = hybrid('exp2/data_hybrid'), hybrid('exp2/data_dof4_hybrid')
 SPEEDS = sorted(S_I)
+_gapI = sum(1 for v in G_I['speeds'] if G_I['median'][str(v)]['100'] is None)
 VS = [int(v) for v in G_I['speeds']]
 FSETS = [int(f) for f in G_I['fsets']]
 
 
 def sx(x, x0, x1, p0, p1):
     return p0 + (x - x0) / (x1 - x0) * (p1 - p0)
+
+
+def _cell(v):
+    return '—' if v is None else f'{v:.0f}'
 
 
 def esc(t):
@@ -121,33 +126,78 @@ def slope_svg():
 
 # ── 2) ΔF a Fset=100 vs velocidad (eje log) ──────────────────────────────
 def fset100_svg():
-    W, H = 452, 320
+    """ΔF con Fset=100 frente a la velocidad. El índice tiene HUECOS: en esas
+    celdas su residual de flexión frenaba al dedo antes del objeto, así que no
+    hay impacto que medir. Dibujar ahí una línea plana —como hacía la versión
+    anterior de esta figura— convertía una ausencia de datos en un hallazgo."""
+    W, H = 452, 300
     L, R, T, B = 62, 62, 24, 50
-    lo, hi = 3.0, 2200.0
+    lo, hi = 0.6, 2200.0
     X = lambda i: sx(i, 0, len(VS) - 1, L + 8, W - R - 8)
     Y = lambda v: sx(math.log10(max(v, lo)), math.log10(hi), math.log10(lo), T, H - B)
     s = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Sobreimpulso de fuerza con '
-         f'FORCE_SET de 100 gramos frente a la velocidad, escala logarítmica">']
-    for gy in (10, 100, 1000):
+         f'FORCE_SET de 100 gramos frente a la velocidad, escala logarítmica. El índice '
+         f'solo tiene medida en las velocidades extremas: en las intermedias no llegaba '
+         f'a tocar el objeto">']
+
+    # Banda de las velocidades sin contacto en el índice: neutra, nunca un color
+    # de serie — no es un tercer dedo, es la ausencia del primero.
+    gaps = [i for i, v in enumerate(VS) if G_I['median'][str(v)]['100'] is None]
+    if gaps:
+        x0, x1 = X(min(gaps)) - 20, X(max(gaps)) + 20
+        s.append(f'<rect x="{x0:.1f}" y="{T}" width="{x1-x0:.1f}" height="{H-B-T}" '
+                 f'fill="{GRID}" opacity="0.75"/>')
+
+    for gy in (1, 10, 100, 1000):
         s.append(f'<line x1="{L}" y1="{Y(gy):.1f}" x2="{W-R}" y2="{Y(gy):.1f}" stroke="{GRID}"/>')
         s.append(f'<text x="{L-8}" y="{Y(gy)+4:.1f}" fill="{MUTED}" font-size="11" '
                  f'text-anchor="end" class="mono">{gy}</text>')
     for i, v in enumerate(VS):
         s.append(f'<text x="{X(i):.1f}" y="{H-B+17}" fill="{MUTED}" font-size="10.5" '
                  f'text-anchor="middle" class="mono">{v}</text>')
+
+    if gaps:
+        cx = (X(min(gaps)) + X(max(gaps))) / 2
+        s.append(f'<text x="{cx:.1f}" y="{T+18:.1f}" fill="{MUTED}" font-size="10.5" '
+                 f'text-anchor="middle">el índice no llega</text>')
+        s.append(f'<text x="{cx:.1f}" y="{T+31:.1f}" fill="{MUTED}" font-size="10.5" '
+                 f'text-anchor="middle">a tocar el objeto</text>')
+
     for G, color in ((G_I, IDX), (G_T, THB)):
-        pts = [(X(i), Y(G['median'][str(v)]['100'])) for i, v in enumerate(VS)]
-        s.append('<polyline points="' + ' '.join(f'{x:.1f},{y:.1f}' for x, y in pts) +
-                 f'" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round"/>')
-        for x, y in pts:
-            s.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4.4" fill="{color}" '
-                     f'stroke="#fff" stroke-width="2"/>')
-    vI = G_I['median']['1000']['100']; vT = G_T['median']['1000']['100']
+        run = []
+        for i, v in enumerate(VS):
+            m = G['median'][str(v)]['100']
+            if m is None:
+                if len(run) > 1:
+                    s.append('<polyline points="' + ' '.join(f'{x:.1f},{y:.1f}' for x, y in run) +
+                             f'" fill="none" stroke="{color}" stroke-width="2" '
+                             f'stroke-linejoin="round"/>')
+                run = []
+                continue
+            run.append((X(i), Y(m)))
+        if len(run) > 1:
+            s.append('<polyline points="' + ' '.join(f'{x:.1f},{y:.1f}' for x, y in run) +
+                     f'" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round"/>')
+        for i, v in enumerate(VS):
+            m = G['median'][str(v)]['100']
+            if m is not None:
+                s.append(f'<circle cx="{X(i):.1f}" cy="{Y(m):.1f}" r="4.4" fill="{color}" '
+                         f'stroke="#fff" stroke-width="2"/>')
+
+    vT = G_T['median']['1000']['100']
     s.append(f'<text x="{X(len(VS)-1)-6:.1f}" y="{Y(vT)-11:.1f}" fill="{THB}" font-size="11.5" '
              f'text-anchor="end" class="b">pulgar · {vT:.0f} g</text>')
-    vI5 = G_I['median']['500']['100']
-    s.append(f'<text x="{X(4):.1f}" y="{Y(vI5)+30:.1f}" fill="{IDX}" font-size="11.5" '
-             f'text-anchor="middle" class="b">índice · plano en 5–36 g</text>')
+    vI = G_I['median']['1000']['100']
+    if vI is not None:
+        s.append(f'<text x="{X(len(VS)-1)-6:.1f}" y="{Y(vI)+18:.1f}" fill="{IDX}" '
+                 f'font-size="11.5" text-anchor="end" class="b">índice · {vI:.0f} g</text>')
+    vI0 = G_I['median']['25']['100']
+    if vI0 is not None:
+        # arriba del punto: a 1 g el marcador queda pegado al eje y la etiqueta
+        # se saldría del área de trazado
+        s.append(f'<text x="{X(0)+8:.1f}" y="{Y(vI0)-9:.1f}" fill="{IDX}" font-size="11" '
+                 f'class="b">solo roza · {vI0:.0f} g</text>')
+
     s.append(f'<line x1="{L}" y1="{H-B}" x2="{W-R}" y2="{H-B}" stroke="{HAIR}"/>')
     s.append(f'<line x1="{L}" y1="{T}" x2="{L}" y2="{H-B}" stroke="{HAIR}"/>')
     s.append(f'<text x="{(L+W-R)/2:.0f}" y="{H-7}" fill="{MUTED}" font-size="11.5" '
@@ -177,7 +227,9 @@ def hybrid_svg():
                  f'text-anchor="middle" class="mono">{F}</text>')
         for j, ((lab, color), G, Bh) in enumerate(((FINGERS[0], G_I, B_I), (FINGERS[1], G_T, B_T))):
             x = cx + (j - 0.5) * 34
-            a = G['median']['1000'][str(F)]; b = Bh[F]
+            a = G['median']['1000'][str(F)]; b = Bh.get(F)
+            if a is None or b is None:
+                continue
             s.append(f'<line x1="{x:.1f}" y1="{Y(a):.1f}" x2="{x:.1f}" y2="{Y(b):.1f}" '
                      f'stroke="{color}" stroke-width="2" opacity="0.42"/>')
             # modo A: anillo hueco · modo B: punto lleno
@@ -215,10 +267,17 @@ k_i = sum(v * float(S_I[v]['slope_cps_mean']) for v in (100, 250, 500)) / sum(v 
 k_t = sum(v * float(S_T[v]['slope_cps_mean']) for v in (100, 250, 500)) / sum(v * v for v in (100, 250, 500))
 red = {F: G_T['median']['1000'][str(F)] / B_T[F] for F in FSETS}
 
+def _cell(v):
+    """'—' donde el dedo no llegó a tocar el objeto: la celda no existe, no vale 0."""
+    return '—' if v is None else f'{v:.0f}'
+
+
 rows = ''.join(
     f'<tr><td class="mono b">{F}</td>'
-    f'<td class="mono">{G_I["median"]["1000"][str(F)]:.0f}</td><td class="mono">{B_I[F]:.0f}</td>'
-    f'<td class="mono">{G_T["median"]["1000"][str(F)]:.0f}</td><td class="mono">{B_T[F]:.0f}</td>'
+    f'<td class="mono">{_cell(G_I["median"]["1000"].get(str(F)))}</td>'
+    f'<td class="mono">{_cell(B_I.get(F))}</td>'
+    f'<td class="mono">{_cell(G_T["median"]["1000"].get(str(F)))}</td>'
+    f'<td class="mono">{_cell(B_T.get(F))}</td>'
     f'<td class="mono b">{red[F]:.0f}×</td></tr>' for F in FSETS)
 
 HTML = f'''<title>Índice vs Pulgar · RH56DFTP</title>
@@ -266,12 +325,12 @@ HTML = f'''<title>Índice vs Pulgar · RH56DFTP</title>
 </style>
 <div class="wrap">
   <div class="eyebrow">Réplica del protocolo · Índice vs Pulgar</div>
-  <h1>La misma calibración de velocidad en los dos dedos, pero una sola mitigación sobrevive al cambio de dedo</h1>
+  <h1>La misma calibración de velocidad en los dos dedos, y una sola mitigación que funciona en ninguno de los dos umbrales de fuerza</h1>
   <p class="dek">Inspire RH56DFTP. El protocolo de caracterización dinámica ejecutado sobre el <span class="mono">DOF&nbsp;3</span> (índice) y replicado sobre el <span class="mono">DOF&nbsp;4</span> (flexión del pulgar) con la rotación anclada en oposición. 100 trials de escalón y 200 de contacto por dedo.</p>
 
   <div class="kpis">
     <div class="kpi"><div class="n">{k_i:.2f} <span class="u">vs</span> {k_t:.2f}</div><div class="l">counts/s por unidad de <span class="mono">SPEED_SET</span> — índice y pulgar</div></div>
-    <div class="kpi"><div class="n">{G_T['median']['1000']['100']/G_I['median']['1000']['100']:.0f}×<span class="u"> peor</span></div><div class="l">ΔF del pulgar con <span class="mono">Fset=100</span> a v=1000: el "setpoint seguro" no generaliza</div></div>
+    <div class="kpi"><div class="n">{_gapI}<span class="u"> de 7</span></div><div class="l">velocidades en las que el índice, con <span class="mono">Fset=100</span>, <b>no llega a tocar el objeto</b>: el "setpoint seguro" era ausencia de contacto</div></div>
     <div class="kpi"><div class="n">{min(red.values()):.0f}–{max(red.values()):.0f}×</div><div class="l">reducción de ΔF con el modo híbrido en el pulgar</div></div>
   </div>
 
@@ -284,7 +343,7 @@ HTML = f'''<title>Índice vs Pulgar · RH56DFTP</title>
     <figure class="panel">
       {legend(FINGERS)}
       {fset100_svg()}
-      <figcaption class="cap"><b>Figura 2.</b> El hallazgo central. Con <span class="mono">Fset=100&nbsp;g</span> el índice mantiene el sobreimpulso plano en 5–36&nbsp;g <b>a cualquier velocidad</b>: el firmware frena antes de que se forme el impacto. En el pulgar esa protección <b>no existe</b> — el mismo ajuste crece hasta {G_T['median']['1000']['100']:.0f}&nbsp;g. La diferencia sigue a la rigidez del contacto: 6.1 g/count contra 1.6.</figcaption>
+      <figcaption class="cap"><b>Figura 2.</b> <b>Bajar el umbral de fuerza no protege a ninguno de los dos.</b> En el pulgar, <span class="mono">Fset=100&nbsp;g</span> deja de contener el impacto en cuanto sube la velocidad: hasta {G_T['median']['1000']['100']:.0f}&nbsp;g. En el índice el mismo ajuste queda <b>por debajo del residual de flexión del propio dedo</b>, así que el firmware frena en el aire y en {_gapI} de las 7 velocidades <b>no hay contacto que medir</b> — la franja gris. Solo roza a <span class="mono">v&nbsp;≤&nbsp;50</span>, y a <span class="mono">v=1000</span> el momento lo mete dentro y golpea con {G_I['median']['1000']['100']:.0f}&nbsp;g. <i>(La versión anterior de esta figura dibujaba una línea plana sobre la franja gris y la leía como protección.)</i></figcaption>
     </figure>
   </div>
 
@@ -292,7 +351,7 @@ HTML = f'''<title>Índice vs Pulgar · RH56DFTP</title>
   <figure class="panel">
     {legend(FINGERS, '<span class="li note">○ modo A a v=1000 &nbsp;·&nbsp; ● modo B híbrido</span>')}
     {hybrid_svg()}
-    <figcaption class="cap"><b>Figura 3.</b> La conmutación de velocidad (aproximación rápida + cierre lento) colapsa el sobreimpulso <b>en los dos dedos y para todo <span class="mono">Fset</span></b>, entre 30× y 82×. Ataca la causa —el momento en el instante del contacto— y por eso generaliza, mientras que bajar el <span class="mono">Fset</span> depende de la rigidez del contacto y no.</figcaption>
+    <figcaption class="cap"><b>Figura 3.</b> La conmutación de velocidad (aproximación rápida + cierre lento) colapsa el sobreimpulso <b>en los dos dedos y para todo <span class="mono">Fset</span> alcanzable</b>, entre {min(red.values()):.0f}× y {max(red.values()):.0f}× en el pulgar. Ataca la causa —el momento en el instante del contacto— y por eso es la única mitigación que sobrevive al cambio de dedo: el umbral de fuerza bajo no protege en ninguno.</figcaption>
   </figure>
 
   <hr class="rule">

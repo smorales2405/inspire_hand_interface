@@ -83,18 +83,25 @@ def drop_contactless(rows, min_ext=30):
     return keep, dropped
 
 
-def drop_short_of_block(rows, d, onset_pos, slack=40):
-    """Descarta trials cuyo POS nunca llegó al bloque.
+def drop_short_of_block(rows, d, onset_pos, slack=60, max_speed=100):
+    """Descarta trials cuyo `POS` máximo no llegó al bloque.
 
-    Para campañas anteriores a la columna `f_base_g`, donde `drop_contactless`
-    no puede aplicarse. Es el mismo fenómeno visto por el otro lado: si `Fset`
-    queda por debajo del residual de flexión del dedo en el camino, el firmware
-    frena en el aire y el trial se queda corto. En el índice, la fila entera
-    `Fset=100` termina en POS 791-851 con el bloque en 1416 — 600 counts de
-    distancia— mientras el resto de la matriz llega a 1412-1569.
+    Complementa a los otros dos filtros para el caso que ninguno ve: cuando el
+    dedo frena en el aire pero a una flexión donde su propio residual es alto, la
+    fuerza se asienta sobre ese residual (`f_settle` no discrimina) y sin
+    `f_base_g` tampoco hay con qué compararla. Es lo que pasa en el modo B del
+    índice: sus cinco trials `Fset=100` paran en POS 1212-1226 con el bloque en
+    1416, y aun así asientan a 68-88 g.
+
+    **Solo se aplica hasta `max_speed`**: el `POS` se muestrea 1 de cada 8
+    iteraciones, así que a `v=25` el hueco entre muestras es de ~8 counts pero a
+    `v=1000` es de ~300, y el máximo registrado se quedaría corto en trials que
+    sí impactaron.
     """
     keep, dropped = [], []
     for r in rows:
+        if r['speed'] > max_speed:
+            keep.append(r); continue
         try:
             ps = [int(a['pos_act']) for a in csv.DictReader(open(os.path.join(d, r['trial_file'])))
                   if a.get('pos_act', '')]
@@ -105,6 +112,47 @@ def drop_short_of_block(rows, d, onset_pos, slack=40):
             keep.append(r)
         else:
             dropped.append((r, top))
+    return keep, dropped
+
+
+def drop_no_load(rows, min_settle=30, air_overshoot=100):
+    """Descarta trials en los que el dedo nunca llegó a cargar contra el objeto.
+
+    Si `Fset` queda por debajo del residual de flexión del dedo en el camino, el
+    firmware frena EN EL AIRE: hay un "pico" (la fuerza cruzando el umbral) pero
+    después **la fuerza se relaja a cero**, porque no hay nada empujando de
+    vuelta. Contra un objeto la fuerza se queda cargada. Así que el discriminador
+    es `f_settle`, no el ΔF ni el `onset_pos`.
+
+    En el índice la fila entera `Fset=100` se relaja a −1..−9 g a `v ≥ 250` (y a
+    19 g a v=100) mientras el resto de su matriz asienta en 92–935 g; el pulgar
+    no baja de 92 g en ninguna celda. El umbral de 30 g deja un factor 3 de
+    margen contra la celda válida más suave.
+
+    Pero `f_settle` bajo NO basta por sí solo: un impacto real puede relajarse a
+    cero si el dedo rebota (el firmware no sostiene el setpoint tras el pico).
+    Por eso se exige además que **no haya habido pico**: frenar en el aire
+    sobrepasa el umbral como mucho ~40 g —el firmware frena *sobre* la
+    consigna—, mientras que un impacto lo sobrepasa mucho más. En el índice el
+    trial de `v=1000, Fset=100` que sí alcanzó el bloque dio ΔF = 295 g y se
+    conserva; sus cuatro compañeros, con ΔF ~30 g y fuerza relajada, se van.
+
+    Se prefiere esto a comparar el `POS` final contra el onset del bloque: a
+    `v=1000` el `POS` se muestrea 1 de cada 8 iteraciones mientras el dedo avanza
+    ~3000 counts/s, así que el máximo registrado se queda corto y descartaría
+    trials que sí impactaron.
+
+    Complementa a `drop_contactless()` y no lo sustituye: donde el residual del
+    dedo es alto (meñique, ~100 g en la pre-posición) la fuerza se asienta sobre
+    ese residual y `f_settle` no discrimina, pero `F_max` contra `f_base` sí.
+    """
+    keep, dropped = [], []
+    for r in rows:
+        fs, df = _num(r.get('f_settle')), r['delta_f']
+        if fs is None or fs >= min_settle or (df is not None and df >= air_overshoot):
+            keep.append(r)
+        else:
+            dropped.append((r, fs))
     return keep, dropped
 
 
@@ -131,10 +179,12 @@ def main(argv=None):
     ap.add_argument('--override', default=os.path.join(_here, 'data_slow'), help='dir que reemplaza por velocidad')
     ap.add_argument('--out', default=os.path.join(_here, 'data'), help='dir de salida')
     ap.add_argument('--geom-onset', type=int, default=None,
-                    help='POS del onset geométrico del bloque en este montaje. Con él se '
-                         'descartan los trials que se quedaron cortos (el firmware frenó en '
-                         'el aire porque Fset < residual de flexión). Imprescindible en las '
-                         'campañas anteriores a la columna f_base_g.')
+                    help='POS del onset geométrico del bloque en este montaje. Descarta los '
+                         'trials lentos (v <= 100) cuyo POS no llegó hasta ahí.')
+    ap.add_argument('--min-settle-g', type=float, default=30.0,
+                    help='fuerza de régimen mínima para dar un trial por válido (def 30). '
+                         'Por debajo, el dedo frenó en el aire y la fuerza se relajó a cero: '
+                         'su ΔF no mide un impacto. 0 desactiva el filtro.')
     ap.add_argument('--keep-glitches', action='store_true',
                     help='no descartar los F_max que son lecturas corruptas (ver drop_glitches)')
     a = ap.parse_args(argv)
@@ -144,8 +194,13 @@ def main(argv=None):
         if a.geom_onset:
             rs, short = drop_short_of_block(rs, d, a.geom_onset)
             for r, top in short:
-                print(f"Descartado (se quedó corto: POS {top} < bloque en {a.geom_onset}): "
+                print(f"Descartado (no llegó al bloque: POS {top} < {a.geom_onset}): "
                       f"{r['trial_file']}  v={r['speed']} Fset={r['fset']}")
+        if a.min_settle_g > 0:
+            rs, noload = drop_no_load(rs, a.min_settle_g)
+            for r, fs in noload:
+                print(f"Descartado (SIN CARGA: la fuerza se relajó a {fs:.0f} g, el dedo frenó "
+                      f"en el aire): {r['trial_file']}  v={r['speed']} Fset={r['fset']}")
         rs, nc = drop_contactless(rs)
         for r, ext in nc:
             print(f"Descartado (SIN CONTACTO: F_max solo {ext:.0f} g sobre el residual): "

@@ -43,12 +43,12 @@
 </style>
 <div class="wrap">
   <div class="eyebrow">Réplica del protocolo · Índice vs Pulgar</div>
-  <h1>La misma calibración de velocidad en los dos dedos, pero una sola mitigación sobrevive al cambio de dedo</h1>
+  <h1>La misma calibración de velocidad en los dos dedos, y una sola mitigación que funciona en ninguno de los dos umbrales de fuerza</h1>
   <p class="dek">Inspire RH56DFTP. El protocolo de caracterización dinámica ejecutado sobre el <span class="mono">DOF&nbsp;3</span> (índice) y replicado sobre el <span class="mono">DOF&nbsp;4</span> (flexión del pulgar) con la rotación anclada en oposición. 100 trials de escalón y 200 de contacto por dedo.</p>
 
   <div class="kpis">
     <div class="kpi"><div class="n">3.04 <span class="u">vs</span> 2.99</div><div class="l">counts/s por unidad de <span class="mono">SPEED_SET</span> — índice y pulgar</div></div>
-    <div class="kpi"><div class="n">26×<span class="u"> peor</span></div><div class="l">ΔF del pulgar con <span class="mono">Fset=100</span> a v=1000: el "setpoint seguro" no generaliza</div></div>
+    <div class="kpi"><div class="n">4<span class="u"> de 7</span></div><div class="l">velocidades en las que el índice, con <span class="mono">Fset=100</span>, <b>no llega a tocar el objeto</b>: el "setpoint seguro" era ausencia de contacto</div></div>
     <div class="kpi"><div class="n">30–55×</div><div class="l">reducción de ΔF con el modo híbrido en el pulgar</div></div>
   </div>
 
@@ -98,44 +98,46 @@
     </figure>
     <figure class="panel">
       <div class="legend"><span class="li"><span class="sw" style="background:#285F97"></span>Índice (DOF 3)</span><span class="li"><span class="sw" style="background:#B4740F"></span>Pulgar (DOF 4)</span></div>
-      <svg viewBox="0 0 452 320" role="img" aria-label="Sobreimpulso de fuerza con FORCE_SET de 100 gramos frente a la velocidad, escala logarítmica">
-<line x1="62" y1="225.1" x2="390" y2="225.1" stroke="#eef2f7"/>
-<text x="54" y="229.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">10</text>
-<line x1="62" y1="139.3" x2="390" y2="139.3" stroke="#eef2f7"/>
-<text x="54" y="143.3" fill="#5a6472" font-size="11" text-anchor="end" class="mono">100</text>
-<line x1="62" y1="53.4" x2="390" y2="53.4" stroke="#eef2f7"/>
-<text x="54" y="57.4" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
-<text x="70.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">25</text>
-<text x="122.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">50</text>
-<text x="174.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">100</text>
-<text x="226.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">250</text>
-<text x="278.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">500</text>
-<text x="330.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">750</text>
-<text x="382.0" y="287" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">1000</text>
-<polyline points="70.0,238.4 122.0,210.0 174.0,251.0 226.0,177.3 278.0,192.5 330.0,186.7 382.0,177.3" fill="none" stroke="#285F97" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="70.0" cy="238.4" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="122.0" cy="210.0" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="174.0" cy="251.0" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="226.0" cy="177.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="278.0" cy="192.5" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="330.0" cy="186.7" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<circle cx="382.0" cy="177.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
-<polyline points="70.0,212.6 122.0,190.2 174.0,150.5 226.0,108.6 278.0,78.7 330.0,49.4 382.0,55.8" fill="none" stroke="#B4740F" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="70.0" cy="212.6" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="122.0" cy="190.2" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="174.0" cy="150.5" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="226.0" cy="108.6" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="278.0" cy="78.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="330.0" cy="49.4" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<circle cx="382.0" cy="55.8" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
-<text x="376.0" y="44.8" fill="#B4740F" font-size="11.5" text-anchor="end" class="b">pulgar · 936 g</text>
-<text x="278.0" y="222.5" fill="#285F97" font-size="11.5" text-anchor="middle" class="b">índice · plano en 5–36 g</text>
-<line x1="62" y1="270" x2="390" y2="270" stroke="#dbe2ec"/>
-<line x1="62" y1="24" x2="62" y2="270" stroke="#dbe2ec"/>
-<text x="226" y="313" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">SPEED_SET comandado</text>
-<text transform="translate(15,147) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF con Fset=100 g  (log)</text>
+      <svg viewBox="0 0 452 300" role="img" aria-label="Sobreimpulso de fuerza con FORCE_SET de 100 gramos frente a la velocidad, escala logarítmica. El índice solo tiene medida en las velocidades extremas: en las intermedias no llegaba a tocar el objeto">
+<rect x="154.0" y="24" width="196.0" height="226" fill="#eef2f7" opacity="0.75"/>
+<line x1="62" y1="235.9" x2="390" y2="235.9" stroke="#eef2f7"/>
+<text x="54" y="239.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1</text>
+<line x1="62" y1="172.5" x2="390" y2="172.5" stroke="#eef2f7"/>
+<text x="54" y="176.5" fill="#5a6472" font-size="11" text-anchor="end" class="mono">10</text>
+<line x1="62" y1="109.1" x2="390" y2="109.1" stroke="#eef2f7"/>
+<text x="54" y="113.1" fill="#5a6472" font-size="11" text-anchor="end" class="mono">100</text>
+<line x1="62" y1="45.7" x2="390" y2="45.7" stroke="#eef2f7"/>
+<text x="54" y="49.7" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
+<text x="70.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">25</text>
+<text x="122.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">50</text>
+<text x="174.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">100</text>
+<text x="226.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">250</text>
+<text x="278.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">500</text>
+<text x="330.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">750</text>
+<text x="382.0" y="267" fill="#5a6472" font-size="10.5" text-anchor="middle" class="mono">1000</text>
+<text x="252.0" y="42.0" fill="#5a6472" font-size="10.5" text-anchor="middle">el índice no llega</text>
+<text x="252.0" y="55.0" fill="#5a6472" font-size="10.5" text-anchor="middle">a tocar el objeto</text>
+<polyline points="70.0,235.9 122.0,235.9" fill="none" stroke="#285F97" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="70.0" cy="235.9" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="122.0" cy="235.9" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<circle cx="382.0" cy="79.3" r="4.4" fill="#285F97" stroke="#fff" stroke-width="2"/>
+<polyline points="70.0,163.3 122.0,146.7 174.0,117.4 226.0,86.5 278.0,64.4 330.0,42.7 382.0,47.5" fill="none" stroke="#B4740F" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="70.0" cy="163.3" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="122.0" cy="146.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="174.0" cy="117.4" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="226.0" cy="86.5" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="278.0" cy="64.4" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="330.0" cy="42.7" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<circle cx="382.0" cy="47.5" r="4.4" fill="#B4740F" stroke="#fff" stroke-width="2"/>
+<text x="376.0" y="36.5" fill="#B4740F" font-size="11.5" text-anchor="end" class="b">pulgar · 936 g</text>
+<text x="376.0" y="97.3" fill="#285F97" font-size="11.5" text-anchor="end" class="b">índice · 295 g</text>
+<text x="78.0" y="226.9" fill="#285F97" font-size="11" class="b">solo roza · 1 g</text>
+<line x1="62" y1="250" x2="390" y2="250" stroke="#dbe2ec"/>
+<line x1="62" y1="24" x2="62" y2="250" stroke="#dbe2ec"/>
+<text x="226" y="293" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">SPEED_SET comandado</text>
+<text transform="translate(15,137) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF con Fset=100 g  (log)</text>
 </svg>
-      <figcaption class="cap"><b>Figura 2.</b> El hallazgo central. Con <span class="mono">Fset=100&nbsp;g</span> el índice mantiene el sobreimpulso plano en 5–36&nbsp;g <b>a cualquier velocidad</b>: el firmware frena antes de que se forme el impacto. En el pulgar esa protección <b>no existe</b> — el mismo ajuste crece hasta 936&nbsp;g. La diferencia sigue a la rigidez del contacto: 6.1 g/count contra 1.6.</figcaption>
+      <figcaption class="cap"><b>Figura 2.</b> <b>Bajar el umbral de fuerza no protege a ninguno de los dos.</b> En el pulgar, <span class="mono">Fset=100&nbsp;g</span> deja de contener el impacto en cuanto sube la velocidad: hasta 936&nbsp;g. En el índice el mismo ajuste queda <b>por debajo del residual de flexión del propio dedo</b>, así que el firmware frena en el aire y en 4 de las 7 velocidades <b>no hay contacto que medir</b> — la franja gris. Solo roza a <span class="mono">v&nbsp;≤&nbsp;50</span>, y a <span class="mono">v=1000</span> el momento lo mete dentro y golpea con 295&nbsp;g. <i>(La versión anterior de esta figura dibujaba una línea plana sobre la franja gris y la leía como protección.)</i></figcaption>
     </figure>
   </div>
 
@@ -150,11 +152,6 @@
 <line x1="66" y1="82.9" x2="910" y2="82.9" stroke="#eef2f7"/>
 <text x="58" y="86.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
 <text x="150.4" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">100</text>
-<line x1="133.4" y1="181.6" x2="133.4" y2="267.5" stroke="#285F97" stroke-width="2" opacity="0.42"/>
-<circle cx="133.4" cy="181.6" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
-<circle cx="133.4" cy="267.5" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
-<text x="144.4" y="271.5" fill="#285F97" font-size="10.5" class="mono">2</text>
-<text x="133.4" y="171.6" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">36</text>
 <line x1="167.4" y1="84.9" x2="167.4" y2="203.9" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
 <circle cx="167.4" cy="84.9" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
 <circle cx="167.4" cy="203.9" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>
@@ -209,7 +206,7 @@
 <text x="488" y="322" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">FORCE_SET  (g)</text>
 <text transform="translate(16,155) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF  (g, log)</text>
 </svg>
-    <figcaption class="cap"><b>Figura 3.</b> La conmutación de velocidad (aproximación rápida + cierre lento) colapsa el sobreimpulso <b>en los dos dedos y para todo <span class="mono">Fset</span></b>, entre 30× y 82×. Ataca la causa —el momento en el instante del contacto— y por eso generaliza, mientras que bajar el <span class="mono">Fset</span> depende de la rigidez del contacto y no.</figcaption>
+    <figcaption class="cap"><b>Figura 3.</b> La conmutación de velocidad (aproximación rápida + cierre lento) colapsa el sobreimpulso <b>en los dos dedos y para todo <span class="mono">Fset</span> alcanzable</b>, entre 30× y 55× en el pulgar. Ataca la causa —el momento en el instante del contacto— y por eso es la única mitigación que sobrevive al cambio de dedo: el umbral de fuerza bajo no protege en ninguno.</figcaption>
   </figure>
 
   <hr class="rule">
@@ -218,7 +215,7 @@
     <div style="overflow-x:auto">
     <table>
       <thead><tr><th>FORCE_SET</th><th>Índice · A</th><th>Índice · B</th><th>Pulgar · A</th><th>Pulgar · B</th><th>Reducción (pulgar)</th></tr></thead>
-      <tbody><tr><td class="mono b">100</td><td class="mono">36</td><td class="mono">2</td><td class="mono">936</td><td class="mono">17</td><td class="mono b">55×</td></tr><tr><td class="mono b">250</td><td class="mono">3263</td><td class="mono">25</td><td class="mono">1524</td><td class="mono">34</td><td class="mono b">45×</td></tr><tr><td class="mono b">500</td><td class="mono">2917</td><td class="mono">39</td><td class="mono">1169</td><td class="mono">28</td><td class="mono b">42×</td></tr><tr><td class="mono b">750</td><td class="mono">2865</td><td class="mono">71</td><td class="mono">1083</td><td class="mono">36</td><td class="mono b">30×</td></tr><tr><td class="mono b">1000</td><td class="mono">2502</td><td class="mono">92</td><td class="mono">1403</td><td class="mono">37</td><td class="mono b">38×</td></tr></tbody>
+      <tbody><tr><td class="mono b">100</td><td class="mono">295</td><td class="mono">—</td><td class="mono">936</td><td class="mono">17</td><td class="mono b">55×</td></tr><tr><td class="mono b">250</td><td class="mono">3263</td><td class="mono">25</td><td class="mono">1524</td><td class="mono">34</td><td class="mono b">45×</td></tr><tr><td class="mono b">500</td><td class="mono">2917</td><td class="mono">39</td><td class="mono">1169</td><td class="mono">28</td><td class="mono b">42×</td></tr><tr><td class="mono b">750</td><td class="mono">2865</td><td class="mono">71</td><td class="mono">1083</td><td class="mono">36</td><td class="mono b">30×</td></tr><tr><td class="mono b">1000</td><td class="mono">2502</td><td class="mono">92</td><td class="mono">1403</td><td class="mono">37</td><td class="mono b">38×</td></tr></tbody>
     </table>
     </div>
   </div>

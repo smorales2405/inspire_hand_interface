@@ -167,6 +167,16 @@ def run_probe(hand, args):
     report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
     open_and_settle(hand, dof, args.open_angle, args.settle_band, args.settle_timeout_s,
                     args.open_speed, hold)
+    # TARA OBLIGATORIA. El sondeo con bloque se compara contra la curva libre, que
+    # se tomó en otra corrida: sin `forceClb` el cero del sensor deriva entre las
+    # dos y esa deriva se lee como fuerza externa. En el anular las dos curvas
+    # quedaron separadas 16-20 g desde POS 200 —antes de cualquier contacto
+    # posible— y como el umbral de onset son 20 g, el detector situó el contacto
+    # en POS 460 en vez de en el bloque. Restar el reposo de cada corrida NO basta:
+    # el sesgo no es un offset puro.
+    if not args.no_cal:
+        print("Calibrando fuerza (forceClb, palma abierta)...")
+        calibrate(hand, args)
 
     # 1) Test de lectura ancha + cross-check contra lecturas separadas (en reposo).
     w = hand.read_block(WIDE_ADDR, WIDE_COUNT)
@@ -340,6 +350,8 @@ def report_contact_geometry(args, dof, path, contact_pos):
     geom = geometric_onset_from_probe(path, free)
     pmap, map_src = find_pos_angle_map(args, dof)
     resid, _f0b = _free_residual(_load_probe(path) or [], _load_probe(free) if free else None)
+    resid_abs = absolute_residual(free)      # referido a la palma abierta, que es contra
+                                             # lo que compara FORCE_SET tras el forceClb
 
     def ang(pos):
         return pos_to_angle(pmap, int(round(pos))) if pmap else None
@@ -394,19 +406,18 @@ def report_contact_geometry(args, dof, path, contact_pos):
         print(f"     fases (blando y luego duro) da una pendiente media que no describe ninguna.")
 
     def margin_note(pos):
-        if resid is None:
+        if resid_abs is None:
             return ""
-        r = resid(pos)
-        # La curva libre da una COTA INFERIOR del residual: en el pulgar el
-        # `f_base_g` medido con forceClb quedó ~20 g por encima de lo que esta
-        # curva predecía (42 vs 21 g en POS 501). Por eso el margen se verifica
-        # en la celda de validación, no aquí.
-        return (f"   residual de flexión estimado ahí: {r:.0f} g (cota inferior; súmale ~20 g "
-                f"de sesgo de forceClb) → margen contra Fset=100 ≈ {100 - r - 20:.0f} g"
-                + ("" if r < 50 else "  ⚠ MUY JUSTO: el firmware puede frenar en el aire"))
+        r = resid_abs(pos)
+        # Contrastado contra el `f_base_g` medido en la celda de validación:
+        # meñique 99 estimado / 100 medido, anular 34 / 36. La celda sigue siendo
+        # la verificación, pero la estimación ya no va sesgada.
+        return (f"   residual de flexión ahí: {r:.0f} g → margen contra Fset=100 ≈ "
+                f"{100 - r:.0f} g"
+                + ("" if r < 70 else "  ⚠ el firmware puede frenar en el aire"))
 
-    if resid is not None:
-        r_on = resid(geom)
+    if resid_abs is not None:
+        r_on = resid_abs(geom)
         print(f" Fset MÍNIMO utilizable: el residual de flexión llega a {r_on:.0f} g ya en el "
               f"onset,\n   así que un Fset por debajo de ~{r_on + 30:.0f} g frena el dedo EN EL "
               f"AIRE y el trial nunca toca el bloque.")
@@ -820,19 +831,37 @@ def _rest_baseline(rows, band=4):
     return statistics.median(at_rest if at_rest else [f for _, f in rows[:12]])
 
 
-def _free_residual(rows, free):
+def _free_residual(rows, free, align=(60, 350)):
     """`(resid, f0b)` para pasar de fuerza CRUDA a fuerza EXTERNA.
 
     `resid(pos)` es la fuerza que el propio dedo genera al flexionar hasta `pos`
-    SIN tocar nada (sondeo `--no-block`), y `f0b` el offset en reposo del sondeo
-    con bloque. La fuerza externa en un punto es `(f - f0b) - resid(pos)`. Sin
-    curva libre `resid` es None: solo se puede descontar el offset, y todo lo que
-    dependa de la flexión queda dentro de la medida.
+    SIN tocar nada (sondeo `--no-block`). La fuerza externa es
+    `(f - f0b) - resid(pos)`. Sin curva libre `resid` es None: solo se descuenta
+    el reposo, y todo lo que dependa de la flexión queda dentro de la medida.
+
+    El cero se fija **alineando las dos curvas** en un tramo temprano donde el
+    contacto es imposible (`align` counts tras el arranque), NO con el valor en
+    reposo de cada corrida. El reposo no basta: entre dos sondeos del anular
+    separados por minutos las curvas quedaron desplazadas 16-20 g *después* de
+    restar sus reposos —el sesgo del sensor no es un offset puro— y como el
+    umbral de onset son 20 g, el detector situó el contacto en POS 460 en vez de
+    en el bloque, 1000 counts más allá. Alinear en el tramo temprano cancela
+    cualquier deriva constante entre corridas, tarada o no.
+
+    Supone que el bloque está más allá de `align[1]`; si el contacto empezara
+    dentro de esa ventana, la alineación se lo comería.
     """
     f0b = _rest_baseline(rows)
     if not free:
         return None, f0b
-    f0f = _rest_baseline(free)
+    p0 = max(rows[0][0], free[0][0])
+    lo, hi = p0 + align[0], p0 + align[1]
+    win_b = [f for p, f in rows if lo <= p <= hi]
+    win_f = [f for p, f in free if lo <= p <= hi]
+    if win_b and win_f:
+        f0b, f0f = statistics.median(win_b), statistics.median(win_f)
+    else:
+        f0f = _rest_baseline(free)
     pts = sorted(((p, f - f0f) for p, f in free))
 
     def resid(pos):
@@ -886,6 +915,35 @@ def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_po
             return pos
         prev = f
     return None
+
+
+def absolute_residual(free_path):
+    """`resid_abs(pos)`: fuerza de flexión del dedo referida a la PALMA ABIERTA.
+
+    Distinta de la `resid` de `_free_residual`, que está alineada con el sondeo
+    con bloque en un tramo temprano: esa sirve para detectar contacto (compara
+    dos corridas) pero está referida a ese tramo, donde el dedo ya acumuló
+    ~45 g. Para decidir si un `Fset` es alcanzable hace falta el valor ABSOLUTO,
+    porque `forceClb` tara con la palma abierta y el firmware compara contra eso.
+    Con la aligned se subestimaba: 53 g estimados contra 98-104 g medidos en el
+    meñique, que es la diferencia entre creer que `Fset=100` es viable y saber
+    que no lo es.
+    """
+    free = _load_probe(free_path) if free_path else None
+    if not free:
+        return None
+    f0 = _rest_baseline(free)
+    pts = sorted(((p, f - f0) for p, f in free))
+
+    def resid_abs(pos):
+        if pos <= pts[0][0]:
+            return pts[0][1]
+        for (p0, r0), (p1, r1) in zip(pts, pts[1:]):
+            if p0 <= pos <= p1:
+                return r0 if p1 == p0 else r0 + (pos - p0) * (r1 - r0) / (p1 - p0)
+        return pts[-1][1]
+
+    return resid_abs
 
 
 def contact_stiffness(path, free_path, onset_pos, stall_pos, win=3, f_target=100):

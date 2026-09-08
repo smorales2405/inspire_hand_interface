@@ -32,37 +32,43 @@ distintos: la excepción refuerza la regla.
 
 ## H-B — la conmutación de velocidad generaliza
 
-### Meñique (DOF 0) — **verificado, con un hallazgo nuevo**
+### Modo B en los dedos nuevos
 
-Modo B (aproximación rápida a `POS 1345`, luego cierre a `v=25`), montaje `m2`,
-N=5 por celda, 0 abortos, todos los trials con contacto confirmado:
+Aproximación rápida hasta 120 counts antes del onset, luego cierre a `v=25`.
+N=5 por celda, 0 abortos, contacto confirmado en los 20 trials.
 
-| `Fset` | ΔF mediana | Rango | Fuerza externa mínima |
-|---|---|---|---|
-| 250 | **50 g** | 32–124 | 245 g |
-| 1000 | **111 g** | 91–133 | 1055 g |
+| DOF | `Fset` | ΔF mediana | Rango | Externa mínima |
+|---|---|---|---|---|
+| 0 Meñique | 250 | **50 g** | 32–124 | 245 g |
+| 0 Meñique | 1000 | **111 g** | 91–133 | 1055 g |
+| 1 Anular | 100 | **46 g** | 33–78 | 129 g |
+| 1 Anular | 1000 | **56 g** | 6–116 | 1000 g |
 
-Criterio de V2 cumplido (≤ 150 g en `Fset=1000`, 0 abortos). Como referencia, la
-celda de validación en **modo A** a `v=250, Fset=500` dio **ΔF = 819 g** en el
-mismo montaje: el modo B lo colapsa aunque se le pida un `Fset` el doble de alto.
+Criterio de V2 cumplido en los dos dedos. En el anular ΔF **apenas escala con
+`Fset`** (46 → 56 g mientras `Fset` se multiplica por 10), que es la firma del
+modo B: el sobreimpulso lo fija el momento en el instante del contacto, no el
+umbral. Como referencia, la celda de validación en **modo A** a `v=250,
+Fset=500` dio **819 g** (meñique) y **1086 g** (anular) en los mismos montajes.
 
 ### El hallazgo: en el meñique `Fset = 100` **no es ejecutable**
 
 No es que proteja mal — es que **no se puede pedir**. El residual de flexión del
-propio dedo llega a **117 g en el onset de contacto**, por encima del umbral, así
-que el firmware frena en el aire y el trial no llega nunca al bloque. Medido dos
-veces, en los dos modos:
+propio dedo llega a **117 g en el onset**, por encima del umbral, así que el
+firmware frena en el aire y el trial no llega nunca al bloque. Medido dos veces,
+en los dos modos:
 
-| Modo | `Fset` | `f_base` | `F_max` | Externa | Onset | ΔF aparente |
-|---|---|---|---|---|---|---|
-| A (`v=250`) | 100 | 98 g | 106 g | **8 g** | — | 6 g |
-| B (`v=25`) | 100 | 104 g | 105 g | **1 g** | — | 5 g |
-| A (`v=250`) | 500 | 100 g | 1319 g | 1219 g | 1342 | 819 g |
+| DOF | Modo | `Fset` | `f_base` | `F_max` | Externa | Onset | ΔF aparente |
+|---|---|---|---|---|---|---|---|
+| 0 | A (`v=250`) | 100 | 98 g | 106 g | **8 g** | — | 6 g |
+| 0 | B (`v=25`) | 100 | 104 g | 105 g | **1 g** | — | 5 g |
+| 0 | A (`v=250`) | 500 | 100 g | 1319 g | 1219 g | 1342 | 819 g |
+| 1 | B (`v=25`) | 100 | 37 g | 110 g | **73 g** | 1393 | 10 g |
 
-**Ese ΔF de 5–6 g es un espejismo**: leído sin mirar diría "protección perfecta",
-cuando el dedo ni siquiera tocó el objeto. Es la tercera forma —y la más
-radical— en que la mitigación "usa un `Fset` bajo" falla: en el índice funciona,
-en el pulgar no protege, y en el meñique **no existe como opción**.
+**Ese ΔF de 5–6 g del meñique es un espejismo**: leído sin mirar diría
+"protección perfecta", cuando el dedo ni siquiera tocó el objeto. El anular, con
+la mitad de residual, sí llega. Es la tercera forma —y la más radical— en que la
+mitigación "usa un `Fset` bajo" falla: en el índice funciona, en el pulgar no
+protege, y en el meñique **no existe como opción**.
 
 > **Cómo se detecta.** El campo `onset_pos` no vale como prueba de contacto: su
 > umbral son 80 g sobre el baseline y los toques suaves no llegan — 31 de las 35
@@ -71,6 +77,23 @@ en el pulgar no protege, y en el meñique **no existe como opción**.
 > residual**. Implementado en `run_cell` (aviso por trial) y en
 > `exp2_analyze.drop_contactless()` (descarte con motivo). Verificado: no
 > descarta ningún trial de las campañas del índice ni del pulgar.
+
+### Geometría del contacto y umbral mínimo
+
+| DOF | Onset | `k_c` | Frenado a 100 g | Residual en onset | `Fset` mínimo |
+|---|---|---|---|---|---|
+| 0 Meñique | POS 1458 | 11.0 g/count | 18 counts | 117 g | **~147 g** |
+| 1 Anular | POS 1414 | 17.0 g/count | 12 counts | 50 g | **~80 g** |
+| 4 Pulgar | POS 775 | 5.7–5.9 g/count | 28–31 counts | 23 g | ~53 g |
+| 3 Índice | — | ~1.6 g/count † | ~220 counts † | ~9 g | — |
+
+† El índice es el único que **no** pasa por este pipeline: no tiene sondeo
+`--no-block`, así que su onset se fijó a ojo (`POS ~1200`) sobre un sondeo sin
+curva libre de referencia. Un `--probe --no-block` de 15 s con el bloque
+desmontado lo pondría en igualdad con los demás.
+
+Los umbrales mínimos predichos por la curva libre coinciden con lo medido:
+meñique 147 g (y `Fset=100` falló), anular 80 g (y `Fset=100` funcionó).
 
 ---
 
@@ -108,21 +131,45 @@ con el bloque sujeto.
 | Dedo | V0.1 | V0.2 | V1 | V0.3 | V0.4 | V2 | Veredicto |
 |---|---|---|---|---|---|---|---|
 | Meñique (0) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
-| Anular (1) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa; falta Sesión B |
+| Anular (1) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
 | Medio (2) | ✔ | ✔ | ✔ | ☐ | ☐ | ☐ | V1 pasa; falta Sesión B |
 
-### Parámetros del meñique (montaje `m2`)
+### Parámetros por dedo
 
-| | Valor |
-|---|---|
-| Recorrido libre `POS` | 96 … 1893 |
-| Onset geométrico | POS 1465 (`ANGLE_SET` 270 ≈ 62.1°) |
-| `--start-angle` (modo A) | 423 (POS 1215, residual medido 100 g) |
-| `--approach-angle` (modo B) | 343 (POS 1345) |
-| `Fset` mínimo utilizable | ≈ 150 g |
+| | Meñique (`m2`) | Anular (`fijo`) |
+|---|---|---|
+| Recorrido libre `POS` | 96 … 1893 | 61 … 1842 |
+| Onset geométrico | POS 1458 (`ANGLE_SET` 274) | POS 1414 (`ANGLE_SET` 284) |
+| `--start-angle` (modo A) | 427 (residual medido 100 g) | 443 (medido 36 g) |
+| `--approach-angle` (modo B) | 348 | 360 |
+| `Fset` mínimo utilizable | ≈ 147 g | ≈ 80 g |
+
+La campaña del meñique corrió con `--approach-angle 343` (POS 1345), derivado
+antes de la corrección de alineación: quedan 113 counts antes del onset en vez
+de 120. Sin efecto — el margen existe para conmutar de sobra.
 
 ### Datos
 
 `exp1/data_dof0/` · `exp2/data_dof0/` (sondeos `_libre`, `_m1`, `_m2`,
 `_m1_falsostall`) · `exp2/data_dof0_hybrid/` · `exp2/data_dof0_fset100_sin_contacto/`
-· `exp2/data_dof0_hybrid_m1_descartado/` (montaje suelto, no usar).
+· `exp2/data_dof0_hybrid_m1_descartado/` (montaje suelto, no usar) ·
+`exp1/data_dof1/` · `exp2/data_dof1/` · `exp2/data_dof1_hybrid/`.
+
+## Dos correcciones al pipeline durante esta campaña
+
+**Alineación de las curvas.** El cero se fijaba con el valor en reposo de cada
+sondeo. Entre dos sondeos del anular separados por minutos, las curvas quedaron
+desplazadas **16–20 g después de restar sus reposos** —el sesgo del sensor no es
+un offset puro— y como el umbral de onset son 20 g, el detector situó el contacto
+en `POS 460` en vez de en el bloque, **1000 counts más allá**. Ahora las dos
+curvas se **alinean en un tramo temprano** donde el contacto es imposible, lo que
+cancela cualquier deriva constante. Además `--probe` tara con `forceClb` al
+empezar.
+
+**Residual alineado ≠ residual absoluto.** La curva alineada sirve para *detectar
+contacto* (compara dos corridas) pero está referida a ese tramo temprano, donde
+el dedo ya acumuló ~45 g. Para decidir si un `Fset` es alcanzable hace falta el
+valor **absoluto**, porque `forceClb` tara con la palma abierta y el firmware
+compara contra eso. Con la alineada el meñique daba 53 g y `Fset=100` parecía
+viable; el absoluto da 117 g y coincide con los 98–104 g medidos. Separado en
+`absolute_residual()`.

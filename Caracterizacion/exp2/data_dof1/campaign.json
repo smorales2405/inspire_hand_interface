@@ -1,0 +1,38 @@
+[
+ {
+  "ts": "2026-09-07T21:15:53",
+  "mode": "cell",
+  "dof": 1,
+  "hold": {},
+  "watch": [
+   0,
+   2
+  ],
+  "mount": "fijo",
+  "seed": 0,
+  "trials": 5,
+  "trial_start": 0,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "100,250,500,750,1000",
+  "start_angle": 443,
+  "approach_angle": 475,
+  "hybrid_speed": 25,
+  "argv": [
+   "--serial-port",
+   "/dev/ttyUSB0",
+   "--dof",
+   "1",
+   "--watch",
+   "0,2",
+   "--mount",
+   "fijo",
+   "--start-angle",
+   "443",
+   "--cell",
+   "--speed",
+   "250",
+   "--fset",
+   "500"
+  ]
+ }
+]

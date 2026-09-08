@@ -83,6 +83,31 @@ def drop_contactless(rows, min_ext=30):
     return keep, dropped
 
 
+def drop_short_of_block(rows, d, onset_pos, slack=40):
+    """Descarta trials cuyo POS nunca llegó al bloque.
+
+    Para campañas anteriores a la columna `f_base_g`, donde `drop_contactless`
+    no puede aplicarse. Es el mismo fenómeno visto por el otro lado: si `Fset`
+    queda por debajo del residual de flexión del dedo en el camino, el firmware
+    frena en el aire y el trial se queda corto. En el índice, la fila entera
+    `Fset=100` termina en POS 791-851 con el bloque en 1416 — 600 counts de
+    distancia— mientras el resto de la matriz llega a 1412-1569.
+    """
+    keep, dropped = [], []
+    for r in rows:
+        try:
+            ps = [int(a['pos_act']) for a in csv.DictReader(open(os.path.join(d, r['trial_file'])))
+                  if a.get('pos_act', '')]
+        except (OSError, ValueError):
+            keep.append(r); continue
+        top = max(ps) if ps else None
+        if top is None or top >= onset_pos - slack:
+            keep.append(r)
+        else:
+            dropped.append((r, top))
+    return keep, dropped
+
+
 def _num(x):
     try:
         return float(x)
@@ -105,22 +130,37 @@ def main(argv=None):
     ap.add_argument('--base', default=os.path.join(_here, 'data'), help='dir del piloto')
     ap.add_argument('--override', default=os.path.join(_here, 'data_slow'), help='dir que reemplaza por velocidad')
     ap.add_argument('--out', default=os.path.join(_here, 'data'), help='dir de salida')
+    ap.add_argument('--geom-onset', type=int, default=None,
+                    help='POS del onset geométrico del bloque en este montaje. Con él se '
+                         'descartan los trials que se quedaron cortos (el firmware frenó en '
+                         'el aire porque Fset < residual de flexión). Imprescindible en las '
+                         'campañas anteriores a la columna f_base_g.')
     ap.add_argument('--keep-glitches', action='store_true',
                     help='no descartar los F_max que son lecturas corruptas (ver drop_glitches)')
     a = ap.parse_args(argv)
 
+    def prune(rs, d):
+        """Descartes que dependen de los CSV de trial, aplicados en su propio dir."""
+        if a.geom_onset:
+            rs, short = drop_short_of_block(rs, d, a.geom_onset)
+            for r, top in short:
+                print(f"Descartado (se quedó corto: POS {top} < bloque en {a.geom_onset}): "
+                      f"{r['trial_file']}  v={r['speed']} Fset={r['fset']}")
+        rs, nc = drop_contactless(rs)
+        for r, ext in nc:
+            print(f"Descartado (SIN CONTACTO: F_max solo {ext:.0f} g sobre el residual): "
+                  f"{r['trial_file']}  v={r['speed']} Fset={r['fset']}")
+        return rs
+
     rows = load(a.base)
-    rows, nocontact = drop_contactless(rows)
-    for r, ext in nocontact:
-        print(f"Descartado (SIN CONTACTO: F_max solo {ext:.0f} g sobre el residual): "
-              f"{r['trial_file']}  v={r['speed']} Fset={r['fset']}")
+    rows = prune(rows, a.base)
     if not a.keep_glitches:
         rows, dropped = drop_glitches(rows, a.base)
         for r, (m, nb) in dropped:
             print(f"Descartado (lectura corrupta, no impacto): {r['trial_file']}  "
                   f"v={r['speed']} Fset={r['fset']}  F_max={m} con vecinos <= {nb} g")
     if a.override and os.path.exists(os.path.join(a.override, 'grid_index.csv')):
-        ov = load(a.override)
+        ov = prune(load(a.override), a.override)
         if not a.keep_glitches:
             ov, dropped = drop_glitches(ov, a.override)
             for r, (m, nb) in dropped:

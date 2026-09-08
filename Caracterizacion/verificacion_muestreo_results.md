@@ -125,6 +125,83 @@ el bloque desmontado lo resuelve, y es la medición pendiente de mayor valor.
 
 ---
 
+## ⚠ Corrección mayor: el "setpoint seguro" del índice no existe
+
+El sondeo libre del índice (2026-09-07, bloque desmontado) permitió por fin
+analizar su campaña con el mismo pipeline que los demás dedos. El resultado
+**invalida el hallazgo principal del Exp 2**.
+
+**Su residual de flexión no es ~9 g.** La curva libre da **70 g en POS 600, 125 g
+en POS 1400 y 232 g en el tope**. El «~9 g» venía del diagnóstico `--zero`, que
+mide en una postura poco flexionada.
+
+**Y su onset de contacto no está en POS ~1200 sino en 1416.** Ese valor se había
+fijado a ojo sobre un sondeo sin curva libre de referencia; el tramo 1200→1400
+que se tomó por «contacto blando» es el **residual del propio dedo**.
+
+**Consecuencia: con `Fset=100` el dedo frena en el aire y nunca llega al bloque.**
+POS final por celda, con el bloque en POS 1416:
+
+| `Fset` | v=25 | v=50 | v=100 | v=250 | v=500 | v=750 | v=1000 |
+|---|---|---|---|---|---|---|---|
+| **100** | **791** | **796** | **802** | **818** | **851** | **842** | **831** |
+| 250 | 1452 | 1452 | 1473 | 1493 | 1515 | 1451 | 1338 |
+| 500 | 1467 | 1469 | 1497 | 1501 | 1482 | 1463 | 1569 |
+| 750 | 1485 | 1480 | 1511 | 1522 | 1436 | 1459 | 1526 |
+| 1000 | 1501 | 1496 | 1526 | 1510 | 1563 | 1508 | 1412 |
+
+**La fila entera se queda 600 counts corta.** Todas las demás llegan. El dedo se
+detiene siempre en el mismo sitio (791–851) **independientemente de la
+velocidad**, que es exactamente la firma de frenar contra el residual propio: la
+curva de residual cruza los 100 g ahí.
+
+Y eso explica el hallazgo publicado: el ΔF «plano en 5–36 g a cualquier
+velocidad» no era protección, era **ausencia de impacto**. Con los trials sin
+contacto descartados, la columna queda así:
+
+| v | 25 | 50 | 100–750 | 1000 |
+|---|---|---|---|---|
+| ΔF | 1 g | 1 g | *sin contacto* | **295 g** |
+
+A `v ≤ 50` el dedo llega justo al bloque y lo toca con suavidad real. De `v=100`
+a `v=750` no lo toca. A `v=1000` el momento lo mete dentro y el impacto es de
+**295 g**, no de 36. Es decir: **a la única velocidad a la que un agarre rápido
+ocurre de verdad, `Fset=100` no protege nada.**
+
+### Qué se mantiene y qué no
+
+- **Se mantiene** todo el resto de la matriz del índice (`Fset ≥ 250`): esos
+  trials llegan al bloque y sus ΔF son reales.
+- **Se mantiene** la campaña del pulgar entera. Su fila `Fset=100` alcanza POS
+  808–941 pasando su onset en 775, con onset registrado en las 140 filas.
+- **Se cae** el hallazgo del «setpoint seguro» del índice, y con él la
+  comparación que lo enfrentaba al pulgar: se estaba comparando una fila **sin
+  contacto** contra una **con contacto**.
+- **Se cae** la explicación por rigidez: el índice no es blando (1.6 g/count),
+  es **8.45 g/count** con 15 counts de distancia de frenado, en la misma familia
+  que los otros cuatro (5.7–17). No hay outlier que explicar.
+- **Se refuerza H-B.** La historia se vuelve más simple y más fuerte: en los
+  cinco DOF, bajar el `Fset` **nunca** protege — o no protege (pulgar), o el
+  ajuste no es alcanzable (índice, meñique). La conmutación de velocidad es la
+  **única** mitigación que funciona, y funciona en los cinco.
+
+### Documentos que hay que corregir
+
+`exp2/exp2_results.md` (hallazgo 2) · `exp2/exp2_results_dof4.md` (hallazgos
+2, 3 y 5, que se apoyan en la comparación con el índice) · `make_summary.py`
+(el documento-resumen y su artifact) · `compare_dof_figure.py` (la Figura 2 es
+justo la línea plana del índice) · `README.md`.
+
+### Cómo detectarlo en el futuro
+
+`exp2_analyze.py --geom-onset <POS>` descarta los trials cuyo `POS` máximo no
+llegó al bloque; es el complemento de `drop_contactless()` para las campañas
+anteriores a la columna `f_base_g`. Los dos criterios miran el mismo fenómeno
+por lados distintos —fuerza y posición— y ninguno descarta nada de la campaña
+del pulgar.
+
+---
+
 ## La rigidez del montaje domina el sobreimpulso
 
 Descubierto por accidente: el bloque estaba suelto durante el primer sondeo del

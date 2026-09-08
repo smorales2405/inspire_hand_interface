@@ -1,0 +1,39 @@
+[
+ {
+  "ts": "2026-09-07T21:07:08",
+  "mode": "hybrid",
+  "dof": 0,
+  "hold": {},
+  "watch": [
+   1
+  ],
+  "mount": "m2",
+  "seed": 0,
+  "trials": 1,
+  "trial_start": 0,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "100",
+  "start_angle": 680,
+  "approach_angle": 343,
+  "hybrid_speed": 25,
+  "argv": [
+   "--serial-port",
+   "/dev/ttyUSB0",
+   "--dof",
+   "0",
+   "--watch",
+   "1",
+   "--mount",
+   "m2",
+   "--approach-angle",
+   "343",
+   "--hybrid",
+   "--fsets",
+   "100",
+   "--trials",
+   "1",
+   "--outdir",
+   "Caracterizacion/exp2/data_dof0_hybrid_test"
+  ]
+ }
+]

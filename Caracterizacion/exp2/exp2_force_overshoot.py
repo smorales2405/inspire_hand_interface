@@ -186,6 +186,26 @@ def run_probe(hand, args):
     hand.write_block(SPEED_SET, [args.probe_speed] * NDOF)
     hand.write_block(FORCE_SET, [args.probe_fset] * NDOF)
 
+    # Referencia de espacio libre para decidir si hay CONTACTO de verdad. El
+    # stall de POS por sí solo no basta: en espacio libre el dedo llega frenando
+    # (deltas de 1-3 counts entre muestras) y una banda de 8 counts en 0.12 s lo
+    # da por detenido. En el meñique eso "detectó contacto" en POS 881 con la
+    # curva de fuerza pegada a la libre dentro de 1-3 g — es decir, sin tocar
+    # nada, y 1000 counts antes del bloque. Contacto = el POS deja de avanzar Y
+    # la fuerza se despega de la curva libre.
+    free_ref = None if args.no_block else free_probe_path(args.outdir, dof, args.mount)
+    resid_live = None
+    if free_ref and f_open is not None:
+        resid_live, _ = _free_residual([(p_open, f_open)], _load_probe(free_ref))
+    if not args.no_block:
+        if resid_live is not None:
+            print(f"Referencia de espacio libre: {os.path.relpath(free_ref)} "
+                  f"→ contacto exige fuerza externa > {args.contact_force_g} g")
+        else:
+            print("⚠ SIN sondeo libre de este DOF: el contacto se declarará solo por "
+                  "stall de POS,\n  que en espacio libre dispara sobre un avance lento. "
+                  "Corre `--probe --no-block` primero.")
+
     samples = []                 # (t, pos, force, cur)
     start_pos = p_open if p_open is not None else 0
     ref_pos = ref_t = None
@@ -227,7 +247,9 @@ def run_probe(hand, args):
                 ref_pos, ref_t = pos, t
             elif ((t - ref_t) >= args.stall_hold
                   and elapsed >= (t_cmd - t_start) + 0.3
-                  and (pos - start_pos) > 50):
+                  and (pos - start_pos) > 50
+                  and (resid_live is None or force is None
+                       or (force - f_open) - resid_live(pos) > args.contact_force_g)):
                 contact_pos = pos
                 reason = 'contacto'; break
 
@@ -280,7 +302,11 @@ def run_probe(hand, args):
         print(f"     Compáralo con el POS libre (--no-block): si coinciden, el dedo llegó a su")
         print(f"     tope/auto-colisión y NO al bloque.")
     else:
-        print(" POS de contacto  : no detectado (no hubo stall; revisa montaje/alcance)")
+        print(" POS de contacto  : NO detectado — ni el POS se detuvo ni la fuerza se "
+              "despegó de la curva libre.")
+        print(f"   → el dedo recorrió hasta POS {max(poss) if poss else '—'} sin tocar nada. "
+              f"Si el bloque debería estar ahí,\n     revisa el montaje; si no, sube "
+              f"--probe-window (era {args.probe_window} s).")
     print(f" Fuerza al parar  : {f_contact} g   (offset en reposo: {f_open} g "
           f"→ contacto externo aprox: {f_contact - f_open if (f_contact is not None and f_open is not None) else '—'} g)")
     print(f" Fuerza máx cruda : {max_force} g   (techo era {args.probe_ceiling} g)")
@@ -352,7 +378,7 @@ def report_contact_geometry(args, dof, path, contact_pos):
             if a_on is not None and a_st is not None:
                 d = abs(reg_to_deg(a_st, dof) - reg_to_deg(a_on, dof))
                 deg = st['k_c'] * st['dpos'] / d if d > 0 else None
-        print(f" Contacto compliant: del onset al stall el dedo avanza {st['dpos']} counts "
+        print(f" Del onset al PICO de fuerza el dedo avanza {st['dpos']} counts "
               f"mientras la fuerza externa sube de {st['f_onset_g']:.0f} a {st['f_stall_g']:.0f} g")
         print(f" Rigidez k_c media: {st['k_c']:.2f} g/count"
               + (f"  (≈ {deg:.0f} g/grado)" if deg else "")
@@ -378,6 +404,16 @@ def report_contact_geometry(args, dof, path, contact_pos):
         return (f"   residual de flexión estimado ahí: {r:.0f} g (cota inferior; súmale ~20 g "
                 f"de sesgo de forceClb) → margen contra Fset=100 ≈ {100 - r - 20:.0f} g"
                 + ("" if r < 50 else "  ⚠ MUY JUSTO: el firmware puede frenar en el aire"))
+
+    if resid is not None:
+        r_on = resid(geom)
+        print(f" Fset MÍNIMO utilizable: el residual de flexión llega a {r_on:.0f} g ya en el "
+              f"onset,\n   así que un Fset por debajo de ~{r_on + 30:.0f} g frena el dedo EN EL "
+              f"AIRE y el trial nunca toca el bloque.")
+        if r_on >= 70:
+            print(f"   ⚠ Con este montaje la celda Fset=100 NO es ejecutable en este dedo. "
+                  f"Eso es\n     un resultado, no un fallo: la 'protección por Fset bajo' no "
+                  f"es que falle,\n     es que no existe — el dedo pesa más que el umbral.")
 
     sw = geom - args.switch_margin
     print(f" Modo B → conmutar en {show(sw)}  (onset {geom} − margen {args.switch_margin})")
@@ -590,6 +626,22 @@ def run_cell(hand, args):
         print(f" Residual por flexión en la pre-posición = {trial['f_base']:.0f} g  →  "
               f"umbral efectivo en fuerza EXTERNA ≈ {args.fset - trial['f_base']:.0f} g "
               f"(FORCE_SET se compara contra la lectura cruda)")
+    # ¿HUBO CONTACTO? El campo `onset_pos` no vale como prueba: su umbral son 80 g
+    # sobre el baseline y los toques suaves no llegan (31 de 35 filas Fset=100 del
+    # índice no tienen onset y SÍ tocaron, con F_max 100-143 g sobre un residual de
+    # ~9 g). La prueba es que F_max se despegue del residual: si F_max ≈ f_base, el
+    # firmware frenó EN EL AIRE y el ΔF de ese trial es un espejismo — parecería
+    # protección perfecta cuando el dedo ni llegó al objeto.
+    if trial['f_base'] is not None and trial['f_max'] is not None:
+        ext = trial['f_max'] - trial['f_base']
+        if ext < 30:
+            print(f" ⚠ SIN CONTACTO: F_max ({trial['f_max']} g) apenas supera el residual "
+                  f"({trial['f_base']:.0f} g) en {ext:.0f} g.")
+            print(f"   El Fset ({args.fset} g) queda por debajo del residual del dedo en esta "
+                  f"postura, así que\n   el firmware frenó antes de tocar. El ΔF de este trial "
+                  f"NO mide un impacto.")
+        else:
+            print(f" ✔ Contacto: F_max supera el residual en {ext:.0f} g de fuerza externa.")
     if hold:
         print(f" DOF anclados: desviación máx sobre su baseline en reposo = "
               f"{trial['f_max_hold']} g (no es el valor absoluto)")
@@ -751,6 +803,23 @@ def _load_probe(path):
         return None
 
 
+def _rest_baseline(rows, band=4):
+    """Offset de fuerza en reposo: mediana de las muestras que siguen en el POS
+    inicial, NO de las primeras N muestras.
+
+    En los primeros ~150 ms la fuerza salta ~55 g cuando el motor engancha, y
+    cuántas muestras caen a cada lado del salto depende del arranque. Con la
+    mediana de las 12 primeras, dos sondeos del MISMO dedo dieron offsets de
+    +7 y −31 g cuando sus valores en reposo eran −48 y −57: 38 g de sesgo
+    fantasma que se restaba después a la curva libre.
+    """
+    if not rows:
+        return None
+    p0 = rows[0][0]
+    at_rest = [f for p, f in rows if p <= p0 + band]
+    return statistics.median(at_rest if at_rest else [f for _, f in rows[:12]])
+
+
 def _free_residual(rows, free):
     """`(resid, f0b)` para pasar de fuerza CRUDA a fuerza EXTERNA.
 
@@ -760,10 +829,10 @@ def _free_residual(rows, free):
     curva libre `resid` es None: solo se puede descontar el offset, y todo lo que
     dependa de la flexión queda dentro de la medida.
     """
-    f0b = statistics.median([f for p, f in rows[:12]])
+    f0b = _rest_baseline(rows)
     if not free:
         return None, f0b
-    f0f = statistics.median([f for p, f in free[:12]])
+    f0f = _rest_baseline(free)
     pts = sorted(((p, f - f0f) for p, f in free))
 
     def resid(pos):
@@ -799,13 +868,16 @@ def geometric_onset_from_probe(path, free_path=None, ext_g=20, jump_g=25, min_po
     resid, f0b = _free_residual(rows, _load_probe(free_path) if free_path else None)
     if resid is not None:
         run = 0
+        first = None
         for pos, f in rows:
             if pos <= min_pos:
                 continue
             if (f - f0b) - resid(pos) > ext_g:
                 run += 1
-                if run >= 2:
-                    return pos
+                if run == 1:
+                    first = pos          # el contacto empieza AQUÍ, no en la confirmación
+                elif run >= 2:
+                    return first
             else:
                 run = 0
     prev = None
@@ -835,12 +907,19 @@ def contact_stiffness(path, free_path, onset_pos, stall_pos, win=3, f_target=100
     def ext(f_raw, pos):
         return (f_raw - f0b) - (resid(pos) if resid is not None else 0.0)
 
-    near = sorted(rows, key=lambda r: abs(r[0] - onset_pos))[:win]
-    f_on = ext(statistics.median([f for _, f in near]), onset_pos)
-    # En el stall el POS ya no avanza pero la fuerza sigue subiendo: la referencia
-    # es el final del sondeo (el instante en que se declaró el contacto).
-    f_st = ext(statistics.median([f for _, f in rows[-win:]]), stall_pos)
-    dpos = stall_pos - onset_pos
+    # Fuerza EN la muestra del onset, no la mediana de las vecinas: en el contacto
+    # la fuerza sube ~10 g/count, así que promediar tres muestras a v=50 mete
+    # decenas de gramos de la subida dentro del "valor inicial".
+    f_on = min((ext(f, p) for p, f in rows if abs(p - onset_pos) <= 2),
+               default=ext(rows[0][1], rows[0][0]))
+    # Y el máximo, no el final: pasado el pico el dedo RETROCEDE y la fuerza se
+    # relaja (en el meñique 434 → 265 g en tres muestras, el mismo "no sostiene
+    # el setpoint" ya documentado). Tomar la cola subestima la rigidez.
+    peak = max(((ext(f, p), p) for p, f in rows if p >= onset_pos), default=(None, None))
+    f_st, pos_st = peak
+    if f_st is None:
+        return None
+    dpos = max(1, pos_st - onset_pos)
 
     # DISTANCIA DE FRENADO: counts desde el onset hasta que la fuerza externa
     # alcanza `f_target`. Es la métrica que decide si un `Fset` bajo protege —
@@ -861,7 +940,7 @@ def contact_stiffness(path, free_path, onset_pos, stall_pos, win=3, f_target=100
         else:
             run = 0
 
-    return {'onset_pos': onset_pos, 'stall_pos': stall_pos, 'dpos': dpos,
+    return {'onset_pos': onset_pos, 'stall_pos': pos_st, 'dpos': dpos,
             'f_onset_g': f_on, 'f_stall_g': f_st, 'k_c': (f_st - f_on) / dpos,
             'f_target': f_target, 'd_target': d_target,
             'free_corrected': resid is not None}
@@ -1100,6 +1179,10 @@ def parse_args(argv=None):
                    help='FORCE_SET del sondeo: el firmware frena suave en contacto (crudo; def 400)')
     p.add_argument('--probe-ceiling', type=int, default=550,
                    help='techo |FORCE_ACT| crudo de emergencia (g, def 550)')
+    p.add_argument('--contact-force-g', type=int, default=30,
+                   help='fuerza EXTERNA (cruda − reposo − residual de la curva libre) que hay '
+                        'que superar para declarar contacto, además del stall de POS (def 30). '
+                        'Sin esto el stall dispara sobre el avance lento en espacio libre.')
     p.add_argument('--current-max', type=int, default=1200, help='corriente máx antes de abortar (mA)')
     # El detector de parada resuelve DOS fenómenos opuestos, así que sus defaults
     # dependen de --no-block:

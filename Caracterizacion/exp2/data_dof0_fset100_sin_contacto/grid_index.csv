@@ -1,0 +1,2 @@
+trial_file,dof,speed,fset,f_max,delta_f,f_settle,t_peak_ms,onset_pos,rate_hz,aborted,hold,max_hold_dev_g,f_base_g,mount,temp_c
+B_dof0_v25_F100_n00.csv,0,25,100,105,5,79,80,,78,0,,4,104,m2,42

@@ -60,6 +60,29 @@ def drop_glitches(rows, d, max_speed=100, peak_ratio=2.0, neighbour_frac=0.4):
     return keep, dropped
 
 
+def drop_contactless(rows, min_ext=30):
+    """Descarta trials en los que el dedo nunca tocó el objeto.
+
+    Si `Fset` queda por debajo del residual de flexión del dedo en esa postura, el
+    firmware frena EN EL AIRE: el trial termina con `F_max ≈ f_base` y un ΔF
+    minúsculo que parece protección perfecta. En el meñique con Fset=100 eso da
+    ΔF = 6 g sin haber tocado nada. `onset_pos` no sirve para detectarlo (su
+    umbral son 80 g sobre baseline y los toques suaves no llegan), pero la
+    separación entre F_max y el residual sí.
+
+    Solo se puede aplicar donde el índice trae `f_base_g`; las campañas anteriores
+    a esa columna se dejan intactas.
+    """
+    keep, dropped = [], []
+    for r in rows:
+        fb, fm = _num(r.get('f_base_g')), r['f_max']
+        if fb is None or fm is None or (fm - fb) >= min_ext:
+            keep.append(r)
+        else:
+            dropped.append((r, fm - fb))
+    return keep, dropped
+
+
 def _num(x):
     try:
         return float(x)
@@ -87,6 +110,10 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     rows = load(a.base)
+    rows, nocontact = drop_contactless(rows)
+    for r, ext in nocontact:
+        print(f"Descartado (SIN CONTACTO: F_max solo {ext:.0f} g sobre el residual): "
+              f"{r['trial_file']}  v={r['speed']} Fset={r['fset']}")
     if not a.keep_glitches:
         rows, dropped = drop_glitches(rows, a.base)
         for r, (m, nb) in dropped:

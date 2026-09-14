@@ -71,6 +71,14 @@ velocidad** es la única mitigación que funciona, y funciona en los cinco.
 > índice— **era un artefacto**: esos trials nunca tocaban el bloque. Corregido
 > el 2026-09-07; ver el aviso al principio de `exp2/exp2_results.md`.
 
+- **Réplica por Modbus TCP (pulgar)** — el protocolo completo repetido sobre la
+  flexión del pulgar por Ethernet (`192.168.124.210:6000`, ~600 Hz frente a los
+  ~65–90 Hz de RS-485). El transporte **no cambia la física** (mapa `POS↔ANGLE`
+  dentro de 1 count, mismas magnitudes de ΔF, modo B colapsa 23–67×), pero
+  **desmonta las tres mejoras de medida** que se le habían atribuido: ni la σ del
+  onset, ni el retardo de detección, ni la captura del pico `F_max` estaban
+  limitados por muestreo. Ver `Caracterizacion/RESULTADOS_pulgar_tcp.md`.
+
 Cada `exp*/results.md` tiene la interpretación; las figuras (`exp*/figures/`)
 están en HTML autocontenido + SVG para embeber en la tesis.
 

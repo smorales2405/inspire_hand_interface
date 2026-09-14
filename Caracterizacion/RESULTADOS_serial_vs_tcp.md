@@ -46,6 +46,16 @@ Tasa: **~65 → 587 Hz (~9×)**.
 | 750 | 3596 | 3417 |
 | 1000 | 3417 | 3674 |
 
+> **⚠ Corregido 2026-09-14 por la réplica del pulgar**
+> ([`RESULTADOS_pulgar_tcp.md`](RESULTADOS_pulgar_tcp.md)): la mejora de
+> resolución que este apartado y la conclusión atribuyen a TCP **no existe**. El
+> pico de impacto dura 114–820 ms según la velocidad, no unos pocos ms, así que
+> 65 Hz le sacan decenas de muestras y no hay subestimación que corregir; la
+> consistencia que se vio aquí con N=3 era variabilidad de impacto. La σ del
+> onset **sube** de 28.8 a 40.2 counts a 9× la tasa (la σ «robusta» de 10.0 de la
+> campaña serial salía de recortar 10 de 50 trials por IQR), y el retardo de
+> detección se queda igual: +103 counts por TCP contra +111 por serial.
+
 **Misma tendencia y magnitud** (crece con la velocidad, satura ~3400–3700 g); las
 diferencias caen dentro de la variabilidad de impacto (N=3–5). El beneficio de
 resolución se ve en la **consistencia del pico a v=1000** (TCP: σ=10 g sobre 3
@@ -59,6 +69,7 @@ trials; en serial el pico rápido quedaba subestimado/disperso). Datos:
   siendo válida.**
 - **La latencia intrínseca (deadtime ~60–80 ms) tampoco cambia** (es del hardware).
 - **TCP mejora la adquisición:** tasa ~7–9×, resolución temporal ~17×, `write_cost`
-  ~12× menor. Esto favorece el **control de fuerza en tiempo real** y la captura
-  fiel de transitorios rápidos (pico `F_max`, y resolvería el σ_onset que en serial
-  quedó limitado por cuantización).
+  ~12× menor. Esto favorece el **control de fuerza en tiempo real**.
+- **Pero NO mejora las medidas de este protocolo** (corregido 2026-09-14): ni el
+  pico `F_max` —que dura cientos de ms— ni la σ del onset ni el retardo de
+  detección estaban limitados por muestreo. Ver `RESULTADOS_pulgar_tcp.md`.

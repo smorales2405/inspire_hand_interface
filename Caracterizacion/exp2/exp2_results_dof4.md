@@ -166,8 +166,23 @@ abort espurio.
 
 - **Repetibilidad mecánica excelente:** σ robusta = **10.0 counts** (el índice
   dio ~37 con el mismo método; el paper, ~7.5).
+
+  > **⚠ Corregido 2026-09-14 por la réplica por TCP**
+  > ([`../RESULTADOS_pulgar_tcp.md`](../RESULTADOS_pulgar_tcp.md)). Esos 10.0
+  > counts salen de descartar **10 de los 50 trials** como «outliers de
+  > detección» con la regla del IQR; la σ cruda es 28.8. Repetido el
+  > sub-experimento a 600 Hz sobre el mismo dedo, la σ **sube a 40.2** y con la
+  > misma regla **no califica ningún trial** como outlier. El salto típico entre
+  > valores ordenados contiguos es de 2 counts en los dos transportes, así que la
+  > cuantización de `POS` nunca dominó: **la dispersión del onset es mecánica
+  > (~40 counts a v=1000) y no se reduce muestreando más rápido**. El margen de
+  > conmutación correcto es `q_sw = ceil(3.3·40.2) = 133 counts`, no 34.
 - **El onset medido a v=1000 llega tarde por construcción.** Detectado en
   `POS 888` contra el onset **geométrico** de `POS 777` del sondeo lento.
+  El retardo **no es de muestreo**: por TCP, a 9× la tasa, vale +103 counts
+  contra estos +111. Lo que manda es el **umbral de fuerza** del detector
+  (`--onset-margin`), que obliga al dedo a comprimir el contacto hasta cruzarlo;
+  las «2 muestras seguidas» de la explicación original valen ~9 counts a 600 Hz.
   ⚠ **Ojo con la procedencia:** el bloque se movió entre el grid (P2.5) y este
   sub-experimento, así que esos dos números son de montajes distintos (`m1` y
   `m2`) y su diferencia mezcla dos efectos. Se separan con el onset a **v=25**,

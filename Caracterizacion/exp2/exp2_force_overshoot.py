@@ -1164,13 +1164,14 @@ def run_onset(hand, args):
         print(f" onset POS crudo:   media={statistics.fmean(s):.0f}  σ={statistics.pstdev(s):.1f}  (N={len(s)})")
         print(f" onset POS robusto: media={mu:.0f}  σ={sd:.1f}  min={min(clean)}  "
               f"(N={len(clean)}; {len(s)-len(clean)} outliers de detección excluidos)")
-        print(f"   (a v={args.onset_speed} la cuantización de POS por muestra domina la σ medida;")
-        print(f"    la repetibilidad mecánica intra-cluster es mucho menor.)")
+        print(f"   (la dispersión es MECÁNICA: medida a 600 Hz sobre el mismo dedo sube de")
+        print(f"    28.8 a 40.2 counts, así que no la limita la cuantización de POS.)")
         print(f" Margen de conmutación  q_sw = ceil({args.onset_k}·σ_robusta) = {q} counts POS")
-        # El onset medido a v=1000 llega SISTEMÁTICAMENTE TARDE: entre que la
-        # fuerza cruza el margen, se exigen 2 muestras seguidas y se lee POS,
-        # el dedo ya avanzó. El punto de conmutación debe anclarse en el onset
-        # GEOMÉTRICO del sondeo lento, no en el detectado.
+        # El onset medido a v=1000 llega SISTEMÁTICAMENTE TARDE, y el motivo es
+        # el UMBRAL DE FUERZA: el dedo tiene que comprimir el contacto hasta
+        # cruzar `--onset-margin`, y eso cuesta recorrido a cualquier tasa. No es
+        # de muestreo — medido +103 counts a 600 Hz contra +111 a 65 Hz. El punto
+        # de conmutación debe anclarse en el onset GEOMÉTRICO del sondeo lento.
         if geom is not None:
             switch_g = geom - q
             ang = to_angle(switch_g)

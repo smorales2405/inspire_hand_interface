@@ -289,10 +289,27 @@ class HandModbus:
     def read_temps(self):
         """Temperatura de los 6 actuadores (C, 0-100) o None.
 
-        6 registros TEMP..TEMP+5, 1 temp por registro (confirmado con lectura
-        cruda de 1618..1623). 0-100 cabe en el byte bajo -> read_block (signed) sirve.
+        El bloque TEMP llega en DOS formatos segun el transporte, verificado en
+        esta unidad:
+          · RS-485  -> 1 temperatura por registro (1618..1623). Las campanas
+                       serial registraron 42-44 C asi.
+          · TCP     -> byte-empaquetado, 2 temperaturas por registro y los 3
+                       ultimos a cero: 1618=0x1818 -> 24 C y 24 C. Es el formato
+                       que describe el manual (sec. 2.6.19, "6 bytes").
+        No hay flag: se decide por el VALOR. Una temperatura valida cabe en
+        0-100, asi que cualquier registro por encima de 100 solo puede ser un par
+        empaquetado. Decidirlo por transporte seria fragil; por rango, no.
         """
-        return self.read_block(TEMP, NDOF)
+        raw = self.read_block(TEMP, NDOF)
+        if raw is None:
+            return None
+        if all(0 <= v <= 100 for v in raw):
+            return raw
+        out = []
+        for v in raw[:NDOF // 2]:
+            u = v & 0xFFFF
+            out.extend((u & 0xFF, (u >> 8) & 0xFF))
+        return out
 
     def write_block(self, addr, values):
         """Write signed ints as uint16 (so -1 -> 0xFFFF). Returns bool ok."""

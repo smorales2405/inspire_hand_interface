@@ -73,21 +73,46 @@ def default_outdir(dof):
     return os.path.join(_HERE, 'data' if dof == 3 else f'data_dof{dof}')
 
 
-def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000, hold=None):
-    """Abre el dedo `dof` a velocidad rápida fija y espera settle de ANGLE_ACT.
+def open_and_settle(hand, dof, open_angle, band, timeout_s, open_speed=1000, hold=None,
+                    pos_band=2, pos_hold_s=0.08):
+    """Abre el dedo `dof` a velocidad rápida fija y espera a que se asiente DE VERDAD.
 
     La velocidad de reapertura es independiente de la velocidad de prueba del
     trial, para que la reapertura no herede una `SPEED_SET` lenta.
+
+    Dos condiciones, no una: `ANGLE_ACT` dentro de `band` del objetivo **y**
+    `POS_ACT` sin moverse más de `pos_band` counts durante `pos_hold_s`. La
+    segunda es la que importa. El firmware aterriza unos counts fuera del
+    objetivo y sigue reptando en el tramo final, y `ANGLE_ACT` (0-1000) no tiene
+    resolución para verlo mientras `POS_ACT` (0-2000) sí. A 87 Hz por serial
+    daba igual —la deriva quedaba enterrada en el ruido del baseline— pero a
+    ~700 Hz por TCP se ve que POS sube 94→99 doce ms ANTES del escalón, dentro
+    de la ventana de baseline, y el detector de onset lo toma por el arranque
+    del movimiento: dos de cinco trials a v=1000 daban un deadtime de ~1 ms y la
+    σ de la celda subía a 37.9 ms contra los 8.0 de serial.
     """
     hand.write_block(SPEED_SET, [open_speed] * NDOF)
     hand.write_block(ANGLE_SET, angle_vector(dof, open_angle, hold))
     t0 = time.perf_counter()
+    in_band = False
+    recent = []                      # (t, pos) de la ventana móvil
     while time.perf_counter() - t0 < timeout_s:
-        a = hand.read_block(ANGLE_ACT)
-        if a is not None and abs(a[dof] - open_angle) <= band:
-            time.sleep(0.05)   # pequeño margen extra de asentamiento
-            return True
-        time.sleep(0.02)
+        t = time.perf_counter()
+        if not in_band:
+            a = hand.read_block(ANGLE_ACT)
+            in_band = a is not None and abs(a[dof] - open_angle) <= band
+            if not in_band:
+                time.sleep(0.02)
+                continue
+        pb = hand.read_block(POS_ACT)
+        if pb is not None:
+            recent.append((t, pb[dof]))
+            recent = [(tt, pp) for (tt, pp) in recent if t - tt <= pos_hold_s]
+            span = [pp for _, pp in recent]
+            if (len(recent) >= 3 and t - recent[0][0] >= pos_hold_s * 0.9
+                    and max(span) - min(span) <= pos_band):
+                return True
+        time.sleep(0.005)
     return False
 
 
@@ -296,7 +321,8 @@ def run_campaign(hand, args, hold):
         for k, (v, n) in enumerate(order, 1):
             if not open_and_settle(hand, args.dof, args.open_angle,
                                    args.settle_band, args.settle_timeout_s,
-                                   args.open_speed, hold):
+                                   args.open_speed, hold,
+                                   args.settle_pos_stable, args.settle_pos_hold_s):
                 print(f"[{k}/{total}] WARN: apertura no asentó (v={v} n={n}); continúo")
             trial = run_trial(hand, args.dof, v, args, hold)
             m = quick_metrics(trial)
@@ -330,7 +356,8 @@ def run_single(hand, args, hold):
     time.sleep(0.6)
     report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
     open_and_settle(hand, args.dof, args.open_angle, args.settle_band,
-                    args.settle_timeout_s, args.open_speed, hold)
+                    args.settle_timeout_s, args.open_speed, hold,
+                    args.settle_pos_stable, args.settle_pos_hold_s)
 
     trial = run_trial(hand, args.dof, args.speed, args, hold)
     m = quick_metrics(trial)
@@ -431,6 +458,12 @@ def parse_args(argv=None):
                    help='en modo pos, cada cuántas iters se chequea FORCE_ACT (def 8)')
     p.add_argument('--settle-band', type=int, default=6,
                    help='banda ANGLE_ACT para dar por asentada la apertura (def 6)')
+    p.add_argument('--settle-pos-stable', type=int, default=2,
+                   help='counts dentro de los que POS_ACT debe quedarse para dar la '
+                        'pre-posición por asentada (def 2). ANGLE_ACT no tiene resolución '
+                        'para verlo: la deriva residual cabe en su banda.')
+    p.add_argument('--settle-pos-hold-s', type=float, default=0.08,
+                   help='tiempo que POS_ACT debe permanecer quieto antes del escalón (def 0.08)')
     p.add_argument('--settle-timeout-s', type=float, default=3.0)
     p.add_argument('--seed', type=int, default=0, help='semilla del orden aleatorio (def 0)')
     p.add_argument('--outdir', default=None,

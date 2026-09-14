@@ -169,20 +169,25 @@ abort espurio.
 
   > **⚠ Corregido 2026-09-14 por la réplica por TCP**
   > ([`../RESULTADOS_pulgar_tcp.md`](../RESULTADOS_pulgar_tcp.md)). Esos 10.0
-  > counts salen de descartar **10 de los 50 trials** como «outliers de
-  > detección» con la regla del IQR; la σ cruda es 28.8. Repetido el
-  > sub-experimento a 600 Hz sobre el mismo dedo, la σ **sube a 40.2** y con la
-  > misma regla **no califica ningún trial** como outlier. El salto típico entre
-  > valores ordenados contiguos es de 2 counts en los dos transportes, así que la
-  > cuantización de `POS` nunca dominó: **la dispersión del onset es mecánica
-  > (~40 counts a v=1000) y no se reduce muestreando más rápido**. El margen de
-  > conmutación correcto es `q_sw = ceil(3.3·40.2) = 133 counts`, no 34.
+  > counts son la σ del **grupo bajo**, no la del contacto. El onset no se
+  > dispersa: **se bifurca**. El dedo aterriza en una de dos posiciones separadas
+  > ~70 counts, cada una apretada — aquí 40/50 en 875–906 (σ 10.0) y 10/50 en
+  > 947–965 (σ 7.2), con 41 counts de hueco entre medias. La regla de 1.5·IQR
+  > descartó el grupo alto entero por pesar solo un 20 %. Repetido a 600 Hz sobre
+  > el mismo dedo, la estructura **se repite** (27/50 en 813–834 y 22/50 en
+  > 880–909) pero el grupo alto pesa un 46 %, así que la misma regla **no
+  > descarta ninguno**. El recorte medía el peso del grupo, no el dedo.
+  > **Consecuencia:** el margen de conmutación no puede salir de `3.3·σ` sobre la
+  > mezcla; tiene que cubrir la separación entre grupos más la anchura del
+  > temprano, y anclarse en el contacto más temprano posible.
 - **El onset medido a v=1000 llega tarde por construcción.** Detectado en
   `POS 888` contra el onset **geométrico** de `POS 777` del sondeo lento.
   El retardo **no es de muestreo**: por TCP, a 9× la tasa, vale +103 counts
-  contra estos +111. Lo que manda es el **umbral de fuerza** del detector
-  (`--onset-margin`), que obliga al dedo a comprimir el contacto hasta cruzarlo;
-  las «2 muestras seguidas» de la explicación original valen ~9 counts a 600 Hz.
+  contra los ~98 de retardo real de aquí (una vez descontados los ~13 counts de
+  movimiento del bloque). El presupuesto teórico de abajo predice ≈33 counts a
+  600 Hz porque dos de sus tres términos escalan con la tasa; se miden 103. Lo
+  que manda es el **umbral de fuerza** del detector (`--onset-margin`), que
+  obliga al dedo a comprimir el contacto hasta cruzarlo.
   ⚠ **Ojo con la procedencia:** el bloque se movió entre el grid (P2.5) y este
   sub-experimento, así que esos dos números son de montajes distintos (`m1` y
   `m2`) y su diferencia mezcla dos efectos. Se separan con el onset a **v=25**,

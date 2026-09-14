@@ -35,39 +35,54 @@ decía la comparativa del índice.
 
 ## Tres correcciones
 
-### 1. La σ del onset no era cuantización de muestreo: era recorte
+### 1. El onset no se dispersa: se bifurca
 
 Lo publicado en serial: σ robusta de 10.0 counts «a v=1000 la cuantización de
 `POS` por muestra domina la σ medida; la repetibilidad mecánica intra-cluster es
 mucho menor».
 
-| | Serial (65 Hz) | TCP (600 Hz) |
-|---|---|---|
-| σ cruda | 28.8 counts | **40.2** |
-| σ «robusta» | 10.0, tras excluir **10 de 50** por IQR | 40.2, **0 excluidos** |
-| Rango | 875–965 | 813–972 |
-| Salto típico entre valores contiguos | 2 counts | **2 counts** |
+Repetido el sub-experimento a 600 Hz, lo que aparece no es ni una σ menor ni una
+distribución ancha: **el dedo aterriza en una de DOS posiciones de contacto**,
+separadas ~70 counts, y cada una es apretada.
 
-A diez veces la tasa la dispersión **sube**, y con la misma regla del IQR no
-califica ningún trial como outlier. El salto entre valores ordenados contiguos es
-de 2 counts en ambos transportes, así que la cuantización nunca dominó. No había
-un núcleo estrecho con outliers de detección: había una distribución ancha a la
-que se le cortaban las colas.
+| | Grupo bajo | Hueco | Grupo alto | σ de la mezcla |
+|---|---|---|---|---|
+| Serial, 65 Hz (`m2`) | **40/50**, 875–906, σ 10.0 | 41 counts | **10/50**, 947–965, σ 7.2 | 28.8 |
+| TCP, 600 Hz (`tcp1`) | **27/50**, 813–834, σ 5.3 | 46 counts | **22/50**, 880–909, σ 7.6 | 40.2 |
 
-**La dispersión del onset es mecánica (~40 counts a `v=1000`) y no se reduce
-muestreando más rápido.** El margen de conmutación medido es
-`q_sw = ceil(3.3·40.2) = 133 counts`, a 13 counts del default de 120 que se había
-fijado por el argumento de que conmutar antes solo cuesta tiempo.
+La estructura **se repite en los dos transportes y en dos montajes distintos**,
+así que no es un artefacto de detección ni de cadencia. Lo que cambia es el
+**peso** de cada grupo: 20 % arriba por serial, 46 % por TCP.
+
+De ahí salen tres consecuencias:
+
+- **La σ publicada de 10.0 es la del grupo bajo**, no la del contacto. La regla
+  de 1.5·IQR descartó el grupo alto entero como «outliers de detección» porque
+  con un 20 % de peso cae fuera de las vallas; con el 46 % de la campaña por TCP
+  la misma regla **no descarta ninguno**, porque el grupo alto ensancha los
+  propios cuartiles. El recorte no medía nada del dedo: medía el peso del grupo.
+- **La σ de 40.2 tampoco significa nada**, y esa es mía: es la desviación de una
+  mezcla de dos poblaciones, tan poco descriptiva como la de 10.0.
+- **El margen de conmutación no puede salir de `3.3·σ`.** Tiene que cubrir la
+  separación entre grupos (~70 counts) más la anchura del grupo temprano, y
+  anclarse en el contacto **más temprano posible**, no en el centro. Los 133
+  counts que da `3.3·40.2` quedan del orden correcto por accidente aritmético;
+  los 34 que daba la σ recortada de serial habrían quedado **muy** cortos.
+
+Queda abierto **qué** bifurca el contacto —dos puntos de la yema, un
+deslizamiento, o juego del propio bloque—. Con 50 toques por campaña se ve la
+estructura pero no la causa, y esta réplica no estaba diseñada para eso.
 
 ### 2. El retardo de detección tampoco es de muestreo
 
-Onset detectado menos onset geométrico: **+103 counts por TCP, +111 por serial**.
-Prácticamente idéntico a 9× la tasa. La explicación publicada —«el margen de
-fuerza, las 2 muestras seguidas y la lectura de POS posterior suman ~100 counts a
-v=1000»— atribuía el retardo a tres términos de los que **dos son despreciables a
-600 Hz** (2 muestras ≈ 3 ms ≈ 9 counts de avance) y el retardo sigue ahí. Lo que
-manda es el **umbral de fuerza** (`--onset-margin`, 120 g): el dedo tiene que
-comprimir el contacto hasta cruzarlo, y eso cuesta recorrido a cualquier tasa.
+Onset detectado menos onset geométrico del **mismo montaje**: **+103 counts por
+TCP (857 − 754, `tcp1`), +98 por serial** (888 − ≈790, `m2`). Prácticamente
+idéntico a 9× la tasa. El presupuesto teórico publicado sumaba tres términos —margen de fuerza ≈19
+counts, dos muestras consecutivas ≈67, lectura de `POS` posterior ≈34— para
+≈120 previstos. **Dos de los tres escalan con la tasa**, así que a 600 Hz ese
+mismo presupuesto predice ≈33 counts. Se miden **103**. Lo que manda es el
+**umbral de fuerza** (`--onset-margin`, 120 g): el dedo tiene que comprimir el
+contacto hasta cruzarlo, y eso cuesta recorrido a cualquier cadencia.
 
 ### 3. El pico `F_max` no es un transitorio rápido
 

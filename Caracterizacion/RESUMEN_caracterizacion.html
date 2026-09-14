@@ -39,6 +39,27 @@
   .kpi .l{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.35;}
   .method{background:var(--soft);border:1px solid var(--hair);border-radius:11px;padding:16px 18px;
     font-size:14px;color:#3a434e;}
+  /* Aviso correctivo: va como acotación al margen, no como otra tarjeta — el
+     documento ya usa .method y .panel para bloques, y una tercera caja aplanaría
+     la jerarquía. */
+  .note{font-size:13.5px;color:var(--muted);border-left:2px solid var(--hair);
+    padding-left:14px;margin:14px 0;}
+  /* Corrección publicada: más peso que .note porque rectifica un resultado, no
+     acota uno. Filete ámbar (el color de "atención" del documento) sobre el
+     fondo suave; sin borde completo, que lo convertiría en otra tarjeta. */
+  .callout{background:var(--soft);border-left:3px solid var(--amber);
+    border-radius:0 8px 8px 0;padding:13px 16px;margin:16px 0;font-size:14px;color:#3a434e;}
+  .callout b{color:var(--ink);}
+  /* Título de .panel — mismo tratamiento que .method .h */
+  .tt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    font-weight:700;margin-bottom:8px;}
+  .tt .tag{letter-spacing:0;text-transform:none;font-weight:400;}
+  /* Leyenda de figura: la identidad de cada serie va por muestra de color MÁS
+     etiqueta, nunca por color solo. */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:var(--muted);
+    margin-bottom:10px;}
+  .li{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:11px;height:11px;border-radius:3px;display:inline-block;flex:none;}
   .method .h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px;}
   .method code,.foot code,p code,li code{font-family:ui-monospace,Menlo,monospace;font-size:.86em;
     background:var(--soft);padding:1px 5px;border-radius:4px;color:var(--ink);}
@@ -221,7 +242,7 @@
 <text transform="translate(14,132) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">latencia L_band (ms)</text>
 </svg><figcaption>Latencia ~plana con la velocidad (barras = ±1σ).</figcaption></div>
     </figure>
-    <div class="tbl-wrap"><table><caption><b>Tabla 1.</b> Respuesta al escalón (Exp 1): métricas por velocidad de cierre (media ± σ, N=20 por fila).</caption><thead><tr><th>SPEED_SET</th><th>Latencia (ms)</th><th>Subida 10–90% (ms)</th><th>Estab. ±2% (ms)</th><th>Pendiente (counts/s)</th><th>R²</th></tr></thead><tbody><tr><td class="mono b">100</td><td class="mono">65<span class="pm">±17</span></td><td class="mono">3519<span class="pm">±7</span></td><td class="mono">4366<span class="pm">±20</span></td><td class="mono">304</td><td class="mono">1.000</td></tr><tr><td class="mono b">250</td><td class="mono">79<span class="pm">±17</span></td><td class="mono">1413<span class="pm">±9</span></td><td class="mono">1793<span class="pm">±14</span></td><td class="mono">760</td><td class="mono">0.999</td></tr><tr><td class="mono b">500</td><td class="mono">67<span class="pm">±16</span></td><td class="mono">696<span class="pm">±10</span></td><td class="mono">945<span class="pm">±12</span></td><td class="mono">1521</td><td class="mono">0.995</td></tr><tr><td class="mono b">750</td><td class="mono">71<span class="pm">±16</span></td><td class="mono">467<span class="pm">±12</span></td><td class="mono">676<span class="pm">±11</span></td><td class="mono">2280</td><td class="mono">0.991</td></tr><tr><td class="mono b">1000</td><td class="mono">64<span class="pm">±8</span></td><td class="mono">376<span class="pm">±11</span></td><td class="mono">587<span class="pm">±9</span></td><td class="mono">2922</td><td class="mono">0.980</td></tr></tbody></table></div>
+    <div class="tbl-wrap"><table><caption><b>Tabla 1.</b> Respuesta al escalón (Exp 1): métricas por velocidad de cierre (media ± σ, N=20 por fila).</caption><thead><tr><th>SPEED_SET</th><th>Latencia (ms)</th><th>Subida 10–90% (ms)</th><th>Estab. ±2% (ms)</th><th>Pendiente (counts/s)</th><th>R²</th></tr></thead><tbody><tr><td class="mono b">100</td><td class="mono">65<span class="pm">±17</span></td><td class="mono">3519<span class="pm">±7</span></td><td class="mono">4366<span class="pm">±20</span></td><td class="mono">304</td><td class="mono">1.000</td></tr><tr><td class="mono b">250</td><td class="mono">79<span class="pm">±17</span></td><td class="mono">1413<span class="pm">±9</span></td><td class="mono">1793<span class="pm">±14</span></td><td class="mono">760</td><td class="mono">0.999</td></tr><tr><td class="mono b">500</td><td class="mono">67<span class="pm">±16</span></td><td class="mono">695<span class="pm">±10</span></td><td class="mono">945<span class="pm">±12</span></td><td class="mono">1521</td><td class="mono">0.995</td></tr><tr><td class="mono b">750</td><td class="mono">71<span class="pm">±16</span></td><td class="mono">467<span class="pm">±12</span></td><td class="mono">676<span class="pm">±11</span></td><td class="mono">2280</td><td class="mono">0.991</td></tr><tr><td class="mono b">1000</td><td class="mono">64<span class="pm">±8</span></td><td class="mono">376<span class="pm">±11</span></td><td class="mono">587<span class="pm">±9</span></td><td class="mono">2922</td><td class="mono">0.980</td></tr></tbody></table></div>
   </section>
 
   <hr class="rule">
@@ -389,7 +410,8 @@
   <section>
     <h2>Sub-experimento <span class="tag">margen de conmutación</span></h2>
     <h3>Dónde debe la mano cambiar a velocidad lenta</h3>
-    <p>Para fijar el punto en que la política híbrida cambia a cierre lento, se midió la <b>posición de primer contacto</b> en 50 toques suaves a máxima velocidad. La <b>repetibilidad mecánica del contacto es excelente</b> (σ ~5–8 counts, comparable a la literatura). A máxima velocidad la resolución de posición por muestra domina la σ medida (~37 counts), de la cual se deriva un <b>margen de conmutación de ~124 counts</b>: la mano entra al cierre lento ~124 counts <b>antes</b> del contacto esperado, garantizando un toque suave. Este margen se re-mide por montaje.</p>
+    <p>Para fijar el punto en que la política híbrida cambia a cierre lento, se midió la <b>posición de primer contacto</b> en 50 toques suaves a máxima velocidad, de donde sale un <b>margen de conmutación de ~124 counts</b>: la mano entra al cierre lento ~124 counts <b>antes</b> del contacto esperado, garantizando un toque suave. Este margen se re-mide por montaje.</p>
+    <p class="note">El margen es correcto, pero el razonamiento que lo justificó no: se atribuyó la dispersión medida a la resolución de posición por muestra, y se resumió el contacto con la desviación de su grupo más poblado. Repetir el experimento a nueve veces la tasa de muestreo mostró que ninguna de las dos cosas se sostiene — ver la última sección.</p>
   </section>
 
   <hr class="rule">
@@ -478,7 +500,7 @@
 <text x="226" y="293" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">SPEED_SET comandado</text>
 <text transform="translate(15,137) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF con Fset=100 g  (log)</text>
 </svg></div>
-      <figcaption><b>Figura 5.</b> <b>Izquierda:</b> la velocidad comandada se traduce en movimiento con la <b>misma constante en los dos dedos</b> (3.04 y 2.99 counts/s por unidad de <span class="mono">SPEED_SET</span>, ajustadas sobre el tramo donde ambos son lineales) — el comando calibra el actuador, no el ángulo. El pulgar solo se despega en el extremo (−12&nbsp;% a máxima velocidad: su techo mecánico). <b>Derecha:</b> un umbral de fuerza bajo (100&nbsp;g) <b>no protege a ninguno de los dos</b>. En el pulgar deja de contener el impacto en cuanto sube la velocidad, hasta 936&nbsp;g. En el índice el umbral queda por debajo de su propia fuerza de flexión, así que el dedo <b>no llega al objeto</b> (franja gris) salvo a máxima velocidad, donde golpea con 295&nbsp;g. Escala logarítmica.</figcaption>
+      <figcaption><b>Figura 4.</b> <b>Izquierda:</b> la velocidad comandada se traduce en movimiento con la <b>misma constante en los dos dedos</b> (3.04 y 2.99 counts/s por unidad de <span class="mono">SPEED_SET</span>, ajustadas sobre el tramo donde ambos son lineales) — el comando calibra el actuador, no el ángulo. El pulgar solo se despega en el extremo (−12&nbsp;% a máxima velocidad: su techo mecánico). <b>Derecha:</b> un umbral de fuerza bajo (100&nbsp;g) <b>no protege a ninguno de los dos</b>. En el pulgar deja de contener el impacto en cuanto sube la velocidad, hasta 936&nbsp;g. En el índice el umbral queda por debajo de su propia fuerza de flexión, así que el dedo <b>no llega al objeto</b> (franja gris) salvo a máxima velocidad, donde golpea con 295&nbsp;g. Escala logarítmica.</figcaption>
     </figure>
 
     <figure>
@@ -545,7 +567,7 @@
 <text x="488" y="322" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">FORCE_SET  (g)</text>
 <text transform="translate(16,155) rotate(-90)" fill="#5a6472" font-size="11.5" text-anchor="middle" class="ey">ΔF  (g, log)</text>
 </svg>
-      <figcaption><b>Figura 6.</b> La política híbrida colapsa el sobreimpulso <b>en los dos dedos y para todo umbral de fuerza</b>, entre 30× y 82×.</figcaption>
+      <figcaption><b>Figura 5.</b> La política híbrida colapsa el sobreimpulso <b>en los dos dedos y para todo umbral de fuerza</b>, entre 30× y 82×.</figcaption>
     </figure>
 
     <div class="panel">
@@ -602,7 +624,7 @@
 <text x="481" y="312" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">ΔF = F_max − Fset  (g)</text>
 <text transform="translate(14,147) rotate(-90)" fill="#5a6472" font-size="12" text-anchor="middle" class="ey">impactos</text>
 </svg>
-      <figcaption><b>Figura 7.</b> 51 impactos se agrupan entre 798 y 1059&nbsp;g; después hay <b>500&nbsp;g sin un solo impacto</b>; y 4 llegan a 1685–1934&nbsp;g, más del doble de la mediana. El régimen duro <b>no se anuncia</b>: ocurre con el mismo comando, en la misma posición de contacto y con el mismo residual de fuerza que los suaves. A la izquierda, el modo híbrido: sus trials caben en 9–29&nbsp;g.</figcaption>
+      <figcaption><b>Figura 6.</b> 51 impactos se agrupan entre 798 y 1059&nbsp;g; después hay <b>500&nbsp;g sin un solo impacto</b>; y 4 llegan a 1685–1934&nbsp;g, más del doble de la mediana. El régimen duro <b>no se anuncia</b>: ocurre con el mismo comando, en la misma posición de contacto y con el mismo residual de fuerza que los suaves. A la izquierda, el modo híbrido: sus trials caben en 9–29&nbsp;g.</figcaption>
     </figure>
 
     <p>La consecuencia es concreta: un objeto dimensionado para aguantar la mediana (~898&nbsp;g) no falla «de vez en cuando», falla en <b>1 de cada 13 agarres</b>, y cuando falla recibe además presión sostenida y no solo un pico. Como nada en la señal permite anticipar cuál de los dos regímenes va a ocurrir, <b>acotar el pico en promedio no es una mitigación</b>. La conmutación de velocidad sí lo es, porque suprime el régimen duro entero en vez de promediarlo.</p>
@@ -614,6 +636,71 @@
   <hr class="rule">
 
   <section>
+    <h2>Réplica por Modbus TCP <span class="tag">mismo dedo · 9× la tasa de muestreo</span></h2>
+    <h3>Muestrear más rápido no midió mejor: mostró qué se estaba midiendo mal</h3>
+    <p class="lead">La mano también responde por Ethernet, lo que multiplica por nueve la tasa de realimentación (de ~65 a ~600 lecturas por segundo). Todo el protocolo del pulgar se repitió por ese canal —100 trials de escalón, 175 de contacto, 50 toques de onset y 25 del modo híbrido— con dos preguntas: si cambiaba la física, y si mejoraban las tres medidas que se habían dado por limitadas por el muestreo.</p>
+    <p><b>La física no cambia.</b> El mapa de posición reproduce <b>dentro de 1 count</b> un mes y varios montajes después; la constante de velocidad, el retardo, la distancia de frenado, el mapa de sobreimpulso completo y el colapso del modo híbrido caen todos dentro de la variabilidad de las campañas. Eso <b>valida hacia atrás</b> toda la caracterización hecha por el canal serie.</p>
+    <p><b>Las tres mejoras esperadas no existían.</b> Ni el pico de fuerza estaba submuestreado —dura entre 114 y 820&nbsp;ms, así que el canal lento ya le sacaba decenas de muestras—, ni el retardo de detección bajó (+103 counts frente a +98), ni la dispersión del contacto se redujo. Esta última resultó ser otra cosa:</p>
+
+    <figure>
+      <svg viewBox="0 0 840 372" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" role="img" aria-label="Distribución de la posición de contacto por serial y por Modbus TCP">
+<line x1="24.0" y1="48" x2="24.0" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="24.0" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">-30</text>
+<line x1="149.4" y1="48" x2="149.4" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="149.4" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+0</text>
+<line x1="274.7" y1="48" x2="274.7" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="274.7" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+30</text>
+<line x1="400.1" y1="48" x2="400.1" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="400.1" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+60</text>
+<line x1="525.5" y1="48" x2="525.5" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="525.5" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+90</text>
+<line x1="650.8" y1="48" x2="650.8" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="650.8" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+120</text>
+<line x1="776.2" y1="48" x2="776.2" y2="326" stroke="#dbe2ec" stroke-width="1"/>
+<text x="776.2" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+150</text>
+<text x="420" y="363" fill="#5a6472" font-size="11.5" text-anchor="middle">posición de primer contacto − mediana de su campaña (counts de POS)</text>
+<text x="8" y="58" fill="#12181f" font-size="13" font-weight="600">RS-485 · 65 Hz</text>
+<text x="8" y="75" fill="#5a6472" font-size="11.5">σ de la mezcla 28.8 counts · la σ publicada de 10.0 es la del grupo izquierdo, tras recortar el derecho</text>
+<rect x="66.8" y="104.9" width="39.8" height="49.1" rx="3" fill="#285F97" opacity="0.9"/>
+<rect x="108.6" y="130.9" width="39.8" height="23.1" rx="3" fill="#285F97" opacity="0.9"/>
+<rect x="150.4" y="128.0" width="39.8" height="26.0" rx="3" fill="#285F97" opacity="0.9"/>
+<rect x="192.2" y="136.7" width="39.8" height="17.3" rx="3" fill="#285F97" opacity="0.9"/>
+<rect x="359.3" y="142.4" width="39.8" height="11.6" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
+<rect x="401.1" y="145.3" width="39.8" height="8.7" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
+<rect x="442.9" y="145.3" width="39.8" height="8.7" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
+<line x1="24.0" y1="154.0" x2="818.0" y2="154.0" stroke="#dbe2ec" stroke-width="1"/>
+<text x="8" y="212" fill="#12181f" font-size="13" font-weight="600">Modbus TCP · 600 Hz</text>
+<text x="8" y="229" fill="#5a6472" font-size="11.5">σ de la mezcla 40.2 counts · la misma regla de recorte aquí no descarta ninguno</text>
+<rect x="66.8" y="287.8" width="39.8" height="20.2" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="108.6" y="256.0" width="39.8" height="52.0" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="150.4" y="302.2" width="39.8" height="5.8" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="359.3" y="293.6" width="39.8" height="14.4" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="401.1" y="284.9" width="39.8" height="23.1" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="442.9" y="284.9" width="39.8" height="23.1" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="484.7" y="305.1" width="39.8" height="2.9" rx="3" fill="#B4740F" opacity="0.9"/>
+<rect x="735.4" y="305.1" width="39.8" height="2.9" rx="3" fill="#B4740F" opacity="0.9"/>
+<line x1="24.0" y1="308.0" x2="818.0" y2="308.0" stroke="#dbe2ec" stroke-width="1"/>
+<text x="138" y="98" fill="#285F97" font-size="12" font-weight="600" text-anchor="middle">40 de 50</text>
+<text x="138" y="167" fill="#5a6472" font-size="11" text-anchor="middle">σ 10.0</text>
+<text x="421" y="135" fill="#285F97" font-size="12" font-weight="600" text-anchor="middle">10 de 50</text>
+<text x="421" y="167" fill="#5a6472" font-size="11" text-anchor="middle">σ 7.2</text>
+<text x="127" y="249" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">27 de 50</text>
+<text x="127" y="321" fill="#5a6472" font-size="11" text-anchor="middle">σ 5.3</text>
+<text x="434" y="278" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">22 de 50</text>
+<text x="434" y="321" fill="#5a6472" font-size="11" text-anchor="middle">σ 7.6</text>
+<text x="818" y="36" fill="#5a6472" font-size="11.5" text-anchor="end">trazo discontinuo = descartado como «outlier de detección»</text>
+</svg>
+      <figcaption><b>Figura 7.</b> El dedo no aterriza en una posición con ruido: aterriza en <b>una de dos</b>, separadas ~70&nbsp;counts, y cada una es apretada (σ 10–8 counts). La estructura se repite en los dos canales y en dos montajes distintos, así que es del contacto y no de la medida. Lo que cambia es el <b>peso</b>: 10 de 50 toques caen en el grupo tardío por el canal serie y 22 de 50 por Ethernet. Las barras de trazo discontinuo son las que la regla de descarte de valores atípicos eliminaba.</figcaption>
+    </figure>
+
+    <p>La consecuencia es metodológica y concreta. La desviación publicada del contacto (~10 counts) <b>no describía el contacto</b>: era la del grupo más poblado, después de que una regla automática eliminara el otro por pesar solo un 20&nbsp;%. Con el 44&nbsp;% que ese mismo grupo pesa por Ethernet, la regla ya no elimina nada — <b>el recorte no medía el dedo, medía el peso del grupo</b>. Y un margen de conmutación derivado de esa desviación habría quedado muy corto: el margen real tiene que cubrir la separación entre los dos grupos y anclarse en el contacto <b>más temprano posible</b>, no en el promedio.</p>
+
+    <p>Es la misma lección que ya había dado la distribución de impactos, en otro sitio del sistema y por otra vía: <b>cuando el comportamiento tiene dos modos, cualquier estadístico de resumen describe uno e ignora el otro</b>, y el que ignora es justo el que rompe el agarre. Queda abierto qué bifurca el contacto —dos puntos de la yema, un deslizamiento, o juego del montaje—; los 50 toques por campaña muestran la estructura pero no la causa.</p>
+
+    <p>De paso, la tasa alta hizo visibles dos defectos de método que el canal lento ocultaba: la pre-posición se daba por asentada cuando el dedo todavía reptaba unos counts —lo que contaminaba la medida de retardo—, y el registro de temperatura llega en un formato distinto por cada canal. Corregidos ambos, la campaña registró además el calentamiento del actuador, de 34 a 40&nbsp;°C a lo largo de los 175 contactos.</p>
+  </section>
+
+  <section>
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
@@ -621,11 +708,12 @@
       <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso 27–131× en el índice y 30–55× en el pulgar, con un margen de conmutación (~124 counts) fijado experimentalmente, y se verificó después en los otros tres dedos.</li>
       <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
       <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
+      <li>La caracterización se <b>replicó por un segundo canal de comunicación</b> con nueve veces la tasa de muestreo: la física reproduce, lo que valida las campañas previas. Pero <b>ninguna de las tres mejoras de medida que se le atribuían era real</b>, y a cambio reveló que la posición de contacto tiene <b>dos modos</b>, no ruido.</li>
       <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>
     </ul>
     <p class="lead"><b>Próximos pasos:</b> los tres dedos restantes ya están <b>verificados por muestreo</b> (la constante de velocidad y el modo híbrido se sostienen en los cinco); queda subir el N por celda en las campañas completas e integrar la política híbrida en el lazo de agarre.</p>
   </section>
 
-  <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU.</p>
+  <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU (RS-485) y Modbus TCP.</p>
 
 </div>

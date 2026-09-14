@@ -31,7 +31,29 @@ def _isolated_peak(path):
     return (m, max(nb)) if nb else None
 
 
-def drop_glitches(rows, d, max_speed=100, peak_ratio=2.0, neighbour_frac=0.4):
+def _peak_width(path, frac=0.5):
+    """Muestras consecutivas por encima de `frac`·F_max alrededor del pico."""
+    try:
+        f = [int(a['force_g']) for a in csv.DictReader(open(path)) if a['force_g']]
+    except OSError:
+        return None
+    if len(f) < 10:
+        return None
+    m = max(f)
+    if m <= 0:
+        return None
+    i = f.index(m)
+    lo = i
+    while lo > 0 and f[lo - 1] > frac * m:
+        lo -= 1
+    hi = i
+    while hi < len(f) - 1 and f[hi + 1] > frac * m:
+        hi += 1
+    return hi - lo + 1
+
+
+def drop_glitches(rows, d, max_speed=100, peak_ratio=2.0, neighbour_frac=0.4,
+                  rate_resolves=200, max_glitch_samples=2):
     """Descarta trials cuyo F_max es una lectura corrupta, no un impacto.
 
     Criterio FÍSICO, deliberadamente conservador: a velocidad baja (v <= 100) el
@@ -41,6 +63,16 @@ def drop_glitches(rows, d, max_speed=100, peak_ratio=2.0, neighbour_frac=0.4):
     lectura Modbus corrupta. A v >= 250 NO se filtra nada: ahí un pico de
     impacto real dura pocos ms y el muestreo (~78 Hz) lo capta legítimamente en
     una sola muestra.
+
+    Esa excepción por velocidad es consecuencia de la TASA, no de la física, y
+    por eso solo rige por debajo de `rate_resolves`. Medido sobre el grid del
+    pulgar por TCP (583 Hz, 175 trials): un pico de impacto real dura entre 70 y
+    486 muestras por encima de la mitad de F_max —114 a 820 ms— a TODAS las
+    velocidades, y sus vecinos inmediatos están al 100 % del pico. Con esa
+    resolución un pico de una o dos muestras no puede ser un impacto a ninguna
+    velocidad: el criterio pasa a ser la ANCHURA del pico y la excepción por
+    velocidad desaparece. Por debajo de `rate_resolves` no se toca nada, para que
+    las campañas ya publicadas por serial den exactamente lo mismo.
     """
     cell = defaultdict(list)
     for r in rows:
@@ -50,9 +82,20 @@ def drop_glitches(rows, d, max_speed=100, peak_ratio=2.0, neighbour_frac=0.4):
     keep, dropped = [], []
     for r in rows:
         m = r['f_max']
-        if m is None or r['speed'] > max_speed or m <= peak_ratio * med[(r['speed'], r['fset'])]:
+        fast = (r.get('rate_hz') or 0) >= rate_resolves
+        if m is None or (not fast and r['speed'] > max_speed):
             keep.append(r); continue
-        pk = _isolated_peak(os.path.join(d, r['trial_file']))
+        if m <= peak_ratio * med[(r['speed'], r['fset'])]:
+            keep.append(r); continue
+        path = os.path.join(d, r['trial_file'])
+        if fast:
+            w = _peak_width(path)
+            if w is not None and w <= max_glitch_samples:
+                dropped.append((r, (m, w)))
+            else:
+                keep.append(r)
+            continue
+        pk = _isolated_peak(path)
         if pk and pk[0] > 300 and pk[1] < neighbour_frac * pk[0]:
             dropped.append((r, pk))
         else:
@@ -169,6 +212,7 @@ def load(d):
         r['speed'] = int(r['speed']); r['fset'] = int(r['fset'])
         r['delta_f'] = _num(r['delta_f']); r['f_max'] = _num(r['f_max'])
         r['aborted'] = int(r['aborted'])
+        r['rate_hz'] = _num(r.get('rate_hz'))
     return rows
 
 

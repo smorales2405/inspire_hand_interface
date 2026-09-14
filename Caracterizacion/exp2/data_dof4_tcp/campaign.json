@@ -1,0 +1,86 @@
+[
+ {
+  "ts": "2026-09-14T11:57:04",
+  "mode": "cell",
+  "dof": 4,
+  "hold": {
+   "5": 0
+  },
+  "watch": [
+   5
+  ],
+  "mount": "tcp1",
+  "seed": 0,
+  "trials": 5,
+  "trial_start": 0,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "100,250,500,750,1000",
+  "start_angle": 746,
+  "approach_angle": 475,
+  "hybrid_speed": 25,
+  "argv": [
+   "--transport",
+   "tcp",
+   "--ip",
+   "192.168.124.210",
+   "--port",
+   "6000",
+   "--dof",
+   "4",
+   "--hold",
+   "5:0",
+   "--mount",
+   "tcp1",
+   "--start-angle",
+   "746",
+   "--cell",
+   "--speed",
+   "250",
+   "--fset",
+   "500",
+   "--outdir",
+   "Caracterizacion/exp2/data_dof4_tcp"
+  ]
+ },
+ {
+  "ts": "2026-09-14T11:57:17",
+  "mode": "grid",
+  "dof": 4,
+  "hold": {
+   "5": 0
+  },
+  "watch": [
+   5
+  ],
+  "mount": "tcp1",
+  "seed": 0,
+  "trials": 5,
+  "trial_start": 0,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "100,250,500,750,1000",
+  "start_angle": 746,
+  "approach_angle": 475,
+  "hybrid_speed": 25,
+  "argv": [
+   "--transport",
+   "tcp",
+   "--ip",
+   "192.168.124.210",
+   "--port",
+   "6000",
+   "--dof",
+   "4",
+   "--hold",
+   "5:0",
+   "--mount",
+   "tcp1",
+   "--start-angle",
+   "746",
+   "--grid",
+   "--trials",
+   "5",
+   "--outdir",
+   "Caracterizacion/exp2/data_dof4_tcp"
+  ]
+ }
+]

@@ -806,6 +806,111 @@ def run_hybrid(hand, args):
     print(f"\nListo: {total} trials (modo B) en {args.outdir}/.")
 
 
+def run_ab(hand, args):
+    """Compara DOS políticas en UNA SOLA tanda aleatorizada.
+
+    Modo A (cierre a velocidad constante desde `--start-angle`) y modo B
+    (aproximación rápida a `--approach-angle`, luego `--hybrid-speed`) barajados
+    juntos y ejecutados intercalados.
+
+    Existe porque comparar dos tandas SEPARADAS no separa las políticas cuando el
+    montaje se mueve. En el anular (2026-09-15) el bloque se desplazó **68 counts**
+    entre la tanda del modo B y la del modo A —medido con el `onset_pos` que cada
+    trial registra— y esa deriva produjo una diferencia de 93 g con p = 0.0025
+    que se atribuyó a las políticas y no lo era. Barajadas juntas, cualquier
+    deriva del montaje afecta a las dos por igual, que es la misma protección que
+    ya tenía el grid y que estas comparaciones no tenían.
+
+    Escribe `ab_index.csv` (no `grid_index.csv`) con una columna `policy`: es un
+    fichero propio, así que añadir la columna no puede desincronizar la cabecera
+    de ninguna campaña ya empezada.
+    """
+    dof = args.dof
+    hold = args.hold_map
+    os.makedirs(args.outdir, exist_ok=True)
+    save_campaign_meta(args, 'ab')
+    fsets = [int(x) for x in args.fsets.split(',') if x.strip()]
+    n0 = args.trial_start
+    # Aleatorización POR BLOQUES BALANCEADOS, no barajado plano: se baraja el
+    # orden de los pares (Fset, repetición) y dentro de cada par el orden de las
+    # dos políticas. Así cada par consecutivo de trials contiene una A y una B,
+    # y una deriva monótona del montaje se reparte por igual entre las dos. Un
+    # shuffle plano puede dejar rachas de la misma política —con 6 trials dio
+    # B,A,A,A,B,B— y una racha al principio o al final es exactamente el sesgo
+    # que este modo existe para evitar.
+    rnd = random.Random(args.seed)
+    pairs = [(F, n) for F in fsets for n in range(n0, n0 + args.trials)]
+    rnd.shuffle(pairs)
+    order = []
+    for F, n in pairs:
+        pols = ['A', 'B']
+        rnd.shuffle(pols)
+        order += [(pol, F, n) for pol in pols]
+    total = len(order)
+
+    def fname_of(pol, F, n):
+        v = args.ab_speed if pol == 'A' else args.hybrid_speed
+        return f"{pol}_dof{dof}_v{v}_F{F}_n{n:02d}.csv"
+
+    if not check_no_overwrite(args.outdir, [fname_of(*o) for o in order]):
+        return
+    print(f"Tanda A/B intercalada sobre DOF {dof} ({DOF_NAMES[dof]}): "
+          f"modo A a v={args.ab_speed} desde {fmt_angle(args.start_angle, dof)} · "
+          f"modo B a v={args.hybrid_speed} desde {fmt_angle(args.approach_angle, dof)}.")
+    print(f"  {len(fsets)} Fset × 2 políticas × {args.trials} = {total} trials, orden barajado.")
+    report_hold(hand, hold, args.settle_band, args.settle_timeout_s, args.open_speed)
+    if not args.no_cal:
+        print("Calibrando fuerza (forceClb)...")
+        calibrate(hand, args)
+
+    index_path = os.path.join(args.outdir, 'ab_index.csv')
+    new_index = not os.path.exists(index_path)
+    with open(index_path, 'a', newline='') as idx:
+        iw = csv.writer(idx)
+        if new_index:
+            iw.writerow(['trial_file', 'policy', 'dof', 'speed', 'fset', 'f_max', 'delta_f',
+                         'f_settle', 't_peak_ms', 'onset_pos', 'rate_hz', 'aborted',
+                         'hold', 'max_hold_dev_g', 'f_base_g', 'mount', 'temp_c'])
+        hold_txt = ';'.join(f"{d}:{a}" for d, a in sorted(hold.items()))
+        for k, (pol, F, n) in enumerate(order, 1):
+            if not args.no_cal and args.recal_every > 0 and k > 1 and (k - 1) % args.recal_every == 0:
+                print("  · recalibrando forceClb ...")
+                calibrate(hand, args)
+            if pol == 'A':
+                # Pre-posición LEJOS y llegada lenta: el cierre completo va a v_ab.
+                open_and_settle(hand, dof, args.start_angle, args.settle_band,
+                                args.settle_timeout_s, args.approach_speed, hold)
+                v = args.ab_speed
+            else:
+                # Aproximación RÁPIDA hasta justo antes del contacto, luego lento.
+                open_and_settle(hand, dof, args.approach_angle, args.settle_band,
+                                args.settle_timeout_s, args.open_speed, hold)
+                v = args.hybrid_speed
+            trial = run_trial_A(hand, dof, v, F, args)
+            fname = fname_of(pol, F, n)
+            save_cell_csv(os.path.join(args.outdir, fname), trial)
+            n_s = len(trial['samples'])
+            rate = n_s / max(trial['samples'][-1][0], 1e-9) if n_s else 0
+            iw.writerow([fname, pol, dof, v, F, trial['f_max'], trial['delta_f'],
+                         f"{trial['f_settle']:.0f}" if trial['f_settle'] is not None else '',
+                         f"{trial['t_peak_ms']:.0f}" if trial['t_peak_ms'] is not None else '',
+                         trial['onset_pos'], f"{rate:.0f}", int(trial['aborted']),
+                         hold_txt, trial['f_max_hold'],
+                         '' if trial['f_base'] is None else f"{trial['f_base']:.0f}",
+                         args.mount,
+                         '' if trial['temp_c'] is None else trial['temp_c']])
+            idx.flush()
+            flag = f"  ⚠ABORT ({trial['abort_reason']})" if trial['aborted'] else ''
+            print(f"[{k}/{total}] modo {pol}  Fset={F:4d} n={n} → F_max={trial['f_max']} g  "
+                  f"ΔF={trial['delta_f']} g  onset={trial['onset_pos']}{flag}")
+
+    hand.write_block(ANGLE_SET, open_vector(args.open_angle, hold))
+    print(f"\nListo: {total} trials (A/B intercalado) en {args.outdir}/.")
+    print("  El `onset_pos` de cada trial sirve para comprobar si el montaje derivó:")
+    print("  si su rango es grande, la deriva está dentro de la tanda y afecta a las dos")
+    print("  políticas por igual — que es justo lo que este modo protege.")
+
+
 def _load_probe(path):
     try:
         return [(int(a['pos_act']), int(a['force_g']))
@@ -1347,6 +1452,13 @@ def parse_args(argv=None):
     p.add_argument('--approach-angle', type=int, default=475,
                    help='ANGLE_SET de aproximación, justo antes del contacto (def 475)')
     # sub-experimento onset
+    p.add_argument('--ab', action='store_true',
+                   help='compara modo A y modo B en UNA tanda aleatorizada e intercalada. '
+                        'Es el diseño correcto para contrastar políticas cuando el montaje '
+                        'puede moverse: en tandas separadas la deriva del bloque se lee como '
+                        'diferencia entre políticas.')
+    p.add_argument('--ab-speed', type=int, default=25,
+                   help='SPEED_SET del modo A dentro de --ab (def 25, el cierre lento puro)')
     p.add_argument('--onset', action='store_true', help='sub-exp: variabilidad del onset de contacto')
     p.add_argument('--onset-speed', type=int, default=1000, help='velocidad del sub-exp onset (def 1000)')
     p.add_argument('--onset-fset', type=int, default=500, help='FORCE_SET del sub-exp onset (def 500)')
@@ -1399,8 +1511,10 @@ def main(argv=None):
     if not (0 <= args.dof < NDOF):
         print(f"ERROR: --dof fuera de rango 0..{NDOF-1}", file=sys.stderr)
         return 2
-    if not (args.probe or args.zero or args.cell or args.grid or args.hybrid or args.onset):
-        print("Usa --zero, --probe, --cell, --grid (modo A), --hybrid (modo B) o --onset.",
+    if not (args.probe or args.zero or args.cell or args.grid or args.hybrid
+            or args.onset or args.ab):
+        print("Usa --zero, --probe, --cell, --grid (modo A), --hybrid (modo B), "
+              "--ab (A/B intercalado) o --onset.",
               file=sys.stderr)
         return 2
     if args.cell and (args.speed is None or args.fset is None):
@@ -1448,6 +1562,8 @@ def main(argv=None):
             run_grid(hand, args)
         elif args.hybrid:
             run_hybrid(hand, args)
+        elif args.ab:
+            run_ab(hand, args)
         elif args.onset:
             run_onset(hand, args)
         else:

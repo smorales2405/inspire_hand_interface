@@ -235,82 +235,75 @@ el golpe más fuerte: **2619 g con `Fset=100` contra 1615 con `Fset=1000`**, 1.6
 peor. En el medio fue 3453 contra 2528, 1.4×. Dos dedos independientes, misma
 dirección: **bajar el umbral de fuerza empeora el impacto a alta velocidad**.
 
-### El recorrido de esta comparación, y dónde queda
+### ¿Entrega el modo B el rendimiento del cierre lento? — **sí**
 
-Esta sección cambió tres veces. Vale la pena dejar el recorrido, porque cada
-paso lo movió una corrección distinta.
+Medido con `--ab` (tanda única, políticas intercaladas, aleatorización por
+bloques balanceados) en **las dos poses de contacto**, `Fset = 1000`, N=10 por
+brazo, 0 abortos, 0 trials sin contacto:
 
-**1. El hallazgo inicial.** Tandas separadas sobre la pieza de borde: modo B
-193 g (N=20) contra modo A `v=25` 100 g (N=20), **p = 0.0025**. Se concluyó que
-el modo B era 2× peor que el cierre lento puro, y de ahí que el margen de
-conmutación de 120 counts se quedara corto y que la causa fuera la velocidad de
-aproximación.
+| Pose | Onset | Modo A (cierre lento) | Modo B (aprox. rápida) | Δ | p |
+|---|---|---|---|---|---|
+| Borde (`tcp3`) | POS 1411 | 208 g | 157 g | −50 g | 0.35 |
+| Cara plana (`tcp2`) | POS 1720 | 228 g | 194 g | −34 g | 0.195 |
 
-**2. La retractación, por un montaje que se movía.** El usuario señaló que la
-punta del anular golpea el **borde** del bloque y lo mueve. Se retractaron las
-tres conclusiones y se cuantificó la deriva con el campo `onset_pos`: 68 counts.
+**No hay diferencia detectable en ninguna de las dos**, y ambas apuntan
+levemente a que el modo B es *mejor*. El modo B hace lo que promete: entrega el
+rendimiento del cierre lento sin pagar su tiempo de aproximación.
 
-**3. La retractación estaba mal medida.** `onset_pos` no es la posición del
-contacto — es donde dispara el detector de umbral del trial (80 g sobre el
-baseline) sobre la subida del **residual de flexión**, y su valor sigue a la
-pre-posición:
+### Por qué hizo falta llegar hasta aquí
+
+Esta sección se equivocó tres veces antes de esto, y el historial importa porque
+cada error tenía una causa distinta.
+
+**El hallazgo inicial fue un artefacto de comparar tandas separadas.** Sobre la
+pose de borde, en tandas distintas, dio modo B 193 g contra modo A 100 g con
+p = 0.0025. Con el diseño intercalado **en esa misma pose y ese mismo bloque**,
+el modo A da **208 g**. Lo que se movió no fue el modo B (193 → 157) sino el
+**modo A: 100 → 208**, el doble.
+
+La causa no fue que el bloque cambiara de sitio: el usuario precisó que se
+**inclinaba** durante el contacto y volvía a su posición, que es compliancia
+elástica y no deriva. La tanda del modo A se corrió justo después del grid de 70
+trials con 24 abortos, con el actuador caliente; el `forceClb` deriva ~40 g por
+minuto según ya documenta este repo, y `ΔF = F_max − Fset` hereda cualquier
+sesgo del cero. Un cero desplazado a la baja produce exactamente un ΔF bajo.
+
+**Y la retractación intermedia midió mal.** Se cuantificó la deriva del bloque
+con el campo `onset_pos`, que **no es la posición del contacto**: es donde
+dispara el detector de umbral del trial sobre la subida del residual de flexión,
+y sigue a la pre-posición —
 
 | Campaña | Política | `start POS` | `onset_pos` | Δ |
 |---|---|---|---|---|
-| Tanda A/B (pieza nueva) | A | 1468 | 1520 | +53 |
-| Tanda A/B (pieza nueva) | B | 1603 | 1654 | +51 |
+| Tanda A/B (cara plana) | A | 1468 | 1520 | +53 |
+| Tanda A/B (cara plana) | B | 1603 | 1654 | +51 |
 | Modo B margen 120 | B | 1297 | 1409 | +112 |
 | Grid + modo A `v=25` | A | 1168 | 1341 | +173 |
 
-Las dos campañas comparadas arrancaban de sitios distintos (1297 contra 1168),
-así que los «68 counts» medían eso.
+— así que los «68 counts de deriva» eran la diferencia de pre-posición entre las
+dos campañas (1297 contra 1168), no movimiento del bloque.
 
-**4. Y el movimiento del bloque no era del tipo que invalida.** El usuario
-precisó que el bloque **se inclinaba durante el contacto y volvía a su posición**
-— no cambiaba de sitio de un toque a otro. Es decir: es **compliancia elástica
-del montaje**, una propiedad del contacto constante entre trials, no una deriva
-de la geometría.
+**También cae la hipótesis de la pose.** Con el modo A en 208 y 228 g en las dos
+poses (y no en 100 y 228), la «ventaja del cierre lento que desaparece al
+flexionar» no existe.
 
-**Dónde queda el hallazgo inicial, entonces:** la objeción que lo tumbó era
-falsa, así que **vuelve a estar en pie** — con una reserva que sigue siendo
-válida. Sigue siendo una comparación **entre tandas**, y aunque la posición del
-bloque fuera estable, otras cosas varían con el tiempo: la temperatura del
-actuador (subió de 50 a 52 °C en la campaña del medio), la deriva del `forceClb`,
-el desgaste. No se puede excluir ninguna. Esa es precisamente la razón de ser del
-modo `--ab`.
+**Lo que queda, entonces:**
 
-### La tanda intercalada — sobre la pieza nueva
+- El modo B entrega el rendimiento del cierre lento. **El margen de conmutación
+  de 120 counts no está implicado**, y la mitigación central de la tesis no
+  necesita revisión.
+- El `Fset = 1000` en modo B sobre este dedo ronda los 157–194 g, por encima del
+  criterio de ≤ 150 g fijado con el índice — pero el cierre lento puro tampoco lo
+  cumple (208–228 g), así que **el criterio describe al índice, no al modo B**.
+- **Comparar políticas exige una tanda intercalada.** Dos tandas separadas del
+  mismo dedo, mismo bloque y misma pose difieren en un factor 2 por sí solas.
 
-Tanda `--ab` sobre la **pieza de cara plana**, 20 trials, `Fset = 1000`,
-aleatorización por bloques balanceados (`ABBABAABBABAABBAABBA`), 0 abortos:
-
-| | N | Mediana | IQR | Rango |
-|---|---|---|---|---|
-| **Modo A** (cierre lento puro) | 10 | 228 g | 195–317 | 87–349 |
-| **Modo B** (aproximación rápida) | 10 | 194 g | 91–279 | 53–699 |
-
-**Δ = 34 g · p = 0.195**: sin diferencia detectable.
-
-**Los dos resultados no se contradicen: están en poses distintas.** La pieza de
-borde contactaba en `POS 1410` (residual 64 g) y la de cara plana en **1720**
-(residual 116 g), mucho más flexionado. Y el que cambia es el **modo A**: pasa de
-100 a 228 g, mientras el modo B se queda en 193 → 194. La ventaja del cierre
-lento puro **desaparece al flexionar más**, y eso borra la diferencia.
-
-Si se sostiene, es más interesante que la pregunta original: diría que el margen
-del modo B depende de la **pose de contacto**, no solo de la velocidad. Pero está
-sobre N=10 por brazo y una sola pose cada uno.
-
-**Lo que lo zanjaría:** volver a montar la pieza de borde y correr `--ab` en esa
-pose. Misma comparación, mismo diseño, dos geometrías — y entonces la diferencia
-entre ellas sí sería atribuible a la pose.
-
-**Deriva geométrica real de la pieza nueva:** sondeo antes de la tanda `POS 1720`,
-después `POS 1721`. Un count en 20 trials suaves.
+**Reproducibilidad del montaje:** la pieza de borde, desmontada y vuelta a montar,
+volvió a `POS 1411` contra los 1410–1417 de antes — dentro de un count. Y la
+pieza de cara plana derivó 1 count (1720 → 1721) a lo largo de su tanda.
 
 > **Nota de método para todo el repo:** `onset_pos` en los índices de trial es un
-> **cruce de umbral**, no una posición de contacto, y se desplaza con la
-> pre-posición y con el perfil de residual del dedo. Sirve para comparar trials
+> **cruce de umbral**, no una posición de contacto. Sirve para comparar trials
 > que arrancan del mismo sitio; no para comparar campañas con pre-posiciones
 > distintas, ni como medida de geometría. Para eso está el onset geométrico del
 > sondeo.

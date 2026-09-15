@@ -13,6 +13,10 @@ e2=svgs(os.path.join(REPO,'exp2/figures/exp2_force_overshoot.html'))
 cmp_=svgs(os.path.join(REPO,'figures/comparativa_indice_pulgar.html'))
 dist=svgs(os.path.join(REPO,'exp2/figures/exp2_dof4_distribucion.html'))
 tcpf=svgs(os.path.join(REPO,'figures/replica_tcp_onset.html'))
+import replica_tcp_figure as _rtf          # reusa el cálculo de grupos y del paso del registro
+_b25, _b1k = _rtf.onsets(25), _rtf.onsets(1000)
+_st25, _st1k = _rtf.register_step(25), _rtf.register_step(1000)
+_cl1k = _rtf.clusters(_b1k)
 
 # datos del pulgar (DOF 4) para la sección comparativa
 import statistics as _st
@@ -204,7 +208,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   </header>
 
   <div class="kpis">
-    <div class="kpi"><div class="n">98.3<span class="u"> Hz</span></div><div class="l">realimentación de fuerza sostenida (0 errores)</div></div>
+    <div class="kpi"><div class="n">~33<span class="u"> Hz</span></div><div class="l">estado nuevo por sensor — el enlace lee a 98–800 Hz, la mano no publica más rápido</div></div>
     <div class="kpi"><div class="n">~64<span class="u"> ms</span></div><div class="l">latencia comando→sensor (indep. de la velocidad)</div></div>
     <div class="kpi"><div class="n">~3300<span class="u"> g</span></div><div class="l">sobreimpulso de fuerza al cerrar rápido</div></div>
     <div class="kpi"><div class="n">~68<span class="u">×</span></div><div class="l">reducción del sobreimpulso con la política híbrida</div></div>
@@ -237,8 +241,9 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
 
   <section>
     <h2>Exp 0 <span class="tag">baseline de muestreo</span></h2>
-    <h3>La plataforma sostiene ≥ 98 Hz de realimentación</h3>
-    <p>Se leyó el bloque de los 6 registros de fuerza en lazo cerrado (3×2000 lecturas). Tasa media <b>98.3 Hz</b> con <b>0 errores</b> en 6000 lecturas. El techo lo impone el firmware de la mano y el bus, no el software. Esto fija la <b>resolución temporal (~10 ms)</b> de todo lo demás y confirma que la plataforma es adecuada para el control propuesto.</p>
+    <h3>El enlace sostiene 98 lecturas por segundo — la mano publica 33</h3>
+    <p>Se leyó el bloque de los 6 registros de fuerza en lazo cerrado (3×2000 lecturas). Tasa media <b>98.3 Hz</b> con <b>0 errores</b> en 6000 lecturas; por Ethernet, 797 Hz. El techo de la <b>lectura</b> lo imponen el bus y el firmware, no el software.</p>
+    <p class="note">Esa cifra es la tasa a la que se <b>pregunta</b>, no a la que la mano <b>responde con algo nuevo</b>. Midiendo cada cuánto cambia de valor un registro —y no cada cuánto se lee— la realimentación útil resulta ser de <b>~33 Hz</b> en los dos canales: ver la última sección. La resolución temporal de todo lo que sigue es por tanto de ~30 ms, no de ~10.</p>
   </section>
 
   <hr class="rule">
@@ -330,23 +335,43 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <hr class="rule">
 
   <section>
-    <h2>Réplica por Modbus TCP <span class="tag">mismo dedo · 9× la tasa de muestreo</span></h2>
-    <h3>Muestrear más rápido no midió mejor: mostró qué se estaba midiendo mal</h3>
-    <p class="lead">La mano también responde por Ethernet, lo que multiplica por nueve la tasa de realimentación (de ~65 a ~600 lecturas por segundo). Todo el protocolo del pulgar se repitió por ese canal —100 trials de escalón, 175 de contacto, 50 toques de onset y 25 del modo híbrido— con dos preguntas: si cambiaba la física, y si mejoraban las tres medidas que se habían dado por limitadas por el muestreo.</p>
+    <h2>Réplica por Modbus TCP <span class="tag">mismo dedo · 9× la tasa de lectura</span></h2>
+    <h3>La mano publica estado nuevo 33 veces por segundo, se lea a la velocidad que se lea</h3>
+    <p class="lead">La mano también responde por Ethernet, lo que multiplica por nueve la tasa de <b>lectura</b> (de ~65 a ~600 consultas por segundo). Todo el protocolo del pulgar se repitió por ese canal —100 trials de escalón, 175 de contacto, 120 toques de contacto y 25 del modo híbrido— con dos preguntas: si cambiaba la física, y si mejoraban las medidas que se habían dado por limitadas por el muestreo.</p>
     <p><b>La física no cambia.</b> El mapa de posición reproduce <b>dentro de 1 count</b> un mes y varios montajes después; la constante de velocidad, el retardo, la distancia de frenado, el mapa de sobreimpulso completo y el colapso del modo híbrido caen todos dentro de la variabilidad de las campañas. Eso <b>valida hacia atrás</b> toda la caracterización hecha por el canal serie.</p>
-    <p><b>Las tres mejoras esperadas no existían.</b> Ni el pico de fuerza estaba submuestreado —dura entre 114 y 820&nbsp;ms, así que el canal lento ya le sacaba decenas de muestras—, ni el retardo de detección bajó (+103 counts frente a +98), ni la dispersión del contacto se redujo. Esta última resultó ser otra cosa:</p>
+    <p><b>Y las medidas tampoco mejoran</b> — pero no porque el muestreo no importe, sino porque el cuello de botella nunca estuvo en el enlace. Midiendo cada cuánto <b>cambia de valor</b> un registro, en lugar de cada cuánto se lee, aparece la explicación de todo lo anterior:</p>
+
+    <div class="panel">
+      <div class="tt">Tasa de lectura frente a tasa de información <span class="tag">cuatro campañas, dos canales</span></div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Campaña</th><th>Se lee a</th><th>El valor cambia cada</th><th>Información real</th></tr></thead>
+        <tbody>
+          <tr><td>Contacto, Ethernet</td><td class="mono">596 Hz</td><td class="mono">30.5 ms</td><td class="mono b">33 Hz</td></tr>
+          <tr><td>Cierre lento, Ethernet</td><td class="mono">579 Hz</td><td class="mono">31.1 ms</td><td class="mono b">32 Hz</td></tr>
+          <tr><td>Política híbrida, Ethernet</td><td class="mono">575 Hz</td><td class="mono">31.0 ms</td><td class="mono b">32 Hz</td></tr>
+          <tr><td>Contacto, canal serie</td><td class="mono">78 Hz</td><td class="mono">31.1 ms</td><td class="mono b">32 Hz</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <p>Posición, fuerza y corriente se refrescan <b>cada ~30.7&nbsp;ms</b>, con independencia del canal, de la velocidad del dedo y de lo rápido que se pregunte. Por encima de ~33&nbsp;Hz se releen valores que no han cambiado. Lo que Ethernet sí aporta es <b>entregar antes</b> cada valor nuevo —hasta 30&nbsp;ms menos de espera—, que para un lazo de control es real, pero no es más información.</p>
+
+    <h3>Qué explica esto</h3>
+    <p>La posición de primer contacto parecía tener <b>dos valores</b> en vez de uno, en los dos canales y en tres montajes distintos. Repetir el experimento a velocidad lenta y a velocidad máxima sobre el mismo montaje lo resuelve:</p>
 
     <figure>
       {tcpf[0]}
-      <figcaption><b>Figura 7.</b> El dedo no aterriza en una posición con ruido: aterriza en <b>una de dos</b>, separadas ~70&nbsp;counts, y cada una es apretada (σ {_st.pstdev(_lS):.0f}–{_st.pstdev(_hT):.0f} counts). La estructura se repite en los dos canales y en dos montajes distintos, así que es del contacto y no de la medida. Lo que cambia es el <b>peso</b>: {len(_hS)} de {len(_oS)} toques caen en el grupo tardío por el canal serie y {len(_hT)} de {len(_oT)} por Ethernet. Las barras de trazo discontinuo son las que la regla de descarte de valores atípicos eliminaba.</figcaption>
+      <figcaption><b>Figura 7.</b> A cierre lento los {len(_b25)} toques caen en un solo punto, con una repetibilidad de <b>σ&nbsp;=&nbsp;{_st.pstdev(_b25):.1f}&nbsp;counts</b>. A velocidad máxima aparecen dos grupos separados <b>{_st.median(_cl1k[1])-_st.median(_cl1k[0]):.0f}&nbsp;counts</b> — que es exactamente lo que el dedo avanza entre dos refrescos del registro a esa velocidad ({_st1k:.0f}&nbsp;counts, frente a {_st25:.0f} en el cierre lento). No son dos posiciones de contacto: son <b>dos escalones del registro de posición</b>.</figcaption>
     </figure>
 
-    <p>La consecuencia es metodológica y concreta. La desviación publicada del contacto (~10 counts) <b>no describía el contacto</b>: era la del grupo más poblado, después de que una regla automática eliminara el otro por pesar solo un {100*len(_hS)//len(_oS)}&nbsp;%. Con el {100*len(_hT)//len(_oT)}&nbsp;% que ese mismo grupo pesa por Ethernet, la regla ya no elimina nada — <b>el recorte no medía el dedo, medía el peso del grupo</b>. Y un margen de conmutación derivado de esa desviación habría quedado muy corto: el margen real tiene que cubrir la separación entre los dos grupos y anclarse en el contacto <b>más temprano posible</b>, no en el promedio.</p>
+    <p>El contacto de este dedo es, por tanto, <b>mucho más repetible de lo que cualquier medida anterior sugería</b>: σ de {_st.pstdev(_b25):.1f} counts frente a las decenas que se venían reportando. Lo que se estaba midiendo a alta velocidad no era la dispersión del dedo sino la resolución con que la mano informa de dónde está.</p>
 
-    <p>Es la misma lección que ya había dado la distribución de impactos, en otro sitio del sistema y por otra vía: <b>cuando el comportamiento tiene dos modos, cualquier estadístico de resumen describe uno e ignora el otro</b>, y el que ignora es justo el que rompe el agarre. Queda abierto qué bifurca el contacto —dos puntos de la yema, un deslizamiento, o juego del montaje—; los 50 toques por campaña muestran la estructura pero no la causa.</p>
+    <p><b>La consecuencia práctica no es que el margen de seguridad sobre para el cierre lento, sino al revés:</b> a velocidad máxima el controlador <b>no puede saber dónde está el dedo mejor que ±{_st1k:.0f}&nbsp;counts</b>, por rápido que lea. El margen de conmutación de ~120&nbsp;counts que ya usaba la política híbrida queda justificado — por esta razón y no por la que se creía. Y refuerza la propia política: si la posición solo se conoce con esa holgura mientras se va rápido, la decisión de frenar no puede depender de leerla con precisión.</p>
 
     <p>De paso, la tasa alta hizo visibles dos defectos de método que el canal lento ocultaba: la pre-posición se daba por asentada cuando el dedo todavía reptaba unos counts —lo que contaminaba la medida de retardo—, y el registro de temperatura llega en un formato distinto por cada canal. Corregidos ambos, la campaña registró además el calentamiento del actuador, de 34 a 40&nbsp;°C a lo largo de los 175 contactos.</p>
   </section>
+
+  <hr class="rule">
 
   <section>
     <h2>Conclusiones</h2>
@@ -354,7 +379,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
       <li>Bajar el umbral de fuerza <b>no es una alternativa</b>: por debajo de la fuerza de flexión propia del dedo el firmware frena sin llegar al objeto, y por encima no contiene el impacto.</li>
       <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso {min(_redI.values()):.0f}–{max(_redI.values()):.0f}× en el índice y {min(_redT.values()):.0f}–{max(_redT.values()):.0f}× en el pulgar, con un margen de conmutación (~124 counts) fijado experimentalmente, y se verificó después en los otros tres dedos.</li>
-      <li>La plataforma sostiene <b>≥ 98 Hz de realimentación</b> y <b>~64 ms de latencia</b>, con movimiento lineal predecible — adecuada para el control propuesto.</li>
+      <li>La plataforma entrega <b>~33 Hz de estado nuevo</b> por sensor —no los 98 de la tasa de lectura— y <b>~64 ms de latencia</b>, con movimiento lineal predecible. Suficiente para el control propuesto, pero fija el techo: ningún lazo puede reaccionar a información que aún no existe.</li>
       <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
       <li>La caracterización se <b>replicó por un segundo canal de comunicación</b> con nueve veces la tasa de muestreo: la física reproduce, lo que valida las campañas previas. Pero <b>ninguna de las tres mejoras de medida que se le atribuían era real</b>, y a cambio reveló que la posición de contacto tiene <b>dos modos</b>, no ruido.</li>
       <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>

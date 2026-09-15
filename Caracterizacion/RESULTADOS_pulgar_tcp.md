@@ -10,8 +10,11 @@ Montaje del bloque: `tcp1` (distinto del `m1`/`m3` de la campaña serial).
 ([`RESULTADOS_serial_vs_tcp.md`](RESULTADOS_serial_vs_tcp.md)) concluyó que el
 transporte no cambia la física pero mejora la adquisición ~7–9×, y anticipaba que
 esa resolución resolvería dos cosas que en serial quedaron limitadas por
-muestreo: la σ del onset y la captura del pico `F_max`. **Las dos predicciones
-resultaron falsas, y esa es la aportación principal de esta réplica.**
+muestreo: la σ del onset y la captura del pico `F_max`. **Ninguna de las dos
+mejoró** — pero no porque el muestreo no importara, sino porque el cuello de
+botella no es el enlace: **la mano publica estado nuevo a ~33 Hz**, y se estaba
+leyendo a 596. Ese es el hallazgo principal de la réplica, y se midió en el
+sub-experimento de cierre ([`exp2/exp2_results_bifurcacion.md`](exp2/exp2_results_bifurcacion.md)).
 
 ## Lo que reproduce
 
@@ -35,43 +38,30 @@ decía la comparativa del índice.
 
 ## Tres correcciones
 
-### 1. El onset no se dispersa: se bifurca
+### 1. ~~El onset no se dispersa: se bifurca~~ — RETRACTADO el mismo día
 
-Lo publicado en serial: σ robusta de 10.0 counts «a v=1000 la cuantización de
-`POS` por muestra domina la σ medida; la repetibilidad mecánica intra-cluster es
-mucho menor».
-
-Repetido el sub-experimento a 600 Hz, lo que aparece no es ni una σ menor ni una
-distribución ancha: **el dedo aterriza en una de DOS posiciones de contacto**,
-separadas ~70 counts, y cada una es apretada.
-
-| | Grupo bajo | Hueco | Grupo alto | σ de la mezcla |
-|---|---|---|---|---|
-| Serial, 65 Hz (`m2`) | **40/50**, 875–906, σ 10.0 | 41 counts | **10/50**, 947–965, σ 7.2 | 28.8 |
-| TCP, 600 Hz (`tcp1`) | **27/50**, 813–834, σ 5.3 | 46 counts | **22/50**, 880–909, σ 7.6 | 40.2 |
-
-La estructura **se repite en los dos transportes y en dos montajes distintos**,
-así que no es un artefacto de detección ni de cadencia. Lo que cambia es el
-**peso** de cada grupo: 20 % arriba por serial, 46 % por TCP.
-
-De ahí salen tres consecuencias:
-
-- **La σ publicada de 10.0 es la del grupo bajo**, no la del contacto. La regla
-  de 1.5·IQR descartó el grupo alto entero como «outliers de detección» porque
-  con un 20 % de peso cae fuera de las vallas; con el 46 % de la campaña por TCP
-  la misma regla **no descarta ninguno**, porque el grupo alto ensancha los
-  propios cuartiles. El recorte no medía nada del dedo: medía el peso del grupo.
-- **La σ de 40.2 tampoco significa nada**, y esa es mía: es la desviación de una
-  mezcla de dos poblaciones, tan poco descriptiva como la de 10.0.
-- **El margen de conmutación no puede salir de `3.3·σ`.** Tiene que cubrir la
-  separación entre grupos (~70 counts) más la anchura del grupo temprano, y
-  anclarse en el contacto **más temprano posible**, no en el centro. Los 133
-  counts que da `3.3·40.2` quedan del orden correcto por accidente aritmético;
-  los 34 que daba la σ recortada de serial habrían quedado **muy** cortos.
-
-Queda abierto **qué** bifurca el contacto —dos puntos de la yema, un
-deslizamiento, o juego del propio bloque—. Con 50 toques por campaña se ve la
-estructura pero no la causa, y esta réplica no estaba diseñada para eso.
+> **Esta corrección era errónea y queda retractada.** Se afirmó aquí que la
+> dispersión del onset era mecánica y que la explicación original de la campaña
+> serial —«la cuantización de `POS` por muestra domina la σ medida»— no se
+> sostenía, porque a 9× la tasa de lectura la σ no bajaba. **El test estaba mal
+> planteado.** La cuantización no está en nuestro muestreo sino en el refresco
+> del registro de la mano, que ningún transporte puede acelerar: se leía a
+> 596 Hz un valor que cambia a **33 Hz**. La explicación original era correcta.
+>
+> Medido después con 120 toques y traza completa
+> ([`exp2/exp2_results_bifurcacion.md`](exp2/exp2_results_bifurcacion.md)): la
+> mano publica estado nuevo cada **30.7 ms**, igual a cualquier velocidad y para
+> `POS_ACT`, `FORCE_ACT` y `CURRENT` por igual. Cerca del contacto a `v=1000` eso
+> son **82 counts de avance entre refrescos** — exactamente la separación entre
+> los dos «grupos»—, así que el onset solo puede caer en uno de dos escalones del
+> registro. A `v=25` el mismo escalón vale 2 counts y la estructura desaparece:
+> la repetibilidad real del contacto es **σ = 1.5 counts** sobre 60 toques.
+>
+> Lo que sí queda de aquí: ni la σ de 10.0 publicada en serial ni la de 40.2 que
+> se reportó esta mañana describen el contacto — la primera es la de un escalón,
+> la segunda la de una mezcla de dos. Y el margen de conmutación de 120 counts
+> sigue justificado, pero porque a alta velocidad el controlador no puede saber
+> dónde está el dedo mejor que ±82 counts, no por dispersión mecánica.
 
 ### 2. El retardo de detección tampoco es de muestreo
 

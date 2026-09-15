@@ -1,47 +1,44 @@
-<!doctype html><meta charset="utf-8"><title>Réplica por TCP — dispersión del contacto</title><body style="background:#ffffff;color:#12181f;font-family:system-ui;margin:24px;max-width:900px"><h1 style="font-size:17px">La dispersión del contacto no baja al muestrear 9× más rápido</h1><svg viewBox="0 0 840 372" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" role="img" aria-label="Distribución de la posición de contacto por serial y por Modbus TCP">
-<line x1="24.0" y1="48" x2="24.0" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="24.0" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">-30</text>
-<line x1="149.4" y1="48" x2="149.4" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="149.4" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+0</text>
-<line x1="274.7" y1="48" x2="274.7" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="274.7" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+30</text>
-<line x1="400.1" y1="48" x2="400.1" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="400.1" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+60</text>
-<line x1="525.5" y1="48" x2="525.5" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="525.5" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+90</text>
-<line x1="650.8" y1="48" x2="650.8" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="650.8" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+120</text>
-<line x1="776.2" y1="48" x2="776.2" y2="326" stroke="#dbe2ec" stroke-width="1"/>
-<text x="776.2" y="344" fill="#5a6472" font-size="11.5" text-anchor="middle">+150</text>
-<text x="420" y="363" fill="#5a6472" font-size="11.5" text-anchor="middle">posición de primer contacto − mediana de su campaña (counts de POS)</text>
-<text x="8" y="58" fill="#12181f" font-size="13" font-weight="600">RS-485 · 65 Hz</text>
-<text x="8" y="75" fill="#5a6472" font-size="11.5">σ de la mezcla 28.8 counts · la σ publicada de 10.0 es la del grupo izquierdo, tras recortar el derecho</text>
-<rect x="66.8" y="104.9" width="39.8" height="49.1" rx="3" fill="#285F97" opacity="0.9"/>
-<rect x="108.6" y="130.9" width="39.8" height="23.1" rx="3" fill="#285F97" opacity="0.9"/>
-<rect x="150.4" y="128.0" width="39.8" height="26.0" rx="3" fill="#285F97" opacity="0.9"/>
-<rect x="192.2" y="136.7" width="39.8" height="17.3" rx="3" fill="#285F97" opacity="0.9"/>
-<rect x="359.3" y="142.4" width="39.8" height="11.6" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
-<rect x="401.1" y="145.3" width="39.8" height="8.7" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
-<rect x="442.9" y="145.3" width="39.8" height="8.7" rx="3" fill="#ffffff" stroke="#285F97" stroke-width="1.6" stroke-dasharray="3 2.2"/>
-<line x1="24.0" y1="154.0" x2="818.0" y2="154.0" stroke="#dbe2ec" stroke-width="1"/>
-<text x="8" y="212" fill="#12181f" font-size="13" font-weight="600">Modbus TCP · 600 Hz</text>
-<text x="8" y="229" fill="#5a6472" font-size="11.5">σ de la mezcla 40.2 counts · la misma regla de recorte aquí no descarta ninguno</text>
-<rect x="66.8" y="287.8" width="39.8" height="20.2" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="108.6" y="256.0" width="39.8" height="52.0" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="150.4" y="302.2" width="39.8" height="5.8" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="359.3" y="293.6" width="39.8" height="14.4" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="401.1" y="284.9" width="39.8" height="23.1" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="442.9" y="284.9" width="39.8" height="23.1" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="484.7" y="305.1" width="39.8" height="2.9" rx="3" fill="#B4740F" opacity="0.9"/>
-<rect x="735.4" y="305.1" width="39.8" height="2.9" rx="3" fill="#B4740F" opacity="0.9"/>
-<line x1="24.0" y1="308.0" x2="818.0" y2="308.0" stroke="#dbe2ec" stroke-width="1"/>
-<text x="138" y="98" fill="#285F97" font-size="12" font-weight="600" text-anchor="middle">40 de 50</text>
-<text x="138" y="167" fill="#5a6472" font-size="11" text-anchor="middle">σ 10.0</text>
-<text x="421" y="135" fill="#285F97" font-size="12" font-weight="600" text-anchor="middle">10 de 50</text>
-<text x="421" y="167" fill="#5a6472" font-size="11" text-anchor="middle">σ 7.2</text>
-<text x="127" y="249" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">27 de 50</text>
-<text x="127" y="321" fill="#5a6472" font-size="11" text-anchor="middle">σ 5.3</text>
-<text x="434" y="278" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">22 de 50</text>
-<text x="434" y="321" fill="#5a6472" font-size="11" text-anchor="middle">σ 7.6</text>
-<text x="818" y="36" fill="#5a6472" font-size="11.5" text-anchor="end">trazo discontinuo = descartado como «outlier de detección»</text>
+<!doctype html><meta charset="utf-8"><title>Los dos grupos del contacto</title><body style="background:#ffffff;color:#12181f;font-family:system-ui;margin:24px;max-width:900px"><h1 style="font-size:17px">Los «dos contactos» eran dos escalones del registro de posición</h1><svg viewBox="0 0 840 442" width="100%" xmlns="http://www.w3.org/2000/svg" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" role="img" aria-label="Posición de primer contacto en 60 toques a velocidad lenta y a velocidad máxima, con el paso del registro de posición">
+<line x1="52.3" y1="44" x2="52.3" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="52.3" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+20</text>
+<line x1="157.7" y1="44" x2="157.7" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="157.7" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+40</text>
+<line x1="263.0" y1="44" x2="263.0" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="263.0" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+60</text>
+<line x1="368.3" y1="44" x2="368.3" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="368.3" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+80</text>
+<line x1="473.7" y1="44" x2="473.7" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="473.7" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+100</text>
+<line x1="579.0" y1="44" x2="579.0" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="579.0" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+120</text>
+<line x1="684.3" y1="44" x2="684.3" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="684.3" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+140</text>
+<line x1="789.7" y1="44" x2="789.7" y2="344" stroke="#dbe2ec" stroke-width="1"/>
+<text x="789.7" y="412" fill="#5a6472" font-size="11.5" text-anchor="middle">+160</text>
+<text x="420" y="432" fill="#5a6472" font-size="11.5" text-anchor="middle">posición de primer contacto, counts pasado el contacto geométrico del sondeo lento · escala vertical propia de cada panel</text>
+<text x="8" y="58" fill="#12181f" font-size="13" font-weight="600">v = 25 · cierre lento</text>
+<text x="8" y="75" fill="#5a6472" font-size="11.5">60 toques · σ 1.5 counts · el registro de posición avanza <tspan font-weight="600" fill="#285F97">2 counts</tspan> entre refrescos</text>
+<rect x="79.5" y="100.0" width="24.7" height="62.0" rx="2.5" fill="#285F97" opacity="0.9"/>
+<rect x="105.8" y="158.7" width="24.7" height="3.3" rx="2.5" fill="#285F97" opacity="0.9"/>
+<line x1="26.0" y1="162.0" x2="816.0" y2="162.0" stroke="#dbe2ec" stroke-width="1"/>
+<text x="92" y="93" fill="#285F97" font-size="12" font-weight="600" text-anchor="middle">60 de 60</text>
+<text x="8" y="232" fill="#12181f" font-size="13" font-weight="600">v = 1000 · velocidad máxima</text>
+<text x="8" y="249" fill="#5a6472" font-size="11.5">60 toques · σ 24.9 counts · el registro de posición avanza <tspan font-weight="600" fill="#B4740F">82 counts</tspan> entre refrescos</text>
+<rect x="158.5" y="311.2" width="24.7" height="24.8" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="184.8" y="292.6" width="24.7" height="43.4" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="211.1" y="298.8" width="24.7" height="37.2" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="237.5" y="305.0" width="24.7" height="31.0" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="263.8" y="280.2" width="24.7" height="55.8" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="290.1" y="274.0" width="24.7" height="62.0" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="316.5" y="286.4" width="24.7" height="49.6" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="342.8" y="305.0" width="24.7" height="31.0" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="369.1" y="329.8" width="24.7" height="6.2" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="658.8" y="329.8" width="24.7" height="6.2" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="685.1" y="323.6" width="24.7" height="12.4" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<rect x="711.5" y="323.6" width="24.7" height="12.4" rx="2.5" fill="#B4740F" opacity="0.9"/>
+<line x1="26.0" y1="336.0" x2="816.0" y2="336.0" stroke="#dbe2ec" stroke-width="1"/>
+<text x="268" y="267" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">55 de 60</text>
+<text x="702" y="317" fill="#B4740F" font-size="12" font-weight="600" text-anchor="middle">5 de 60</text>
+<path d="M 268.3 346.0 L 268.3 352.0 L 700.1 352.0 L 700.1 346.0" fill="none" stroke="#B4740F" stroke-width="1.4"/>
+<text x="484" y="367" fill="#B4740F" font-size="11.5" text-anchor="middle" font-weight="600">82 counts entre medianas = un refresco del registro</text>
 </svg></body>

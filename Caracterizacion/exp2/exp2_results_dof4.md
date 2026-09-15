@@ -167,27 +167,23 @@ abort espurio.
 - **Repetibilidad mecánica excelente:** σ robusta = **10.0 counts** (el índice
   dio ~37 con el mismo método; el paper, ~7.5).
 
-  > **⚠ Corregido 2026-09-14 por la réplica por TCP**
-  > ([`../RESULTADOS_pulgar_tcp.md`](../RESULTADOS_pulgar_tcp.md)). Esos 10.0
-  > counts son la σ del **grupo bajo**, no la del contacto. El onset no se
-  > dispersa: **se bifurca**. El dedo aterriza en una de dos posiciones separadas
-  > ~70 counts, cada una apretada — aquí 40/50 en 875–906 (σ 10.0) y 10/50 en
-  > 947–965 (σ 7.2), con 41 counts de hueco entre medias. La regla de 1.5·IQR
-  > descartó el grupo alto entero por pesar solo un 20 %. Repetido a 600 Hz sobre
-  > el mismo dedo, la estructura **se repite** (27/50 en 813–834 y 22/50 en
-  > 880–909) pero el grupo alto pesa un 46 %, así que la misma regla **no
-  > descarta ninguno**. El recorte medía el peso del grupo, no el dedo.
-  > **Consecuencia:** el margen de conmutación no puede salir de `3.3·σ` sobre la
-  > mezcla; tiene que cubrir la separación entre grupos más la anchura del
-  > temprano, y anclarse en el contacto más temprano posible.
+  > **⚠ Matizado 2026-09-14.** La explicación de arriba es **correcta en el
+  > fondo** —la cuantización domina la σ— pero el mecanismo no es la
+  > «cuantización por muestra» sino el **refresco del registro de la mano**, que
+  > cambia cada 30.7 ms sea cual sea la tasa de lectura. Cerca del contacto a
+  > `v=1000` eso son 82 counts de avance entre refrescos, y por eso los onsets
+  > se agrupan en dos escalones. La repetibilidad mecánica medida a `v=25` con
+  > 60 toques es **σ = 1.5 counts**; los 10.0 de aquí son la anchura de un
+  > escalón, no la del contacto. Ver
+  > [`exp2_results_bifurcacion.md`](exp2_results_bifurcacion.md).
+
 - **El onset medido a v=1000 llega tarde por construcción.** Detectado en
   `POS 888` contra el onset **geométrico** de `POS 777` del sondeo lento.
-  El retardo **no es de muestreo**: por TCP, a 9× la tasa, vale +103 counts
-  contra los ~98 de retardo real de aquí (una vez descontados los ~13 counts de
-  movimiento del bloque). El presupuesto teórico de abajo predice ≈33 counts a
-  600 Hz porque dos de sus tres términos escalan con la tasa; se miden 103. Lo
-  que manda es el **umbral de fuerza** del detector (`--onset-margin`), que
-  obliga al dedo a comprimir el contacto hasta cruzarlo.
+  El retardo tiene dos términos, medidos por fin a `v=25` y `v=1000`: el
+  **umbral de fuerza** del detector (120 g ÷ la rigidez del contacto ≈ 23 counts,
+  que es todo el retardo a `v=25`) y el **registro llegando tarde** (hasta 82
+  counts a `v=1000`). Ninguno de los dos baja al leer más rápido, que es por lo
+  que TCP da +103 contra los ~98 de aquí.
   ⚠ **Ojo con la procedencia:** el bloque se movió entre el grid (P2.5) y este
   sub-experimento, así que esos dos números son de montajes distintos (`m1` y
   `m2`) y su diferencia mezcla dos efectos. Se separan con el onset a **v=25**,

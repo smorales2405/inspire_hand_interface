@@ -136,10 +136,72 @@ Medio e índice —dos dedos de la misma familia mecánica— dan magnitudes muy
 parecidas para `Fset ≥ 250`. El pulgar se queda en la mitad o menos, como ya
 decía su campaña: menos inercia en movimiento.
 
+---
+
+# Anular (DOF 1) — verificación reducida
+
+## V0 · geometría del contacto
+
+| | TCP `tcp1` | Serial (mismo bloque) |
+|---|---|---|
+| Recorrido libre | POS 60–1842 | 61–1842 |
+| Onset geométrico | **POS 1417** (`ANGLE_SET 282` ≈ 64°) | 1414 |
+| `k_c` | **14.61 g/count** | 17.0 |
+| Residual en el onset | **64 g** → `Fset` mín ~94 g | 50 g |
+| `--start-angle` | **441** (residual medido 31 g) | 443 |
+| `--approach-angle` | **359** | 360 |
+
+Otra vez el onset cae donde la campaña serial, dentro de 3 counts. Celda de
+validación `v=250, Fset=500`: `F_max` 1233 g, 1202 g de fuerza externa, 0 abortos.
+
+> **El primer sondeo llegó al techo de fuerza** (603 g contra el techo de 550)
+> antes de que el `POS` se detuviera, así que no dio `k_c`. Se repitió con
+> `--probe-ceiling 750`. El onset se movió 1413 → 1417 entre los dos, 4 counts,
+> que es la resolución esperable (ver abajo).
+>
+> **`d_100` no se puede medir en este contacto.** Sale 0 counts, y hay que leerlo
+> como «por debajo de la resolución», no como cero: la mano publica estado nuevo
+> cada 30.7 ms, así que a `v=50` el dedo avanza ~4.6 counts entre refrescos y,
+> con `k_c ≈ 15 g/count`, la fuerza salta ~67 g de una muestra a la siguiente.
+> La primera muestra que cruza el umbral de detección ya marca 104 g. Ningún
+> transporte arregla esto; un sondeo a `v=25` daría el doble de resolución si
+> hiciera falta el número.
+
+## V1 · respuesta al escalón (`v` = 250, 500 × 10)
+
+| Criterio | Valor | |
+|---|---|---|
+| `k` (ajuste por el origen) | **3.022** (−0.6 % vs 3.04) | PASA |
+| R² mínimo | 0.9946 | PASA |
+| Deadtime medio | 78.1 ms | PASA |
+| Sobreimpulso de posición | 0.042 % máx | PASA |
+
+Serial dio 3.012 en este dedo: **+0.3 %**, el mismo desplazamiento pequeño que el
+medio, y muy lejos del +1.7 % del pulgar.
+
+## V2 · modo B
+
+| `Fset` | ΔF mediana | Rango | Externa mínima | |
+|---|---|---|---|---|
+| 100 | **40 g** | 35–52 | 128 g | PASA (≤ 100) |
+| 1000 | **195 g** | 58–238 | 1031 g | **no cumple** (≤ 150) |
+
+10 trials, 0 abortos, todos con contacto.
+
+> **El criterio de `Fset=1000` no se cumple, y hay que decirlo.** 195 g contra el
+> umbral de 150 que se fijó en la campaña serial. Pero ese umbral se calibró
+> sobre la mediana del índice (92 g), y **el rango del índice era 7–241** con
+> N=5: el del anular es 58–238. Con cinco trials por celda los dos solapan casi
+> por completo, así que esto **no establece** que el modo B funcione peor aquí —
+> establece que N=5 no distingue. El medio, con protocolo completo, dio 241 g en
+> esa misma celda y un colapso de 10× frente al modo A. Para zanjarlo haría falta
+> subir el N de esa celda, como se hizo en su día con la fila `Fset=100` del
+> pulgar.
+
 ## Estado
 
 | Dedo | T0 | T1 | T2 grid | T3 modo B |
 |---|---|---|---|---|
 | Medio (2) | ✔ | ✔ | ✔ | ✔ |
-| Anular (1) | ☐ | ☐ | — | ☐ |
+| Anular (1) | ✔ | ✔ | — | ✔ |
 | Meñique (0) | ☐ | ☐ | — | ☐ |

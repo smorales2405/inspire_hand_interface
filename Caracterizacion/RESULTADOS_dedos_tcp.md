@@ -235,94 +235,66 @@ el golpe más fuerte: **2619 g con `Fset=100` contra 1615 con `Fset=1000`**, 1.6
 peor. En el medio fue 3453 contra 2528, 1.4×. Dos dedos independientes, misma
 dirección: **bajar el umbral de fuerza empeora el impacto a alta velocidad**.
 
-### La celda del modo B a N=20 — y una hipótesis que no se sostiene
+### ⚠ RETRACTADO — el bloque se movió y confunde toda la comparación modo A / modo B
 
-Con N=20, `Fset=1000` en modo B da **mediana 193 g** (IQR 155–223, rango 58–316,
-0 abortos). Con N=5 daba 195: el valor es **estable**, así que el criterio de
-≤ 150 g genuinamente no se cumple en este dedo.
+El usuario señaló que la punta del anular golpea el **borde superior** del bloque
+y que el momento del dedo lo mueve un poco. Comprobado con el `onset_pos` que
+cada trial registra, en orden cronológico real:
 
-Se propuso una explicación —**que resultó falsa**, ver abajo—: que el modo B no
-promete un ΔF absoluto sino
-**entregar el rendimiento del cierre lento**, y que 193 g sería simplemente lo que
-cuesta un cierre lento a `Fset=1000` sobre un contacto rígido. En el medio
-encajaba (modo A a `v=25` daba 181 g contra 241 del modo B).
-
-**En el anular no encaja.** Su modo A a `v=25, Fset=1000` da **101 g** contra los
-193 del modo B — el modo B sale ~2× **peor** que el cierre lento puro:
-
-| | N | Mediana | Valores |
+| Campaña | N | Onset mediana | Rango |
 |---|---|---|---|
-| Modo A `v=25` | 5 | 101 g | 86, 89, 101, 141, 171 |
-| Modo B | 20 | 193 g | 58 … 316 |
+| Modo B, margen 120 | 25 | **1409** | 1406–1412 |
+| Grid + modo A `v=25` | 25 | **1341** | 1315–1404 |
+| Modo B m250, llegada 1000 | 5 | 1361 | 1341–1371 |
+| Modo B m250, llegada 300 | 4 | 1365 | 1354–1369 |
 
-Subida esa celda de modo A a N=20 (15 trials más, 0 abortos, 0 sin contacto),
-la diferencia queda **establecida**:
+**El bloque se desplazó 68 counts durante la sesión**, y lo hizo durante el grid
+de 70 trials con 24 abortos. El modo B con margen 120 se midió **antes** (bloque
+quieto: rango de 6 counts) y el modo A `v=25` **después** (bloque moviéndose:
+rango de 89 counts, más de diez veces mayor).
 
-| | N | Mediana | IQR | Rango |
-|---|---|---|---|---|
-| Modo A `v=25` | 20 | **100 g** | 86–139 | 65–247 |
-| Modo B | 20 | **193 g** | 155–223 | 58–316 |
+Así que la diferencia «modo B 193 g contra modo A 100 g, p = 0.0025» **no separa
+las dos políticas**: separa dos estados del montaje. Quedan retractadas las tres
+conclusiones encadenadas de esta sección:
 
-**p = 0.0025**, permutación exacta sobre la diferencia de medianas, 50 000 reps.
-La hipótesis queda **refutada**: en este dedo el modo B **no** entrega el
-rendimiento del cierre lento — es el doble de duro.
+1. ~~el modo B es 2× peor que el cierre lento~~;
+2. ~~ampliar el margen de conmutación no lo arregla~~;
+3. ~~la causa es la velocidad de aproximación~~.
 
-### Qué significa: el margen de conmutación de 120 counts se queda corto
+Los números están medidos y los CSV valen; lo que no vale es el contraste entre
+tandas. (El brazo con llegada a 300 dio mediana 112 g contra 164 del de llegada
+a 1000, que es **consistente** con la tercera hipótesis — pero ambos con N≤5 y con
+el bloque ya desplazado, así que no la sostiene.)
 
-Las dos políticas cierran a `v=25`; lo único que las separa es **cuánto recorrido
-hacen a esa velocidad antes de tocar**. El modo A parte de `POS 1167` y recorre
-248 counts; el modo B conmuta en `POS 1297` y recorre **118**. Si 118 counts no
-bastan para que el dedo se asiente tras la aproximación rápida, el modo B llega
-al contacto yendo más rápido que `v=25` — y eso es exactamente un ΔF mayor.
+**Lo que sí queda en pie:** el modo B con margen 120 y N=20 da **193 g con el
+bloque quieto** (onset 1406–1412), y eso es una medida limpia. No cumple el
+criterio de ≤ 150 g. Lo que no se puede decir es *por qué*.
 
-Esto **no cuestiona la conmutación de velocidad como mitigación** —sigue
-colapsando el impacto un orden de magnitud frente al modo A rápido— pero sí el
-valor del parámetro. Los 120 counts se eligieron para cubrir la **incertidumbre
-de posición** (±82 counts de registro rancio a `v=1000`); nunca se comprobó que
-bastaran para la **dinámica**. Son dos requisitos distintos y solo se verificó
-uno.
+### La lección de método: comparar dentro de una tanda aleatorizada
 
-### No es el margen: es la aproximación rápida
+El grid **sí** aguanta esta deriva. Sus 70 trials se barajan **juntos**
+(`random.Random(seed).shuffle`), así que un montaje que se mueve durante la
+campaña afecta a las dos columnas por igual y la comparación `Fset=100` vs
+`Fset=1000` sigue siendo válida. La réplica del hallazgo del medio **se mantiene**.
 
-Corrido el modo B con la conmutación en `onset − 250` — el **mismo `POS 1167`**
-desde el que arranca el modo A, y por tanto el mismo recorrido a `v=25`:
+Mis comparaciones ad-hoc no tenían esa protección: eran tandas separadas,
+ejecutadas en momentos distintos, con impactos duros de por medio. Esa es
+exactamente la diferencia entre un diseño aleatorizado y una comparación
+oportunista, y aquí ha costado tres conclusiones.
 
-| | N | Mediana | Rango |
-|---|---|---|---|
-| Modo A `v=25` (llega a `--approach-speed 300`) | 20 | **100 g** | 65–247 |
-| Modo B, margen 120 (llega a `--open-speed 1000`) | 20 | 193 g | 58–316 |
-| Modo B, margen 250 (llega a 1000) | 5 | **164 g** | 105–191 |
+> Dentro del grid, el ΔF a `v=1000` no muestra dependencia significativa de la
+> posición del bloque (Spearman ΔF vs `onset_pos`: ρ = −0.30, p = 0.69 en
+> `Fset=100`; ρ = −0.83, p = 0.13 en `Fset=1000`), aunque con N=5 por celda eso
+> es poco poder. La aleatorización es la que protege el resultado, no este test.
 
-- margen 250 vs margen 120: Δ 29 g, **p = 0.206** → **sin mejora detectable**
-- margen 250 vs modo A: Δ 64 g, **p = 0.037** → **sigue siendo peor**
+### Cómo se contestaría bien la pregunta del modo B
 
-Ampliar el margen de conmutación **no recupera** el rendimiento del cierre lento.
-Descartado el recorrido de asentamiento, entre las dos políticas solo queda una
-diferencia: **la velocidad a la que el dedo llega a la pre-posición** — 1000 en el
-modo B (`--open-speed`) contra 300 en el modo A (`--approach-speed`). Las dos se
-asientan después con el mismo criterio (`POS` estable ±2 counts durante 80 ms) y
-las dos cierran a `v=25` sobre el mismo recorrido.
-
-O sea: **llegar rápido deja algo que el asentamiento no limpia.** Candidatos —
-energía elástica en el tendón que relaja más despacio que el criterio de
-asentamiento, o un estado del accionamiento (holgura, corriente) que el criterio
-de `POS` no ve. El defecto de método que TCP ya destapó una vez fue exactamente
-de esta familia: `ANGLE_ACT` daba por asentado lo que `POS_ACT` mostraba todavía
-reptando.
-
-**Si se confirma, califica la mitigación central de la tesis:** el modo B no
-puede alcanzar el rendimiento del cierre lento *mientras aproxime rápido*, y su
-suelo en este dedo está ~2× por encima. Sigue valiendo un orden de magnitud
-frente al modo A rápido (2619 → 193 g), pero su límite no es el que se suponía.
-
-**Prueba que lo decidiría, 5 trials:** modo B con `--open-speed 300`, igualando
-la velocidad de llegada del modo A. Si el ΔF baja a ~100 g, la causa es la
-velocidad de aproximación y queda identificada. Si se queda en ~190, hay que
-buscarla en otro sitio.
-
-> **Cautela sobre el N.** El brazo de margen 250 tiene N=5: `p = 0.206` frente al
-> margen 120 significa «sin evidencia de mejora», no «probado que no mejora». Una
-> mejora de ~29 g podría pasar desapercibida con ese N.
+Una tanda **única y aleatorizada** que alterne modo A `v=25` y modo B, con sondeo
+antes y después para cuantificar la deriva. Sin eso, cualquier diferencia entre
+políticas medidas en momentos distintos es indistinguible del montaje. Y en este
+dedo hace falta además revisar el contacto: golpear el **borde** del bloque en vez
+de una cara plana es lo que le da el `k_c` más alto del conjunto (16.6 g/count) y
+lo que lo hace moverse.
 
 ## Estado
 

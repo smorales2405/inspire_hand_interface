@@ -236,7 +236,7 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <div class="kpi"><div class="n">~33<span class="u"> Hz</span></div><div class="l">estado nuevo por sensor — el enlace lee a 98–800 Hz, la mano no publica más rápido</div></div>
     <div class="kpi"><div class="n">~64<span class="u"> ms</span></div><div class="l">latencia comando→sensor (indep. de la velocidad)</div></div>
     <div class="kpi"><div class="n">~3300<span class="u"> g</span></div><div class="l">sobreimpulso de fuerza al cerrar rápido</div></div>
-    <div class="kpi"><div class="n">~68<span class="u">×</span></div><div class="l">reducción del sobreimpulso con la política híbrida</div></div>
+    <div class="kpi"><div class="n">{min(_redI.values()):.0f}–{max(_redI.values()):.0f}<span class="u">×</span></div><div class="l">reducción del sobreimpulso con la política híbrida</div></div>
   </div>
 
   <hr class="rule">
@@ -434,10 +434,10 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
       <li>La <b>política híbrida queda validada</b>: reduce el sobreimpulso {min(_redI.values()):.0f}–{max(_redI.values()):.0f}× en el índice y {min(_redT.values()):.0f}–{max(_redT.values()):.0f}× en el pulgar, con un margen de conmutación (~124 counts) fijado experimentalmente, y se verificó después en los otros tres dedos.</li>
       <li>La plataforma entrega <b>~33 Hz de estado nuevo</b> por sensor —no los 98 de la tasa de lectura— y <b>~64 ms de latencia</b>, con movimiento lineal predecible. Suficiente para el control propuesto, pero fija el techo: ningún lazo puede reaccionar a información que aún no existe.</li>
       <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
-      <li>La caracterización se <b>replicó por un segundo canal de comunicación</b> con nueve veces la tasa de muestreo: la física reproduce, lo que valida las campañas previas. Pero <b>ninguna de las tres mejoras de medida que se le atribuían era real</b>, y a cambio reveló que la posición de contacto tiene <b>dos modos</b>, no ruido.</li>
+      <li>La caracterización se <b>replicó por un segundo canal de comunicación</b> con nueve veces la tasa de muestreo: la física reproduce, lo que valida las campañas previas. Pero <b>ninguna de las tres mejoras de medida que se le atribuían era real</b>, y a cambio reveló por qué: la mano publica estado nuevo a ~33&nbsp;Hz, así que leer más rápido no añade información — y lo que parecían dos posiciones de contacto eran <b>dos escalones del registro de posición</b>.</li>
       <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>
     </ul>
-    <p class="lead"><b>Próximos pasos:</b> los tres dedos restantes ya están <b>verificados por muestreo</b> (la constante de velocidad y el modo híbrido se sostienen en los cinco); queda subir el N por celda en las campañas completas e integrar la política híbrida en el lazo de agarre.</p>
+    <p class="lead"><b>Próximos pasos:</b> los cinco grados de libertad están medidos —el medio con el protocolo completo, meñique y anular por muestreo— y la constante de velocidad y la política híbrida se sostienen en todos. Queda integrar la política en el lazo de agarre, y decidir si el contacto sobre <b>arista</b> que comparten todas las campañas basta como condición de prueba o conviene repetir el mapa contra una cara plana.</p>
   </section>
 
   <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU (RS-485) y Modbus TCP.</p>

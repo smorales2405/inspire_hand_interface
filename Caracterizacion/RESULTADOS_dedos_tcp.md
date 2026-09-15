@@ -235,66 +235,62 @@ el golpe más fuerte: **2619 g con `Fset=100` contra 1615 con `Fset=1000`**, 1.6
 peor. En el medio fue 3453 contra 2528, 1.4×. Dos dedos independientes, misma
 dirección: **bajar el umbral de fuerza empeora el impacto a alta velocidad**.
 
-### ⚠ RETRACTADO — el bloque se movió y confunde toda la comparación modo A / modo B
+### ⚠ Corrección doble: la comparación modo A/B, y la medida con que la retracté
 
-El usuario señaló que la punta del anular golpea el **borde superior** del bloque
-y que el momento del dedo lo mueve un poco. Comprobado con el `onset_pos` que
-cada trial registra, en orden cronológico real:
+**Primero se retractó la comparación**, al señalar el usuario que la punta del
+anular golpea el borde del bloque y lo mueve. Se cuantificó la deriva con el
+campo `onset_pos` que cada trial registra, dando 68 counts entre la tanda del
+modo B y la del modo A.
 
-| Campaña | N | Onset mediana | Rango |
-|---|---|---|---|
-| Modo B, margen 120 | 25 | **1409** | 1406–1412 |
-| Grid + modo A `v=25` | 25 | **1341** | 1315–1404 |
-| Modo B m250, llegada 1000 | 5 | 1361 | 1341–1371 |
-| Modo B m250, llegada 300 | 4 | 1365 | 1354–1369 |
+**Esa cuantificación era inválida.** `onset_pos` no es la posición del contacto:
+es el punto donde el detector de umbral del trial (`--onset-thr`, 80 g sobre el
+baseline) dispara, y eso ocurre sobre la **subida del residual de flexión**, que
+depende de dónde arranque el trial:
 
-**El bloque se desplazó 68 counts durante la sesión**, y lo hizo durante el grid
-de 70 trials con 24 abortos. El modo B con margen 120 se midió **antes** (bloque
-quieto: rango de 6 counts) y el modo A `v=25` **después** (bloque moviéndose:
-rango de 89 counts, más de diez veces mayor).
+| Campaña | Política | `start POS` | `onset_pos` | Δ |
+|---|---|---|---|---|
+| Tanda A/B (pieza nueva) | A | 1468 | 1520 | +53 |
+| Tanda A/B (pieza nueva) | B | 1603 | 1654 | +51 |
+| Modo B margen 120 | B | 1297 | 1409 | +112 |
+| Grid + modo A `v=25` | A | 1168 | 1341 | +173 |
 
-Así que la diferencia «modo B 193 g contra modo A 100 g, p = 0.0025» **no separa
-las dos políticas**: separa dos estados del montaje. Quedan retractadas las tres
-conclusiones encadenadas de esta sección:
+Las dos campañas que comparé tenían **pre-posiciones distintas** (1297 contra
+1168), así que los «68 counts de deriva» medían esa diferencia, no el bloque.
+**La medida buena es el onset geométrico de un sondeo**, que sí es geométrico.
 
-1. ~~el modo B es 2× peor que el cierre lento~~;
-2. ~~ampliar el margen de conmutación no lo arregla~~;
-3. ~~la causa es la velocidad de aproximación~~.
+Lo que queda, entonces: la observación física del usuario —el bloque se mueve—
+es motivo suficiente para desconfiar de comparar tandas separadas, pero **no hay
+una medida de cuánto se movió** durante aquellas campañas. Las tres conclusiones
+siguen sin apoyo, por un motivo más simple: eran tandas separadas sobre un
+montaje que se sabe inestable.
 
-Los números están medidos y los CSV valen; lo que no vale es el contraste entre
-tandas. (El brazo con llegada a 300 dio mediana 112 g contra 164 del de llegada
-a 1000, que es **consistente** con la tercera hipótesis — pero ambos con N≤5 y con
-el bloque ya desplazado, así que no la sostiene.)
+### La respuesta, con el diseño correcto
 
-**Lo que sí queda en pie:** el modo B con margen 120 y N=20 da **193 g con el
-bloque quieto** (onset 1406–1412), y eso es una medida limpia. No cumple el
-criterio de ≤ 150 g. Lo que no se puede decir es *por qué*.
+Tanda `--ab` intercalada sobre la **pieza de cara plana**, 20 trials,
+`Fset = 1000`, aleatorización por bloques balanceados (orden ejecutado
+`ABBABAABBABAABBAABBA`), 0 abortos, 0 trials sin contacto:
 
-### La lección de método: comparar dentro de una tanda aleatorizada
+| | N | Mediana | IQR | Rango |
+|---|---|---|---|---|
+| **Modo A** (cierre lento puro) | 10 | 228 g | 195–317 | 87–349 |
+| **Modo B** (aproximación rápida) | 10 | 194 g | 91–279 | 53–699 |
 
-El grid **sí** aguanta esta deriva. Sus 70 trials se barajan **juntos**
-(`random.Random(seed).shuffle`), así que un montaje que se mueve durante la
-campaña afecta a las dos columnas por igual y la comparación `Fset=100` vs
-`Fset=1000` sigue siendo válida. La réplica del hallazgo del medio **se mantiene**.
+**Δ = 34 g · p = 0.195** (permutación exacta). **No hay diferencia detectable
+entre las dos políticas.** La hipótesis de que el modo B fuera peor que el cierre
+lento no se sostiene cuando las dos se miden expuestas al mismo montaje, en la
+misma tanda y en orden balanceado.
 
-Mis comparaciones ad-hoc no tenían esa protección: eran tandas separadas,
-ejecutadas en momentos distintos, con impactos duros de por medio. Esa es
-exactamente la diferencia entre un diseño aleatorizado y una comparación
-oportunista, y aquí ha costado tres conclusiones.
+**Deriva real de la pieza nueva:** sondeo geométrico antes de la tanda,
+`POS 1720`; después, **`POS 1721`**. Un count. Conviene no sobreinterpretarlo: esa
+tanda fueron 20 trials suaves a `v=25` sin un solo aborto, muy lejos del castigo
+de los 70 trials con 24 abortos que recibió la pieza anterior.
 
-> Dentro del grid, el ΔF a `v=1000` no muestra dependencia significativa de la
-> posición del bloque (Spearman ΔF vs `onset_pos`: ρ = −0.30, p = 0.69 en
-> `Fset=100`; ρ = −0.83, p = 0.13 en `Fset=1000`), aunque con N=5 por celda eso
-> es poco poder. La aleatorización es la que protege el resultado, no este test.
-
-### Cómo se contestaría bien la pregunta del modo B
-
-Una tanda **única y aleatorizada** que alterne modo A `v=25` y modo B, con sondeo
-antes y después para cuantificar la deriva. Sin eso, cualquier diferencia entre
-políticas medidas en momentos distintos es indistinguible del montaje. Y en este
-dedo hace falta además revisar el contacto: golpear el **borde** del bloque en vez
-de una cara plana es lo que le da el `k_c` más alto del conjunto (16.6 g/count) y
-lo que lo hace moverse.
+> **Nota de método que vale para todo el repo:** `onset_pos` en los índices de
+> trial es un **cruce de umbral**, no una posición de contacto, y su valor se
+> desplaza con la pre-posición y con el perfil de residual del dedo. Sirve para
+> comparar trials que arrancan del mismo sitio; no sirve para comparar campañas
+> con pre-posiciones distintas, ni como medida de geometría. Para eso está el
+> onset geométrico del sondeo.
 
 ## Estado
 

@@ -1,0 +1,46 @@
+[
+ {
+  "ts": "2026-09-15T14:30:29",
+  "mode": "ab",
+  "dof": 1,
+  "hold": {},
+  "watch": [
+   0,
+   2
+  ],
+  "mount": "tcp2",
+  "seed": 0,
+  "trials": 10,
+  "trial_start": 0,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "1000",
+  "start_angle": 249,
+  "approach_angle": 162,
+  "hybrid_speed": 25,
+  "argv": [
+   "--transport",
+   "tcp",
+   "--ip",
+   "192.168.124.210",
+   "--port",
+   "6000",
+   "--dof",
+   "1",
+   "--watch",
+   "0,2",
+   "--mount",
+   "tcp2",
+   "--start-angle",
+   "249",
+   "--approach-angle",
+   "162",
+   "--ab",
+   "--fsets",
+   "1000",
+   "--trials",
+   "10",
+   "--outdir",
+   "Caracterizacion/exp2/data_dof1_tcp_ab"
+  ]
+ }
+]

@@ -1,0 +1,6 @@
+trial_file,dof,speed,fset,f_max,delta_f,f_settle,t_peak_ms,onset_pos,rate_hz,aborted,hold,max_hold_dev_g,f_base_g,mount,temp_c
+B_dof1_v25_F1000_n02.csv,1,25,1000,1167,167,781,3910,1361,503,0,,6,51,tcp1,40
+B_dof1_v25_F1000_n01.csv,1,25,1000,1191,191,882,3897,1371,504,0,,5,6,tcp1,40
+B_dof1_v25_F1000_n00.csv,1,25,1000,1112,112,905,3899,1364,513,0,,4,4,tcp1,40
+B_dof1_v25_F1000_n04.csv,1,25,1000,1164,164,890,3908,1341,510,0,,5,6,tcp1,40
+B_dof1_v25_F1000_n03.csv,1,25,1000,1105,105,856,3874,1357,511,0,,6,6,tcp1,40

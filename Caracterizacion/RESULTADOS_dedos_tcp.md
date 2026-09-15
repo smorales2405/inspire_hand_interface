@@ -282,11 +282,47 @@ de posición** (±82 counts de registro rancio a `v=1000`); nunca se comprobó q
 bastaran para la **dinámica**. Son dos requisitos distintos y solo se verificó
 uno.
 
-**Prueba que lo decidiría, 5 trials:** correr el modo B con el punto de
-conmutación en `onset − 250` (el mismo `POS 1167` del modo A). Si el ΔF baja a
-~100 g, la causa es el recorrido de asentamiento y el margen debe redefinirse
-como el mayor de los dos requisitos. Si se queda en ~193, la causa es la
-aproximación rápida en sí y hay que buscarla en otro sitio.
+### No es el margen: es la aproximación rápida
+
+Corrido el modo B con la conmutación en `onset − 250` — el **mismo `POS 1167`**
+desde el que arranca el modo A, y por tanto el mismo recorrido a `v=25`:
+
+| | N | Mediana | Rango |
+|---|---|---|---|
+| Modo A `v=25` (llega a `--approach-speed 300`) | 20 | **100 g** | 65–247 |
+| Modo B, margen 120 (llega a `--open-speed 1000`) | 20 | 193 g | 58–316 |
+| Modo B, margen 250 (llega a 1000) | 5 | **164 g** | 105–191 |
+
+- margen 250 vs margen 120: Δ 29 g, **p = 0.206** → **sin mejora detectable**
+- margen 250 vs modo A: Δ 64 g, **p = 0.037** → **sigue siendo peor**
+
+Ampliar el margen de conmutación **no recupera** el rendimiento del cierre lento.
+Descartado el recorrido de asentamiento, entre las dos políticas solo queda una
+diferencia: **la velocidad a la que el dedo llega a la pre-posición** — 1000 en el
+modo B (`--open-speed`) contra 300 en el modo A (`--approach-speed`). Las dos se
+asientan después con el mismo criterio (`POS` estable ±2 counts durante 80 ms) y
+las dos cierran a `v=25` sobre el mismo recorrido.
+
+O sea: **llegar rápido deja algo que el asentamiento no limpia.** Candidatos —
+energía elástica en el tendón que relaja más despacio que el criterio de
+asentamiento, o un estado del accionamiento (holgura, corriente) que el criterio
+de `POS` no ve. El defecto de método que TCP ya destapó una vez fue exactamente
+de esta familia: `ANGLE_ACT` daba por asentado lo que `POS_ACT` mostraba todavía
+reptando.
+
+**Si se confirma, califica la mitigación central de la tesis:** el modo B no
+puede alcanzar el rendimiento del cierre lento *mientras aproxime rápido*, y su
+suelo en este dedo está ~2× por encima. Sigue valiendo un orden de magnitud
+frente al modo A rápido (2619 → 193 g), pero su límite no es el que se suponía.
+
+**Prueba que lo decidiría, 5 trials:** modo B con `--open-speed 300`, igualando
+la velocidad de llegada del modo A. Si el ΔF baja a ~100 g, la causa es la
+velocidad de aproximación y queda identificada. Si se queda en ~190, hay que
+buscarla en otro sitio.
+
+> **Cautela sobre el N.** El brazo de margen 250 tiene N=5: `p = 0.206` frente al
+> margen 120 significa «sin evidencia de mejora», no «probado que no mejora». Una
+> mejora de ~29 g podría pasar desapercibida con ese N.
 
 ## Estado
 

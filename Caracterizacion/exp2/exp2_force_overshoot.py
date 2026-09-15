@@ -204,9 +204,25 @@ def run_probe(hand, args):
     # nada, y 1000 counts antes del bloque. Contacto = el POS deja de avanzar Y
     # la fuerza se despega de la curva libre.
     free_ref = None if args.no_block else free_probe_path(args.outdir, dof, args.mount)
-    resid_live = None
-    if free_ref and f_open is not None:
-        resid_live, _ = _free_residual([(p_open, f_open)], _load_probe(free_ref))
+    free_rows = _load_probe(free_ref) if free_ref else None
+    resid_live = None          # se construye ALINEANDO, ya dentro del bucle
+    live_off = None            # offset bloque−libre medido en el tramo temprano
+    align_lo = (p_open or 0) + 60
+    align_hi = (p_open or 0) + 350
+    align_buf = []
+    if free_rows:
+        f0f_live = _rest_baseline(free_rows)
+        pts_live = sorted(((q, f - f0f_live) for q, f in free_rows))
+
+        def _resid_live(pos):
+            if pos <= pts_live[0][0]:
+                return pts_live[0][1]
+            for (q0, r0), (q1, r1) in zip(pts_live, pts_live[1:]):
+                if q0 <= pos <= q1:
+                    return r0 if q1 == q0 else r0 + (pos - q0) * (r1 - r0) / (q1 - q0)
+            return pts_live[-1][1]
+
+        resid_live = _resid_live
     if not args.no_block:
         if resid_live is not None:
             print(f"Referencia de espacio libre: {os.path.relpath(free_ref)} "
@@ -237,6 +253,17 @@ def run_probe(hand, args):
         samples.append((elapsed, pos, force, cur))
         if force is not None:
             max_force = max(max_force, abs(force))
+            # Offset bloque−libre por ALINEACIÓN en un tramo temprano donde el
+            # contacto es imposible. Con el valor en reposo no basta: entre dos
+            # sondeos el cero deriva decenas de gramos, y el detector en vivo lee
+            # esa deriva como fuerza externa. En el meñique sobre `block2` eso
+            # declaró contacto en POS 1168 con la yema todavía en el aire — el
+            # análisis posterior, que sí alinea, daba 0 g de fuerza externa.
+            if resid_live is not None and pos is not None:
+                if align_lo <= pos <= align_hi:
+                    align_buf.append(force - resid_live(pos))
+                elif pos > align_hi and live_off is None and align_buf:
+                    live_off = statistics.median(align_buf)
         if cur is not None:
             hi_cur = max(hi_cur, cur)
 
@@ -258,8 +285,8 @@ def run_probe(hand, args):
             elif ((t - ref_t) >= args.stall_hold
                   and elapsed >= (t_cmd - t_start) + 0.3
                   and (pos - start_pos) > 50
-                  and (resid_live is None or force is None
-                       or (force - f_open) - resid_live(pos) > args.contact_force_g)):
+                  and (resid_live is None or force is None or live_off is None
+                       or (force - live_off) - resid_live(pos) > args.contact_force_g)):
                 contact_pos = pos
                 reason = 'contacto'; break
 

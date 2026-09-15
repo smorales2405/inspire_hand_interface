@@ -241,7 +241,8 @@ Con N=20, `Fset=1000` en modo B da **mediana 193 g** (IQR 155–223, rango 58–
 0 abortos). Con N=5 daba 195: el valor es **estable**, así que el criterio de
 ≤ 150 g genuinamente no se cumple en este dedo.
 
-Se propuso una explicación: que el modo B no promete un ΔF absoluto sino
+Se propuso una explicación —**que resultó falsa**, ver abajo—: que el modo B no
+promete un ΔF absoluto sino
 **entregar el rendimiento del cierre lento**, y que 193 g sería simplemente lo que
 cuesta un cierre lento a `Fset=1000` sobre un contacto rígido. En el medio
 encajaba (modo A a `v=25` daba 181 g contra 241 del modo B).
@@ -254,10 +255,38 @@ encajaba (modo A a `v=25` daba 181 g contra 241 del modo B).
 | Modo A `v=25` | 5 | 101 g | 86, 89, 101, 141, 171 |
 | Modo B | 20 | 193 g | 58 … 316 |
 
-**Pero no está establecido:** test de permutación exacto sobre la diferencia de
-medianas, **p = 0.075**. Con N=5 del lado del modo A los rangos solapan. La
-hipótesis queda **sin confirmar y sin refutar**; lo zanjaría subir esa celda de
-modo A a N=20, que son 15 trials suaves a `v=25` sin abortos.
+Subida esa celda de modo A a N=20 (15 trials más, 0 abortos, 0 sin contacto),
+la diferencia queda **establecida**:
+
+| | N | Mediana | IQR | Rango |
+|---|---|---|---|---|
+| Modo A `v=25` | 20 | **100 g** | 86–139 | 65–247 |
+| Modo B | 20 | **193 g** | 155–223 | 58–316 |
+
+**p = 0.0025**, permutación exacta sobre la diferencia de medianas, 50 000 reps.
+La hipótesis queda **refutada**: en este dedo el modo B **no** entrega el
+rendimiento del cierre lento — es el doble de duro.
+
+### Qué significa: el margen de conmutación de 120 counts se queda corto
+
+Las dos políticas cierran a `v=25`; lo único que las separa es **cuánto recorrido
+hacen a esa velocidad antes de tocar**. El modo A parte de `POS 1167` y recorre
+248 counts; el modo B conmuta en `POS 1297` y recorre **118**. Si 118 counts no
+bastan para que el dedo se asiente tras la aproximación rápida, el modo B llega
+al contacto yendo más rápido que `v=25` — y eso es exactamente un ΔF mayor.
+
+Esto **no cuestiona la conmutación de velocidad como mitigación** —sigue
+colapsando el impacto un orden de magnitud frente al modo A rápido— pero sí el
+valor del parámetro. Los 120 counts se eligieron para cubrir la **incertidumbre
+de posición** (±82 counts de registro rancio a `v=1000`); nunca se comprobó que
+bastaran para la **dinámica**. Son dos requisitos distintos y solo se verificó
+uno.
+
+**Prueba que lo decidiría, 5 trials:** correr el modo B con el punto de
+conmutación en `onset − 250` (el mismo `POS 1167` del modo A). Si el ΔF baja a
+~100 g, la causa es el recorrido de asentamiento y el margen debe redefinirse
+como el mayor de los dos requisitos. Si se queda en ~193, la causa es la
+aproximación rápida en sí y hay que buscarla en otro sitio.
 
 ## Estado
 

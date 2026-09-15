@@ -10,6 +10,7 @@ def svgs(path):
 
 e1=svgs(os.path.join(REPO,'exp1/figures/exp1_step_response.html'))
 e2=svgs(os.path.join(REPO,'exp2/figures/exp2_force_overshoot.html'))
+cruce=svgs(os.path.join(REPO,'exp2/figures/exp2_cruce_fset.html'))
 cmp_=svgs(os.path.join(REPO,'figures/comparativa_indice_pulgar.html'))
 dist=svgs(os.path.join(REPO,'exp2/figures/exp2_dof4_distribucion.html'))
 tcpf=svgs(os.path.join(REPO,'figures/replica_tcp_onset.html'))
@@ -39,6 +40,30 @@ _dist=sorted(_dist); _dmed=_st.median(_dist)
 _dhi=[v for v in _dist if v>1500]; _dlo=[v for v in _dist if v<=1500]
 _bB=sorted(float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4_hybrid/grid_index.csv'))) if int(r['fset'])==100 and r['delta_f'])
 _sI={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data/analysis_by_speed.csv')))}
+# --- Verificación de los tres dedos restantes por TCP -----------------------
+def _k(d, vmax=500):
+    r=[x for x in csv.DictReader(open(os.path.join(REPO,d,'analysis_by_speed.csv')))
+       if int(x['speed'])<=vmax]
+    return sum(int(x['speed'])*float(x['slope_cps_mean']) for x in r)/sum(int(x['speed'])**2 for x in r)
+_KS=[('Meñique',0,'exp1/data_dof0','exp1/data_dof0_tcp'),('Anular',1,'exp1/data_dof1','exp1/data_dof1_tcp'),
+     ('Medio',2,'exp1/data_dof2','exp1/data_dof2_tcp'),('Índice',3,'exp1/data','exp1/data_tcp'),
+     ('Pulgar',4,'exp1/data_dof4','exp1/data_dof4_tcp')]
+_KT=[(n,d,_k(a),_k(b)) for n,d,a,b in _KS]
+_kall=[v for _,_,a,b in _KT for v in (a,b)]
+_g2=json.load(open(os.path.join(REPO,'exp2/data_dof2_tcp/exp2_overshoot_grid.json')))
+_g1=json.load(open(os.path.join(REPO,'exp2/data_dof1_tcp/exp2_overshoot_grid.json')))
+def _hyb2(d,F):
+    v=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,d,'grid_index.csv')))
+       if int(r['fset'])==F and r['delta_f']]
+    return statistics.median(v)
+_ab=[r for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof1_tcp_ab_borde/ab_index.csv')))]
+_abA=statistics.median(float(r['delta_f']) for r in _ab if r['policy']=='A')
+_abB=statistics.median(float(r['delta_f']) for r in _ab if r['policy']=='B')
+_g2res=43.0   # residual de flexión del medio en el onset (sondeo tcp1)
+_krows=''.join(
+    f'<tr><td class="mono b">{d} {n}</td><td class="mono">{a:.3f}</td>'
+    f'<td class="mono">{b:.3f}</td><td class="mono">{100*(b-a)/a:+.1f} %</td></tr>'
+    for n,d,a,b in _KT)
 # Réplica por TCP: los dos grupos de posición de contacto, calculados del hueco
 # mayor de cada campaña (no se fija a mano dónde parte).
 def _onsets(d):
@@ -369,6 +394,34 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
     <p><b>La consecuencia práctica no es que el margen de seguridad sobre para el cierre lento, sino al revés:</b> a velocidad máxima el controlador <b>no puede saber dónde está el dedo mejor que ±{_st1k:.0f}&nbsp;counts</b>, por rápido que lea. El margen de conmutación de ~120&nbsp;counts que ya usaba la política híbrida queda justificado — por esta razón y no por la que se creía. Y refuerza la propia política: si la posición solo se conoce con esa holgura mientras se va rápido, la decisión de frenar no puede depender de leerla con precisión.</p>
 
     <p>De paso, la tasa alta hizo visibles dos defectos de método que el canal lento ocultaba: la pre-posición se daba por asentada cuando el dedo todavía reptaba unos counts —lo que contaminaba la medida de retardo—, y el registro de temperatura llega en un formato distinto por cada canal. Corregidos ambos, la campaña registró además el calentamiento del actuador, de 34 a 40&nbsp;°C a lo largo de los 175 contactos.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2>Los cinco dedos <span class="tag">verificación de los tres restantes</span></h2>
+    <h3>La calibración de velocidad se confirma; el umbral de fuerza se derrumba</h3>
+
+    <p class="lead">Meñique, anular y medio se midieron por Modbus TCP para completar los cinco grados de libertad. El <b>medio</b> llevó el protocolo entero —175 contactos del barrido más 25 de la política híbrida— por una razón concreta: es el único dedo cuya fuerza de flexión propia en el punto de contacto ({_g2res:.0f}&nbsp;g) deja el umbral más bajo <b>alcanzable</b>. En el índice y en el meñique no lo es, y por eso esa columna nunca se había podido medir de verdad.</p>
+
+    <div class="tbl-wrap"><table><caption><b>Tabla 4.</b> Constante velocidad→movimiento por grado de libertad y por canal de comunicación (counts/s por unidad de <span class="mono">SPEED_SET</span>, ajuste por el origen sobre el tramo lineal).</caption>
+      <thead><tr><th>Grado de libertad</th><th>RS-485</th><th>TCP</th><th>Diferencia</th></tr></thead>
+      <tbody>{_krows}</tbody></table></div>
+
+    <p><b>Diez medidas independientes entre {min(_kall):.2f} y {max(_kall):.2f}.</b> La velocidad comandada se traduce en movimiento con la misma constante en los cinco dedos y por los dos canales: es una propiedad del actuador, no del dedo ni del enlace. Esto cierra además una duda que había dejado la réplica del pulgar, cuyo valor se había movido un 1.7&nbsp;% sin explicación: se sospechaba de una corrección de método aplicada entre campañas, pero esa corrección habría afectado a todos los dedos por igual y los otros cuatro se mueven entre −0.3 y +0.4&nbsp;%.</p>
+
+    <h3>El umbral de fuerza bajo no protege: a alta velocidad es el peor</h3>
+
+    <p>Con el medio alcanzando el objeto en las siete velocidades, la columna del umbral más bajo se pudo medir por primera vez completa. El resultado invierte lo que el proyecto sostuvo durante meses: a máxima velocidad, <b>un umbral de 100&nbsp;g produce el golpe más fuerte de todo el mapa</b> — {_g2['median']['1000']['100']:.0f}&nbsp;g, por encima de cualquier ajuste más alto. El anular lo replica: {_g1['median']['1000']['100']:.0f}&nbsp;g frente a {_g1['median']['1000']['1000']:.0f}&nbsp;g del umbral de 1000.</p>
+
+    <figure>
+      <div class="grid2">{cruce[0]}{cruce[1]}</div>
+      <figcaption><b>Figura 9.</b> A velocidad baja el umbral bajo hace lo que promete: menos sobreimpulso. A partir de <span class="mono">v ≈ 500–750</span> las curvas <b>se cruzan</b> y se invierte, en los dos dedos. El umbral solo manda mientras el dedo va lo bastante despacio para que el firmware alcance a frenar; pasado ese punto lo único que queda es el momento en el instante del contacto — y con el umbral bajo el dedo llega ahí habiendo acelerado más recorrido, porque nada lo frenó antes. La columna baja no es la segura: es la que más carrera le da al golpe.</figcaption>
+    </figure>
+
+    <p><b>La conmutación de velocidad sigue siendo la mitigación, y ahora se sabe cuánto entrega.</b> Comparada contra un cierre lento puro <b>en la misma tanda y en orden alternado</b> —el único diseño que resiste que el objeto ceda entre unas pruebas y otras— la política híbrida da {_abB:.0f}&nbsp;g frente a {_abA:.0f}&nbsp;g del cierre lento: <b>no hay diferencia medible</b>. Entrega el rendimiento del cierre lento sin pagar su tiempo de aproximación, que es exactamente lo que se le pedía.</p>
+
+    <div class="callout"><b>Dos lecciones de método, ambas pagadas caras.</b> Primera: un sobreimpulso pequeño <b>no prueba que haya habido contacto</b>. Si el umbral queda por debajo de la fuerza que el propio dedo genera al flexionarse, el firmware frena en el aire y el ensayo termina con un ΔF minúsculo que parece protección perfecta — así se sostuvo durante meses un hallazgo que no existía. Hay que comprobar la carga, no leer el sobreimpulso. Segunda: <b>dos políticas solo se pueden comparar dentro de una misma tanda aleatorizada</b>. Medidas en tandas separadas, las mismas dos políticas sobre el mismo dedo y el mismo objeto difirieron en un factor dos por causas ajenas a ellas.</div>
   </section>
 
   <hr class="rule">

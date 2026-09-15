@@ -68,6 +68,8 @@ objeto apoyado en la palma, si se encuentra una postura en que lo alcance.
 | `tcp1` | `block1` | pulgar, medio, anular | TCP |
 | `tcp2`, `tcp2post` | `block2` | anular (cara plana) | TCP |
 | `tcp3` | `block1` | anular (remontado) | TCP |
+| `b2` | `block2` (pila corta) | meñique | TCP — pose extrema, descartada |
+| `b2b` | `block2` **+1 placa** | meñique | TCP |
 | `rig1` | bloque rígido **descartado** | medio | TCP (no alcanzaba) |
 
 El bloque rígido que se probó y se descartó no aparece en las fotos: a ninguna

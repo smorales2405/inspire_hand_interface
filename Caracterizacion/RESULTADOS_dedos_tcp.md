@@ -308,10 +308,87 @@ pieza de cara plana derivó 1 count (1720 → 1721) a lo largo de su tanda.
 > distintas, ni como medida de geometría. Para eso está el onset geométrico del
 > sondeo.
 
+---
+
+# Meñique (DOF 0) — verificación reducida
+
+Único dedo de esta campaña sobre **`block2`** (pila de placas metálicas), con la
+yema contra una **cara plana**. Ver [`MONTAJES.md`](MONTAJES.md).
+
+## V0 · geometría del contacto
+
+| | `b2` (pila corta) | `b2b` (+1 placa) |
+|---|---|---|
+| Onset geométrico | POS 1833 | **POS 1731** (`ANGLE_SET 104` ≈ 36°) |
+| Margen al tope libre (1893) | 60 counts | **162 counts** |
+| Residual en el onset | 145 g | **126 g** → `Fset` mín ~156 g |
+| `k_c` | 14.80 g/count | **12.49 g/count** |
+| `d_100` | 9 counts | **12 counts** |
+
+Con la pila corta el dedo alcanzaba el objeto casi cerrado del todo (26°) y a
+60 counts de su final de carrera — la misma situación por la que se descartó el
+bloque rígido en el medio. Añadiendo una placa el contacto sube 102 counts y la
+pose deja de ser extrema.
+
+`Fset = 100` **sigue sin ser ejecutable**, y no se puede arreglar apilando: para
+bajar el residual de 70 g habría que subir el contacto ~430 counts, unas cuatro
+placas más. Es el mismo resultado de la campaña serial (residual 117 g entonces)
+y es una propiedad del dedo: **en el meñique ese ajuste no existe como opción**.
+
+Celda de validación `v=250, Fset=500`: `F_max` 1381 g, 1259 g de fuerza externa,
+0 abortos. El residual medido en la pre-posición sale **122 g contra 85
+estimados** — 37 g de diferencia, la mayor de los tres dedos (medio 99/100,
+anular 33/31). No cambia nada aquí porque `Fset=250` conserva 128 g de margen,
+pero conviene recordar que la estimación de la curva libre se mide **en
+movimiento** y el `f_base` con el dedo **parado**.
+
+## V1 · respuesta al escalón
+
+| Criterio | Valor | |
+|---|---|---|
+| `k` | **3.047** (+0.2 % vs 3.04) | PASA |
+| R² mínimo | 0.9945 | PASA |
+| Deadtime medio | 78.6 ms | PASA |
+| Sobreimpulso de posición | 0.033 % máx | PASA |
+
+## V2 · modo B
+
+| `Fset` | ΔF mediana | Rango | Externa mínima | |
+|---|---|---|---|---|
+| 250 | **33 g** | 25–40 | 252 g | PASA |
+| 1000 | **98 g** | 65–167 | 918 g | PASA (≤ 150) |
+
+10 trials, 0 abortos, todos con contacto. **Los dos criterios se cumplen** — a
+diferencia del anular, cuyo `Fset=1000` se queda en 157–194 g. Los dos dedos
+tocan objetos distintos y en poses distintas, así que la comparación directa no
+procede.
+
+---
+
+# La constante `k` en los cinco DOF, por los dos transportes
+
+| DOF | Serial | TCP | Δ |
+|---|---|---|---|
+| 0 Meñique | 3.046 | **3.047** | +0.1 % |
+| 1 Anular | 3.012 | **3.022** | +0.4 % |
+| 2 Medio | 3.013 | **3.023** | +0.3 % |
+| 3 Índice | 3.042 | 3.032 | −0.3 % |
+| 4 Pulgar | 2.986 | 3.037 | **+1.7 %** |
+
+**Diez medidas independientes entre 2.99 y 3.05.** H-A queda confirmada en los
+cinco grados de libertad y en los dos transportes.
+
+Y cierra el pendiente que dejó la réplica del pulgar. Allí `k` pasó de 2.986 a
+3.037 sin explicación, y uno de los candidatos era el arreglo de la
+**pre-posición asentada**, que afectaría a todos los dedos por igual porque las
+campañas serial se corrieron sin él. **Los otros cuatro se mueven entre −0.3 % y
++0.4 %**; solo el pulgar salta un 1.7 %. El arreglo del asentamiento queda
+descartado como causa: lo del pulgar es propio de ese actuador.
+
 ## Estado
 
 | Dedo | T0 | T1 | T2 grid | T3 modo B |
 |---|---|---|---|---|
 | Medio (2) | ✔ | ✔ | ✔ | ✔ |
 | Anular (1) | ✔ | ✔ | — | ✔ |
-| Meñique (0) | ☐ | ☐ | — | ☐ |
+| Meñique (0) | ✔ | ✔ | — | ✔ |

@@ -235,17 +235,25 @@ el golpe más fuerte: **2619 g con `Fset=100` contra 1615 con `Fset=1000`**, 1.6
 peor. En el medio fue 3453 contra 2528, 1.4×. Dos dedos independientes, misma
 dirección: **bajar el umbral de fuerza empeora el impacto a alta velocidad**.
 
-### ⚠ Corrección doble: la comparación modo A/B, y la medida con que la retracté
+### El recorrido de esta comparación, y dónde queda
 
-**Primero se retractó la comparación**, al señalar el usuario que la punta del
-anular golpea el borde del bloque y lo mueve. Se cuantificó la deriva con el
-campo `onset_pos` que cada trial registra, dando 68 counts entre la tanda del
-modo B y la del modo A.
+Esta sección cambió tres veces. Vale la pena dejar el recorrido, porque cada
+paso lo movió una corrección distinta.
 
-**Esa cuantificación era inválida.** `onset_pos` no es la posición del contacto:
-es el punto donde el detector de umbral del trial (`--onset-thr`, 80 g sobre el
-baseline) dispara, y eso ocurre sobre la **subida del residual de flexión**, que
-depende de dónde arranque el trial:
+**1. El hallazgo inicial.** Tandas separadas sobre la pieza de borde: modo B
+193 g (N=20) contra modo A `v=25` 100 g (N=20), **p = 0.0025**. Se concluyó que
+el modo B era 2× peor que el cierre lento puro, y de ahí que el margen de
+conmutación de 120 counts se quedara corto y que la causa fuera la velocidad de
+aproximación.
+
+**2. La retractación, por un montaje que se movía.** El usuario señaló que la
+punta del anular golpea el **borde** del bloque y lo mueve. Se retractaron las
+tres conclusiones y se cuantificó la deriva con el campo `onset_pos`: 68 counts.
+
+**3. La retractación estaba mal medida.** `onset_pos` no es la posición del
+contacto — es donde dispara el detector de umbral del trial (80 g sobre el
+baseline) sobre la subida del **residual de flexión**, y su valor sigue a la
+pre-posición:
 
 | Campaña | Política | `start POS` | `onset_pos` | Δ |
 |---|---|---|---|---|
@@ -254,43 +262,58 @@ depende de dónde arranque el trial:
 | Modo B margen 120 | B | 1297 | 1409 | +112 |
 | Grid + modo A `v=25` | A | 1168 | 1341 | +173 |
 
-Las dos campañas que comparé tenían **pre-posiciones distintas** (1297 contra
-1168), así que los «68 counts de deriva» medían esa diferencia, no el bloque.
-**La medida buena es el onset geométrico de un sondeo**, que sí es geométrico.
+Las dos campañas comparadas arrancaban de sitios distintos (1297 contra 1168),
+así que los «68 counts» medían eso.
 
-Lo que queda, entonces: la observación física del usuario —el bloque se mueve—
-es motivo suficiente para desconfiar de comparar tandas separadas, pero **no hay
-una medida de cuánto se movió** durante aquellas campañas. Las tres conclusiones
-siguen sin apoyo, por un motivo más simple: eran tandas separadas sobre un
-montaje que se sabe inestable.
+**4. Y el movimiento del bloque no era del tipo que invalida.** El usuario
+precisó que el bloque **se inclinaba durante el contacto y volvía a su posición**
+— no cambiaba de sitio de un toque a otro. Es decir: es **compliancia elástica
+del montaje**, una propiedad del contacto constante entre trials, no una deriva
+de la geometría.
 
-### La respuesta, con el diseño correcto
+**Dónde queda el hallazgo inicial, entonces:** la objeción que lo tumbó era
+falsa, así que **vuelve a estar en pie** — con una reserva que sigue siendo
+válida. Sigue siendo una comparación **entre tandas**, y aunque la posición del
+bloque fuera estable, otras cosas varían con el tiempo: la temperatura del
+actuador (subió de 50 a 52 °C en la campaña del medio), la deriva del `forceClb`,
+el desgaste. No se puede excluir ninguna. Esa es precisamente la razón de ser del
+modo `--ab`.
 
-Tanda `--ab` intercalada sobre la **pieza de cara plana**, 20 trials,
-`Fset = 1000`, aleatorización por bloques balanceados (orden ejecutado
-`ABBABAABBABAABBAABBA`), 0 abortos, 0 trials sin contacto:
+### La tanda intercalada — sobre la pieza nueva
+
+Tanda `--ab` sobre la **pieza de cara plana**, 20 trials, `Fset = 1000`,
+aleatorización por bloques balanceados (`ABBABAABBABAABBAABBA`), 0 abortos:
 
 | | N | Mediana | IQR | Rango |
 |---|---|---|---|---|
 | **Modo A** (cierre lento puro) | 10 | 228 g | 195–317 | 87–349 |
 | **Modo B** (aproximación rápida) | 10 | 194 g | 91–279 | 53–699 |
 
-**Δ = 34 g · p = 0.195** (permutación exacta). **No hay diferencia detectable
-entre las dos políticas.** La hipótesis de que el modo B fuera peor que el cierre
-lento no se sostiene cuando las dos se miden expuestas al mismo montaje, en la
-misma tanda y en orden balanceado.
+**Δ = 34 g · p = 0.195**: sin diferencia detectable.
 
-**Deriva real de la pieza nueva:** sondeo geométrico antes de la tanda,
-`POS 1720`; después, **`POS 1721`**. Un count. Conviene no sobreinterpretarlo: esa
-tanda fueron 20 trials suaves a `v=25` sin un solo aborto, muy lejos del castigo
-de los 70 trials con 24 abortos que recibió la pieza anterior.
+**Los dos resultados no se contradicen: están en poses distintas.** La pieza de
+borde contactaba en `POS 1410` (residual 64 g) y la de cara plana en **1720**
+(residual 116 g), mucho más flexionado. Y el que cambia es el **modo A**: pasa de
+100 a 228 g, mientras el modo B se queda en 193 → 194. La ventaja del cierre
+lento puro **desaparece al flexionar más**, y eso borra la diferencia.
 
-> **Nota de método que vale para todo el repo:** `onset_pos` en los índices de
-> trial es un **cruce de umbral**, no una posición de contacto, y su valor se
-> desplaza con la pre-posición y con el perfil de residual del dedo. Sirve para
-> comparar trials que arrancan del mismo sitio; no sirve para comparar campañas
-> con pre-posiciones distintas, ni como medida de geometría. Para eso está el
-> onset geométrico del sondeo.
+Si se sostiene, es más interesante que la pregunta original: diría que el margen
+del modo B depende de la **pose de contacto**, no solo de la velocidad. Pero está
+sobre N=10 por brazo y una sola pose cada uno.
+
+**Lo que lo zanjaría:** volver a montar la pieza de borde y correr `--ab` en esa
+pose. Misma comparación, mismo diseño, dos geometrías — y entonces la diferencia
+entre ellas sí sería atribuible a la pose.
+
+**Deriva geométrica real de la pieza nueva:** sondeo antes de la tanda `POS 1720`,
+después `POS 1721`. Un count en 20 trials suaves.
+
+> **Nota de método para todo el repo:** `onset_pos` en los índices de trial es un
+> **cruce de umbral**, no una posición de contacto, y se desplaza con la
+> pre-posición y con el perfil de residual del dedo. Sirve para comparar trials
+> que arrancan del mismo sitio; no para comparar campañas con pre-posiciones
+> distintas, ni como medida de geometría. Para eso está el onset geométrico del
+> sondeo.
 
 ## Estado
 

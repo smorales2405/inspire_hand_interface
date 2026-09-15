@@ -40,5 +40,49 @@
    "--outdir",
    "Caracterizacion/exp2/data_dof1_tcp_hybrid"
   ]
+ },
+ {
+  "ts": "2026-09-15T13:46:28",
+  "mode": "hybrid",
+  "dof": 1,
+  "hold": {},
+  "watch": [
+   0,
+   2
+  ],
+  "mount": "tcp1",
+  "seed": 0,
+  "trials": 15,
+  "trial_start": 5,
+  "speeds": "25,50,100,250,500,750,1000",
+  "fsets": "1000",
+  "start_angle": 680,
+  "approach_angle": 359,
+  "hybrid_speed": 25,
+  "argv": [
+   "--transport",
+   "tcp",
+   "--ip",
+   "192.168.124.210",
+   "--port",
+   "6000",
+   "--dof",
+   "1",
+   "--watch",
+   "0,2",
+   "--mount",
+   "tcp1",
+   "--approach-angle",
+   "359",
+   "--hybrid",
+   "--fsets",
+   "1000",
+   "--trials",
+   "15",
+   "--trial-start",
+   "5",
+   "--outdir",
+   "Caracterizacion/exp2/data_dof1_tcp_hybrid"
+  ]
  }
 ]

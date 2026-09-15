@@ -198,6 +198,67 @@ medio, y muy lejos del +1.7 % del pulgar.
 > subir el N de esa celda, como se hizo en su día con la fila `Fset=100` del
 > pulgar.
 
+## V3 · pruebas adicionales sobre el anular
+
+### La distancia de frenado, por fin medida: **6 counts**
+
+| Sondeo | `v` | Onset | `F` en el onset | `k_c` | `d_100` |
+|---|---|---|---|---|---|
+| `tcp1` | 50 | 1417 | 104 g | 14.61 | **0** |
+| `tcp1v25c` | 25 | 1411 | **12 g** | 16.63 | **6** |
+
+El 0 era resolución, no física. A `v=50` la primera muestra que cruza el umbral
+de detección ya marca 104 g, así que los 100 quedan detrás; a `v=25` el onset se
+coge en 12 g y el número aparece. Hizo falta además subir `--contact-force-g`,
+porque el sondeo abre en cuanto declara contacto y se paraba en 80 g externos.
+
+Con 6 counts el anular es **el contacto más rígido medido** (medio 25, pulgar
+23–31, índice ~15).
+
+### Modo A, columnas `Fset` = 100 y 1000 (7 velocidades × 5)
+
+| v \ `Fset` | 100 | 1000 |
+|---|---|---|
+| 25 | 38 | 101 |
+| 50 | 71 | 362 |
+| 100 | 136 | 498 |
+| 250 | 431 | 1035* |
+| 500 | 764 | 1250* |
+| 750 | 2210* | 2368* |
+| 1000 | **2619*** | 1615* |
+
+70 trials · 24 abortos · 0 trials sin contacto · 1 descarte por lectura corrupta
+(`v=500, Fset=100`, `F_max` 2533 g con vecinos ≤ 1 g).
+
+**El hallazgo del medio replica.** A `v = 1000` el umbral más bajo vuelve a dar
+el golpe más fuerte: **2619 g con `Fset=100` contra 1615 con `Fset=1000`**, 1.6×
+peor. En el medio fue 3453 contra 2528, 1.4×. Dos dedos independientes, misma
+dirección: **bajar el umbral de fuerza empeora el impacto a alta velocidad**.
+
+### La celda del modo B a N=20 — y una hipótesis que no se sostiene
+
+Con N=20, `Fset=1000` en modo B da **mediana 193 g** (IQR 155–223, rango 58–316,
+0 abortos). Con N=5 daba 195: el valor es **estable**, así que el criterio de
+≤ 150 g genuinamente no se cumple en este dedo.
+
+Se propuso una explicación: que el modo B no promete un ΔF absoluto sino
+**entregar el rendimiento del cierre lento**, y que 193 g sería simplemente lo que
+cuesta un cierre lento a `Fset=1000` sobre un contacto rígido. En el medio
+encajaba (modo A a `v=25` daba 181 g contra 241 del modo B).
+
+**En el anular no encaja.** Su modo A a `v=25, Fset=1000` da **101 g** contra los
+193 del modo B — el modo B sale ~2× **peor** que el cierre lento puro:
+
+| | N | Mediana | Valores |
+|---|---|---|---|
+| Modo A `v=25` | 5 | 101 g | 86, 89, 101, 141, 171 |
+| Modo B | 20 | 193 g | 58 … 316 |
+
+**Pero no está establecido:** test de permutación exacto sobre la diferencia de
+medianas, **p = 0.075**. Con N=5 del lado del modo A los rangos solapan. La
+hipótesis queda **sin confirmar y sin refutar**; lo zanjaría subir esa celda de
+modo A a N=20, que son 15 trials suaves a `v=25` sin abortos.
+
 ## Estado
 
 | Dedo | T0 | T1 | T2 grid | T3 modo B |

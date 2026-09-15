@@ -1074,28 +1074,61 @@ def run_onset(hand, args):
         hand.write_block(SPEED_SET, [v] * NDOF)
         hand.write_block(FORCE_SET, [F] * NDOF)
         onset_pos = None; consec = 0; aborted = False
+        trace = []                       # (t, pos, force, current) si --onset-traces
         t_start = time.perf_counter()
         hand.write_block(ANGLE_SET, angle_vector(dof, 0, hold))
         while True:
             elapsed = time.perf_counter() - t_start
             fb = hand.read_block(FORCE_ACT)
             force = fb[dof] if fb else None
+            pos = None
+            if args.onset_traces:
+                # Con traza se lee POS (y CURRENT) en cada iteración: hace falta
+                # para ver la FIRMA del contacto, no solo dónde empieza. Cuesta
+                # tasa — de ~600 a ~250 Hz — así que a v=1000 la resolución del
+                # onset baja a ~10 counts por muestra. Irrelevante para separar
+                # dos grupos que distan 70.
+                pb = hand.read_block(POS_ACT)
+                pos = pb[dof] if pb else None
+                cb = hand.read_block(CURRENT)
+                trace.append((elapsed, pos, force, cb[dof] if cb else None))
             if force is not None:
                 if abs(force) > args.safety_force_g:
                     aborted = True; break
-                if (force - f_base) > args.onset_margin:
+                if onset_pos is None and (force - f_base) > args.onset_margin:
                     consec += 1
                     if consec >= 2:
-                        pb = hand.read_block(POS_ACT)
-                        pos = pb[dof] if pb else None
+                        if pos is None:
+                            pb = hand.read_block(POS_ACT)
+                            pos = pb[dof] if pb else None
                         if pos is not None and (pos - start_pos) > args.onset_min_travel:
                             onset_pos = pos
-                            break                         # onset real → retraer
-                        consec = 0                        # blip de arranque → seguir
-                else:
+                            if args.onset_follow <= 0:
+                                break                     # onset real → retraer ya
+                        else:
+                            consec = 0                    # blip de arranque → seguir
+                elif onset_pos is None:
                     consec = 0
+            # Con --onset-follow se sigue un trecho MÁS ALLÁ del onset para medir
+            # la pendiente del contacto y ver si hay deslizamiento; el techo de
+            # fuerza y FORCE_SET siguen acotando el apriete.
+            if onset_pos is not None and args.onset_follow > 0:
+                if pos is None:
+                    pb = hand.read_block(POS_ACT)
+                    pos = pb[dof] if pb else None
+                if pos is not None and (pos - onset_pos) >= args.onset_follow:
+                    break
             if elapsed >= args.trial_window:
                 break
+        if args.onset_traces and trace:
+            os.makedirs(args.outdir, exist_ok=True)
+            tp = os.path.join(args.outdir, f'trace_v{v}_n{k:03d}.csv')
+            with open(tp, 'w', newline='') as tf:
+                tw = csv.writer(tf)
+                tw.writerow(['t_s', 'pos_act', 'force_g', 'current_mA'])
+                for (tt, pp, ff, cc) in trace:
+                    tw.writerow([f'{tt:.6f}', '' if pp is None else pp,
+                                 '' if ff is None else ff, '' if cc is None else cc])
         hand.write_block(ANGLE_SET, angle_vector(dof, args.open_angle, hold))   # retraer
         time.sleep(0.15)
         if onset_pos is not None and not aborted:
@@ -1319,6 +1352,16 @@ def parse_args(argv=None):
                    help='fuerza sobre el baseline del trial para declarar contacto (g, def 120)')
     p.add_argument('--onset-min-travel', type=int, default=200,
                    help='avance mínimo de POS desde el inicio para descartar el blip de arranque')
+    p.add_argument('--onset-traces', action='store_true',
+                   help='guarda la traza completa (POS, FORCE, CURRENT) de cada toque en '
+                        'trace_v<V>_n<NNN>.csv. Necesario para distinguir QUÉ produce la '
+                        'estructura del onset: un deslizamiento deja una caída de fuerza y '
+                        'un pico de corriente; dos puntos de apoyo distintos dejan dos '
+                        'pendientes de contacto distintas.')
+    p.add_argument('--onset-follow', type=int, default=0,
+                   help='counts de POS que se sigue avanzando DESPUÉS del onset antes de '
+                        'retraer (def 0 = retraer al detectar). Un trecho corto permite '
+                        'medir la pendiente del contacto sin dejar de ser un toque suave.')
     p.add_argument('--onset-k', type=float, default=3.3, help='factor para q_sw = ceil(k·σ) (def 3.3)')
     p.add_argument('--geom-onset-pos', type=int, default=None,
                    help='POS del onset GEOMÉTRICO (del sondeo lento --probe). Es la '

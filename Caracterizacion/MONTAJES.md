@@ -75,6 +75,35 @@ objeto apoyado en la palma, si se encuentra una postura en que lo alcance.
 | `b2` | `block2` (pila corta) | meñique | TCP — pose extrema, descartada |
 | `b2b` | `block2` **+1 placa** | meñique | TCP |
 | `rig1` | bloque rígido **descartado** | medio | TCP (no alcanzaba) |
+| `e3` | `block1` | índice | TCP — Exp 3, prerrequisito |
+| `e3b`, `e3c` | `block1` **fallidos** | índice | el bloque se escapaba de lado (`k_c` 1.03 y 0.91) |
+| `e3d` | `block1` | índice | TCP — Exp 3, E3.2 a `F₀=1000` |
+| `e3e` | `block1` | índice | TCP — Exp 3, E3.1/E3.3/E3.4/E3.5 |
+| `e4` | `block1` **fallido** | pulgar | sondeo lanzado **sin `--hold 5:0`** (`k_c` 0.73) |
+| `e4r` | `block1` sobre las falanges | pulgar | TCP — Exp 3, E3.1/E3.2 |
+| `e4s` | `block1` sobre las falanges | pulgar | TCP — Exp 3, E3.3/E3.4/E3.5 |
+
+**Reproducibilidad del montaje del índice**, que fue el más difícil de asentar:
+
+| Montaje | Onset | `k_c` | Frenado a 100 g |
+|---|---|---|---|
+| `e3` | 1448 | 12.44 | 14 |
+| `e3b`, `e3c` | — | **1.03 / 0.91** | — (el bloque se iba) |
+| `e3d` | 1442 | 12.67 | 16 |
+| `e3e` | 1445 | 11.32 | 16 |
+
+**Y del pulgar:**
+
+| Montaje | Onset | `k_c` | Parada | Frenado |
+|---|---|---|---|---|
+| `m1`, `m3` | 775–780 | 5.66–5.96 | 840 | 22–26 |
+| `e4` (sin ancla) | **513** | **0.73** | **1004** | 111 |
+| `e4r` | 783 | 5.79 | 845 | 25 |
+| `e4s` | 789 | 5.63 | 854 | 22 |
+
+El criterio que se usó para dar un montaje por bueno antes de cada campaña fue
+**reproducir los tres números del montaje de referencia** (onset, `k_c`, parada).
+Los tres montajes fallidos se detectaron así, antes de gastar una tanda.
 
 El bloque rígido que se probó y se descartó no aparece en las fotos: a ninguna
 posición montable la yema lo tocaba antes del final de su recorrido.

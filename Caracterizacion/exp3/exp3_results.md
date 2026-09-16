@@ -705,6 +705,74 @@ integrador o banda muerta, y **solo en el sentido de cierre**.
 
 ---
 
+## E3.4 + E3.5 — Decaimiento y deriva del cero · **índice cerrado**
+
+Script: `exp3/exp3_hold_drift.py`. Las dos pruebas comparten ciclo: el de E3.5
+(abrir → base sin contacto → cerrar a `F₀` → sostener 60 s → abrir → base)
+contiene dentro la medida de E3.4. **17 ciclos**, arranque en frío a 32 °C,
+rampa hasta 42 °C en 29 minutos, **una sola tara** al principio (recalibrar entre
+ciclos borraría lo que E3.5 mide).
+
+`F₀ = 450 g` en vez de los 500 del plan: por debajo del techo sostenible de
+~590 g que midió E3.3, y empatando con el nivel limpio de esa prueba.
+
+### E3.4 — la fuerza se cae, pero poco y pronto
+
+| Métrica | Valor |
+|---|---|
+| Caída en 60 s | **44 g mediana (10 %)**, rango 9–90 |
+| `t63` del decaimiento | **2.5 s** mediana, rango 0.7–28.7 |
+| Movimiento de `POS` con el comando congelado | **−2 counts** mediana (rango −5…0) |
+| Corriente durante los 60 s | **0 mA, en los 17 ciclos** |
+
+**El firmware no sostiene fuerza: la sostiene el mecanismo.** Cero miliamperios
+durante 60 s significa que no hay par activo; lo que queda es lo que la
+transmisión retiene por fricción. Todo lo que el regulador quiera, tiene que
+ponerlo él.
+
+**El decaimiento es bimodal.** 13 de 17 ciclos caen rápido (`t63` < 5 s, 50–90 g);
+los otros 4 caen despacio y poco (9–17 g). No se puede predecir cuál toca: es
+lotería de *stick-slip* en el asentamiento del contacto. Para el lazo, la
+perturbación es de **hasta 90 g y llega en los primeros segundos**.
+
+**Y el dedo apenas se mueve.** 2 counts de retroceso, que a `k_c = 12.7` explican
+25 de los 44 g. La otra mitad es relajación en el contacto, no el actuador
+cediendo. El «caminar hacia dentro del objeto» que temía el plan **no aparece a
+450 g** — sí aparecía a 1000, donde E3.3 midió 407 g de colapso.
+
+> **Decisión de E3.4:** hace falta **fuga en el integrador**, no guarda de
+> posición. La caída se agota en pocos segundos y vale ~10 %; un integrador sin
+> fuga la perseguiría indefinidamente, pero una guarda de posición sería resolver
+> un problema que a esta fuerza no existe.
+
+### E3.5 — el cero tiene dos derivas, y la grande no es térmica
+
+| Efecto | Magnitud | Escala de tiempo |
+|---|---|---|
+| Deriva térmica de la tara | **−8 g**, y satura | 29 min, 32 → 42 °C |
+| **Salto tras sostener fuerza** | **−46 g** (rango −40…−60) | aparece en los 17 ciclos |
+
+La base sin contacto medida **antes** de apretar va de 0 a −8 g y ahí se queda.
+La medida **5 s después de soltar** está en −53…−62 g, en todos los ciclos, **a
+32 °C igual que a 42 °C**. No es temperatura: es **histéresis de carga en la celda
+de fuerza**.
+
+Se recupera sola, y a ritmo medible: durante los 3 s de lectura posterior la base
+sube a **+6.0 g/s**, así que los 46 g tardan **~8 s** en irse.
+
+> **Decisión de E3.5 — cadencia de re-tara:**
+> 1. **Nunca tarar justo después de soltar.** Ahí el cero está −46 g corrido y el
+>    lazo se comería ese error entero. Hay que esperar **≥ 10 s** con la mano
+>    abierta y descargada.
+> 2. **La re-tara periódica por temperatura casi no hace falta.** La componente
+>    térmica es de 8 g y satura; con tarar una vez por sesión con la mano ya
+>    templada basta, y eso es 5 veces menos que la resolución del propio lazo en
+>    el índice (~90 g).
+> 3. Lo que el plan daba por el problema principal —la deriva térmica— resulta
+>    ser el menor de los dos. El que importa es el que no estaba en el plan.
+
+---
+
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
@@ -745,7 +813,8 @@ no para medirlo fino.
 | E3.1 `k_local(F₀)` · índice | ✔ (250 / 500 / 1000) |
 | E3.3 planta en contacto · índice | ✔ (250 y 450 g; 1000 g no es sostenible) |
 | E3.3 planta en contacto · pulgar | pendiente — requiere block1 sobre las falanges |
-| E3.4 + E3.5 decaimiento y deriva | pendiente |
+| E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
+| E3.4 + E3.5 · pulgar | pendiente — requiere block1 sobre las falanges |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
 | E3.6b acoplamiento | pendiente |
 

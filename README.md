@@ -32,19 +32,25 @@ inspire_hand_interface/
 │   ├── main.py · core/ · ui/
 │   └── README.md
 └── Caracterizacion/
-    ├── README.md · PROTOCOL_...md · RUNBOOK_pulgar.md
-    ├── hand_modbus.py                   # helper Modbus compartido (exp1, exp2)
-    ├── pose_check.py                    # Fase 0 de un DOF: ANGLE_SET → postura real
-    ├── figures_to_svg.py                # extrae SVG de las figuras
-    ├── exp0/   → código · exp0_results.md · data/
-    ├── exp1/   → código · exp1_results.md · data/ · figures/
-    └── exp2/   → código · exp2_results.md · data/ · data_slow/ · data_hybrid/ · figures/
+    ├── README.md                        # incluye el mapa completo de la carpeta
+    ├── hand_modbus.py                   # driver Modbus compartido (lo importan todos)
+    ├── protocolos/                      # qué medir y por qué
+    ├── planes/                          # planes de campaña y runbooks
+    ├── resultados/                      # resultados transversales · MONTAJES.md
+    ├── resumen/                         # make_summary.py + RESUMEN_caracterizacion.html
+    ├── figuras/                         # figuras comparativas y su código
+    ├── herramientas/                    # pose_check.py · compare_serial_tcp.py
+    ├── imagenes/                        # montajes/ (fotos) · referencia/
+    ├── exp0/ … exp3/                    # un experimento por carpeta:
+    │                                    #   código · data*/ · figures/ · exp*_results.md
+    └── tactil/                          # línea de trabajo aparte (sensores táctiles)
 ```
 
 Los experimentos toman `--dof` y `--hold` (anclar otro DOF): la campaña del
 **índice** vive en `exp*/data/` y la de cualquier otro DOF en `exp*/data_dof<N>/`,
 sin mezclarse. La réplica sobre la **flexión del pulgar** (DOF 4, con la rotación
-anclada) está en [`Caracterizacion/RUNBOOK_pulgar.md`](Caracterizacion/RUNBOOK_pulgar.md).
+anclada) está en [`Caracterizacion/planes/RUNBOOK_pulgar.md`](Caracterizacion/planes/RUNBOOK_pulgar.md).
+El mapa completo de la carpeta está en [`Caracterizacion/README.md`](Caracterizacion/README.md).
 
 ## Resultados de la caracterización
 
@@ -55,7 +61,7 @@ anclada) está en [`Caracterizacion/RUNBOOK_pulgar.md`](Caracterizacion/RUNBOOK_
   cierre (hasta ~3300 g), mitigado ~35× por el modo híbrido.
 - **Réplica en el pulgar (DOF 4)** — el protocolo completo repetido sobre la
   flexión del pulgar con la rotación anclada. Ver `exp1/exp1_results_dof4.md`,
-  `exp2/exp2_results_dof4.md` y `figures/comparativa_indice_pulgar.html`.
+  `exp2/exp2_results_dof4.md` y `figuras/comparativa_indice_pulgar.html`.
 - **Verificación por muestreo (DOF 0, 1, 2)** — meñique, anular y medio, con el
   mínimo de corridas que puede falsar los dos hallazgos. Los tres pasan. Ver
   `verificacion_muestreo_results.md` y `RUNBOOK_verificacion_muestreo.md`.
@@ -82,8 +88,8 @@ velocidad** es la única mitigación que funciona, y funciona en los cinco.
 Cada `exp*/results.md` tiene la interpretación; las figuras (`exp*/figures/`)
 están en HTML autocontenido + SVG para embeber en la tesis.
 
-**Documento-resumen** (para asesor/jurado): `Caracterizacion/RESUMEN_caracterizacion.html`
+**Documento-resumen** (para asesor/jurado): `Caracterizacion/resumen/RESUMEN_caracterizacion.html`
 — abstract, método, resultados con figuras y tablas de métricas. Reproducible con
-`python Caracterizacion/make_summary.py`.
+`python Caracterizacion/resumen/make_summary.py`.
 
 Hardware: Inspire Hand RH56DFTP. Manuales en `Documentation/`.

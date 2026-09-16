@@ -48,7 +48,7 @@ Campañas de referencia: [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md), `exp1/exp1_re
   banda muerta de ~4 counts hace que nunca aterrice exacto, así que cada
   re-afirmación es un empujón real. `--watch` mira la **desviación** de fuerza
   sobre el baseline —nunca el valor absoluto, que tiene offset de sesión— sin
-  comandar nada. Detalle: [`exp2/exp2_results_vecinos.md`](exp2/exp2_results_vecinos.md).
+  comandar nada. Detalle: [`exp2/exp2_results_vecinos.md`](../exp2/exp2_results_vecinos.md).
 - El pulgar **sí** necesitaba `--hold 5:0`: ahí el ancla *define la postura del
   experimento*. Un vecino que solo estorba no necesita ancla ninguna.
 - Techo de fuerza, timeout y apertura en abort siempre activos.
@@ -85,7 +85,7 @@ verificado por vista en 3, 4 y 5; que 0 sea el meñique y 2 el medio está por
 confirmar. En el pulgar esa comprobación ya cambió una conclusión publicada.
 
 ```bash
-.venv/bin/python Caracterizacion/pose_check.py \
+.venv/bin/python Caracterizacion/herramientas/pose_check.py \
     --serial-port /dev/ttyUSB0 --dof N --watch <vecinos> \
     --angles 1000,750,500,250,0 \
     --csv Caracterizacion/exp1/data_dofN/pose_dofN.csv
@@ -287,4 +287,4 @@ espacio libre.
 | Medio (2) | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | **Verificado por muestreo** |
 
 Resultados y parámetros medidos:
-[`verificacion_muestreo_results.md`](verificacion_muestreo_results.md).
+[`verificacion_muestreo_results.md`](../resultados/verificacion_muestreo_results.md).

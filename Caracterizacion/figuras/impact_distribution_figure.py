@@ -22,8 +22,10 @@ import csv
 import os
 import statistics as st
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-DST = os.path.join(_HERE, 'exp2', 'figures', 'exp2_dof4_distribucion.html')
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DST = os.path.join(RAIZ, 'exp2', 'figures', 'exp2_dof4_distribucion.html')
 
 LOW, HIGH = '#D9A441', '#B4740F'      # rampa ordinal (rebota / se queda cargado)
 INK, MUTED, HAIR, GRID = '#12181f', '#5a6472', '#dbe2ec', '#eef2f7'
@@ -36,8 +38,8 @@ def num(x):
 
 def load():
     rows = []
-    for p, only in ((os.path.join(_HERE, 'exp2/data_dof4_termico/grid_index.csv'), False),
-                    (os.path.join(_HERE, 'exp2/data_dof4/grid_index.csv'), True)):
+    for p, only in ((os.path.join(RAIZ, 'exp2/data_dof4_termico/grid_index.csv'), False),
+                    (os.path.join(RAIZ, 'exp2/data_dof4/grid_index.csv'), True)):
         for x in csv.DictReader(open(p)):
             if only and not (int(x['fset']) == 100 and int(x['speed']) == 1000
                              and x.get('mount') == 'm3'):
@@ -49,7 +51,7 @@ def load():
 
 A = load()
 B = sorted(num(x['delta_f']) for x in
-           csv.DictReader(open(os.path.join(_HERE, 'exp2/data_dof4_hybrid/grid_index.csv')))
+           csv.DictReader(open(os.path.join(RAIZ, 'exp2/data_dof4_hybrid/grid_index.csv')))
            if int(x['fset']) == 100 and x['delta_f'])
 dfs = sorted(v for v, _ in A)
 hi = [v for v in dfs if v > SPLIT]

@@ -1,19 +1,23 @@
 #!/usr/bin/env python3
 """Arma el documento-resumen de la caracterización (HTML) embebiendo las figuras."""
-import csv, json, os, re, statistics
+import csv, json, os, re, statistics, sys
 
-REPO=os.path.dirname(os.path.abspath(__file__))
-DST=os.path.join(REPO,'RESUMEN_caracterizacion.html')
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DST=os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                 'RESUMEN_caracterizacion.html')
 
 def svgs(path):
     return re.findall(r'<svg\b.*?</svg>', open(path).read(), re.S)
 
-e1=svgs(os.path.join(REPO,'exp1/figures/exp1_step_response.html'))
-e2=svgs(os.path.join(REPO,'exp2/figures/exp2_force_overshoot.html'))
-cruce=svgs(os.path.join(REPO,'exp2/figures/exp2_cruce_fset.html'))
-cmp_=svgs(os.path.join(REPO,'figures/comparativa_indice_pulgar.html'))
-dist=svgs(os.path.join(REPO,'exp2/figures/exp2_dof4_distribucion.html'))
-tcpf=svgs(os.path.join(REPO,'figures/replica_tcp_onset.html'))
+e1=svgs(os.path.join(RAIZ,'exp1/figures/exp1_step_response.html'))
+e2=svgs(os.path.join(RAIZ,'exp2/figures/exp2_force_overshoot.html'))
+cruce=svgs(os.path.join(RAIZ,'exp2/figures/exp2_cruce_fset.html'))
+cmp_=svgs(os.path.join(RAIZ,'figuras/comparativa_indice_pulgar.html'))
+dist=svgs(os.path.join(RAIZ,'exp2/figures/exp2_dof4_distribucion.html'))
+tcpf=svgs(os.path.join(RAIZ,'figuras/replica_tcp_onset.html'))
+sys.path.insert(0, os.path.join(RAIZ, 'figuras'))   # replica_tcp_figure vive ahí
 import replica_tcp_figure as _rtf          # reusa el cálculo de grupos y del paso del registro
 _b25, _b1k = _rtf.onsets(25), _rtf.onsets(1000)
 _st25, _st1k = _rtf.register_step(25), _rtf.register_step(1000)
@@ -21,28 +25,28 @@ _cl1k = _rtf.clusters(_b1k)
 
 # datos del pulgar (DOF 4) para la sección comparativa
 import statistics as _st
-_gT=json.load(open(os.path.join(REPO,'exp2/data_dof4/exp2_overshoot_grid.json')))
-_gI=json.load(open(os.path.join(REPO,'exp2/data/exp2_overshoot_grid.json')))
-_sT={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data_dof4/analysis_by_speed.csv')))}
+_gT=json.load(open(os.path.join(RAIZ,'exp2/data_dof4/exp2_overshoot_grid.json')))
+_gI=json.load(open(os.path.join(RAIZ,'exp2/data/exp2_overshoot_grid.json')))
+_sT={int(r['speed']):r for r in csv.DictReader(open(os.path.join(RAIZ,'exp1/data_dof4/analysis_by_speed.csv')))}
 def _hyb(d):
     """ΔF del modo B por Fset, desde el JSON analizado: ya excluye los trials en
     los que el dedo no llegó al objeto (ver exp2_analyze.drop_*)."""
-    g=json.load(open(os.path.join(REPO,d,'exp2_overshoot_grid.json')))
+    g=json.load(open(os.path.join(RAIZ,d,'exp2_overshoot_grid.json')))
     med=g['median'][str(g['speeds'][0])]
     return {int(f):med[str(f)] for f in g['fsets'] if med.get(str(f)) is not None}
 _bT,_bI=_hyb('exp2/data_dof4_hybrid'),_hyb('exp2/data_hybrid')
 # distribución de impactos del pulgar a v=1000, Fset=100 (los 40 dedicados + los
 # 15 de esa misma celda y montaje): la mediana esconde que hay DOS regímenes
-_dist=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4_termico/grid_index.csv'))) if r['delta_f']]
-_dist+=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4/grid_index.csv')))
+_dist=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(RAIZ,'exp2/data_dof4_termico/grid_index.csv'))) if r['delta_f']]
+_dist+=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(RAIZ,'exp2/data_dof4/grid_index.csv')))
         if int(r['fset'])==100 and int(r['speed'])==1000 and r.get('mount')=='m3' and r['delta_f']]
 _dist=sorted(_dist); _dmed=_st.median(_dist)
 _dhi=[v for v in _dist if v>1500]; _dlo=[v for v in _dist if v<=1500]
-_bB=sorted(float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof4_hybrid/grid_index.csv'))) if int(r['fset'])==100 and r['delta_f'])
-_sI={int(r['speed']):r for r in csv.DictReader(open(os.path.join(REPO,'exp1/data/analysis_by_speed.csv')))}
+_bB=sorted(float(r['delta_f']) for r in csv.DictReader(open(os.path.join(RAIZ,'exp2/data_dof4_hybrid/grid_index.csv'))) if int(r['fset'])==100 and r['delta_f'])
+_sI={int(r['speed']):r for r in csv.DictReader(open(os.path.join(RAIZ,'exp1/data/analysis_by_speed.csv')))}
 # --- Verificación de los tres dedos restantes por TCP -----------------------
 def _k(d, vmax=500):
-    r=[x for x in csv.DictReader(open(os.path.join(REPO,d,'analysis_by_speed.csv')))
+    r=[x for x in csv.DictReader(open(os.path.join(RAIZ,d,'analysis_by_speed.csv')))
        if int(x['speed'])<=vmax]
     return sum(int(x['speed'])*float(x['slope_cps_mean']) for x in r)/sum(int(x['speed'])**2 for x in r)
 _KS=[('Meñique',0,'exp1/data_dof0','exp1/data_dof0_tcp'),('Anular',1,'exp1/data_dof1','exp1/data_dof1_tcp'),
@@ -50,13 +54,13 @@ _KS=[('Meñique',0,'exp1/data_dof0','exp1/data_dof0_tcp'),('Anular',1,'exp1/data
      ('Pulgar',4,'exp1/data_dof4','exp1/data_dof4_tcp')]
 _KT=[(n,d,_k(a),_k(b)) for n,d,a,b in _KS]
 _kall=[v for _,_,a,b in _KT for v in (a,b)]
-_g2=json.load(open(os.path.join(REPO,'exp2/data_dof2_tcp/exp2_overshoot_grid.json')))
-_g1=json.load(open(os.path.join(REPO,'exp2/data_dof1_tcp/exp2_overshoot_grid.json')))
+_g2=json.load(open(os.path.join(RAIZ,'exp2/data_dof2_tcp/exp2_overshoot_grid.json')))
+_g1=json.load(open(os.path.join(RAIZ,'exp2/data_dof1_tcp/exp2_overshoot_grid.json')))
 def _hyb2(d,F):
-    v=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(REPO,d,'grid_index.csv')))
+    v=[float(r['delta_f']) for r in csv.DictReader(open(os.path.join(RAIZ,d,'grid_index.csv')))
        if int(r['fset'])==F and r['delta_f']]
     return statistics.median(v)
-_ab=[r for r in csv.DictReader(open(os.path.join(REPO,'exp2/data_dof1_tcp_ab_borde/ab_index.csv')))]
+_ab=[r for r in csv.DictReader(open(os.path.join(RAIZ,'exp2/data_dof1_tcp_ab_borde/ab_index.csv')))]
 _abA=statistics.median(float(r['delta_f']) for r in _ab if r['policy']=='A')
 _abB=statistics.median(float(r['delta_f']) for r in _ab if r['policy']=='B')
 _g2res=43.0   # residual de flexión del medio en el onset (sondeo tcp1)
@@ -67,7 +71,7 @@ _krows=''.join(
 # Réplica por TCP: los dos grupos de posición de contacto, calculados del hueco
 # mayor de cada campaña (no se fija a mano dónde parte).
 def _onsets(d):
-    return sorted(int(r['onset_pos']) for r in csv.DictReader(open(os.path.join(REPO,d)))
+    return sorted(int(r['onset_pos']) for r in csv.DictReader(open(os.path.join(RAIZ,d)))
                   if r['onset_pos'] and r.get('aborted','0')=='0')
 def _split(v):
     g=max(((b-a,i) for i,(a,b) in enumerate(zip(v,v[1:]))), key=lambda t:t[0])
@@ -101,7 +105,7 @@ _cmp_rows=''.join(
 
 # ── Exp 3: régimen de contacto sostenido ─────────────────────────────────────
 def _e3(path):
-    return list(csv.DictReader(open(os.path.join(REPO,'exp3/data',path))))
+    return list(csv.DictReader(open(os.path.join(RAIZ,'exp3/data',path))))
 
 def _med(rows, key, pred=None):
     v=[float(r[key]) for r in rows
@@ -160,7 +164,7 @@ overlay, slope, latency = e1[0], e1[1], e1[2]
 bars, compare = e2[0], e2[1]
 
 # pendiente ∝ v (constante k) desde el análisis
-by=list(csv.DictReader(open(os.path.join(REPO,'exp1/data/analysis_by_speed.csv'))))
+by=list(csv.DictReader(open(os.path.join(RAIZ,'exp1/data/analysis_by_speed.csv'))))
 sp=[int(r['speed']) for r in by]; sl=[float(r['slope_cps_mean']) for r in by]
 k=sum(a*b for a,b in zip(sp,sl))/sum(a*a for a in sp)
 r2min=min(float(r['r2_mean']) for r in by)
@@ -182,7 +186,7 @@ for r in by:
 t1+='</tbody></table></div>'
 
 # ── Tabla 2: mapa de sobreimpulso del Exp 2 ──
-grid=json.load(open(os.path.join(REPO,'exp2/data/exp2_overshoot_grid.json')))
+grid=json.load(open(os.path.join(RAIZ,'exp2/data/exp2_overshoot_grid.json')))
 sp2=grid['speeds']; fs=grid['fsets']; med=grid['median']; abo=grid['abort']
 t2='<div class="tbl-wrap"><table><caption><b>Tabla 2.</b> Sobreimpulso de fuerza ΔF = F_max − F_set (mediana, g) por celda. Filas = velocidad de cierre; columnas = F_set (g). ▲ = celda con impacto sobre el techo de seguridad (2200 g).</caption>'\
    '<thead><tr><th>v \\ F_set</th>'+''.join(f'<th>{F}</th>' for F in fs)+'</tr></thead><tbody>'

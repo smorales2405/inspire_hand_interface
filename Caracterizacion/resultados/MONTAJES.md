@@ -1,6 +1,6 @@
 # Montajes de contacto — qué objeto tocaba cada dedo
 
-Fotos en [`exp pictures/`](exp%20pictures/). Este documento existe porque **toda
+Fotos en [`exp pictures/`](../imagenes/montajes/). Este documento existe porque **toda
 cifra de contacto del proyecto** —`k_c`, distancia de frenado, ΔF— depende del
 objeto y de **cómo** lo toca la yema, y hasta ahora eso solo estaba en la
 memoria de quien montó los experimentos.
@@ -56,7 +56,7 @@ vale. Es decir: su objeto estaba sostenido por **dedos
 compliantes**, mientras que el de los demás se apoyaba en la palma rígida.
 
 Eso abre una explicación alternativa para el hallazgo 1 de
-[`exp2/exp2_results_dof4.md`](exp2/exp2_results_dof4.md) —«el pulgar golpea más
+[`exp2/exp2_results_dof4.md`](../exp2/exp2_results_dof4.md) —«el pulgar golpea más
 suave, 0.3–0.6× el ΔF del índice, y la causa es menos inercia en movimiento»—:
 **un apoyo más blando absorbe más impacto**. Las dos hipótesis predicen lo mismo
 y los datos actuales no las separan. Lo decidiría medir el pulgar contra un

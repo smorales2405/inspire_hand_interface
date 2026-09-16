@@ -12,22 +12,21 @@
 <text x="351.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">500</text>
 <text x="494.5" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">750</text>
 <text x="638.0" y="298" fill="#5a6472" font-size="11" text-anchor="middle" class="mono">1000</text>
-<polyline points="64.0,277.4 207.5,46.1 351.0,70.9 494.5,74.6 638.0,100.6" fill="none" stroke="#B4740F" stroke-width="2.4"/>
-<circle cx="64.0" cy="277.4" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
+<polyline points="64.0,258.9 207.5,46.1 351.0,70.9 494.5,74.6 638.0,100.6" fill="none" stroke="#B4740F" stroke-width="2.4"/>
+<circle cx="64.0" cy="258.9" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
 <circle cx="207.5" cy="46.1" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
 <circle cx="351.0" cy="70.9" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
 <circle cx="494.5" cy="74.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
 <circle cx="638.0" cy="100.6" r="3.4" fill="#B4740F" stroke="#fff" stroke-width="1.2"/>
 <text x="646.0" y="104.6" fill="#B4740F" font-size="12" class="mono b">A · v=1000 (rápido)</text>
-<polyline points="64.0,279.5 207.5,277.9 351.0,275.4 494.5,274.8 638.0,275.1" fill="none" stroke="#6FA3D2" stroke-width="2.4"/>
-<circle cx="64.0" cy="279.5" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<polyline points="64.0,279.9 207.5,277.9 351.0,276.1 494.5,274.8 638.0,275.1" fill="none" stroke="#6FA3D2" stroke-width="2.4"/>
+<circle cx="64.0" cy="279.9" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
 <circle cx="207.5" cy="277.9" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
-<circle cx="351.0" cy="275.4" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
+<circle cx="351.0" cy="276.1" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
 <circle cx="494.5" cy="274.8" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
 <circle cx="638.0" cy="275.1" r="3.4" fill="#6FA3D2" stroke="#fff" stroke-width="1.2"/>
 <text x="646.0" y="279.1" fill="#6FA3D2" font-size="12" class="mono b">A · v=25 (lento)</text>
-<polyline points="64.0,279.9 207.5,278.2 351.0,277.2 494.5,274.9 638.0,273.4" fill="none" stroke="#285F97" stroke-width="2.4"/>
-<circle cx="64.0" cy="279.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
+<polyline points="207.5,278.2 351.0,277.2 494.5,274.9 638.0,273.4" fill="none" stroke="#285F97" stroke-width="2.4"/>
 <circle cx="207.5" cy="278.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
 <circle cx="351.0" cy="277.2" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>
 <circle cx="494.5" cy="274.9" r="3.4" fill="#285F97" stroke="#fff" stroke-width="1.2"/>

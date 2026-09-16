@@ -18,11 +18,11 @@ barrido (p. ej. fijar la rotación mientras se barre la flexión).
 
 Uso típico (pulgar):
     # 1) ¿qué extremo de ANGLE_SET(5) es 165°?  Mira la mano en cada parada.
-    .venv/bin/python Caracterizacion/pose_check.py \
+    .venv/bin/python Caracterizacion/herramientas/pose_check.py \
         --transport serial --serial-port /dev/ttyUSB0 --dof 5 --angles 1000,500,0
 
     # 2) con la rotación ya anclada, ¿hasta dónde flexiona libre el pulgar?
-    .venv/bin/python Caracterizacion/pose_check.py \
+    .venv/bin/python Caracterizacion/herramientas/pose_check.py \
         --transport serial --serial-port /dev/ttyUSB0 --dof 4 --hold 5:0 \
         --angles 1000,750,500,250,0
 """
@@ -35,7 +35,7 @@ import sys
 import time
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, _HERE)
+sys.path.insert(0, os.path.dirname(_HERE))   # hand_modbus vive en la raíz
 
 from hand_modbus import (
     HandModbus, NDOF, ANGLE_SET, FORCE_SET, SPEED_SET,

@@ -7,7 +7,9 @@ Exp 2: F_max vs velocidad (Fset=500).  Puro Python. Correr desde cualquier cwd.
 from __future__ import annotations
 import csv, os, statistics
 
-H = os.path.dirname(os.path.abspath(__file__))
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def _dt_stats(paths):
@@ -54,9 +56,9 @@ def main():
     print("=" * 60)
 
     # ── Exp 0 ──
-    s = _dt_stats([os.path.join(H, 'exp0/data', f) for f in
+    s = _dt_stats([os.path.join(RAIZ, 'exp0/data', f) for f in
                    ('exp0_data1.csv', 'exp0_data2.csv', 'exp0_data3.csv')])
-    t = _dt_stats([os.path.join(H, 'exp0/data/exp0_tcp.csv')])
+    t = _dt_stats([os.path.join(RAIZ, 'exp0/data/exp0_tcp.csv')])
     print("\n[Exp 0 · muestreo]")
     if s and t:
         print(f"  tasa media : serial {s['rate']:.0f} Hz  →  TCP {t['rate']:.0f} Hz   (×{t['rate']/s['rate']:.1f})")
@@ -64,13 +66,13 @@ def main():
 
     # ── Exp 1 ──
     print("\n[Exp 1 · escalón — por velocidad]")
-    rs = _rate_from_index(os.path.join(H, 'exp1/data/index.csv'))
-    rt = _rate_from_index(os.path.join(H, 'exp1/data_tcp/index.csv'))
+    rs = _rate_from_index(os.path.join(RAIZ, 'exp1/data/index.csv'))
+    rt = _rate_from_index(os.path.join(RAIZ, 'exp1/data_tcp/index.csv'))
     if rs and rt: print(f"  tasa media : serial {rs:.0f} Hz  →  TCP {rt:.0f} Hz   (×{rt/rs:.1f})")
-    ss = _by_speed(os.path.join(H, 'exp1/data/analysis_by_speed.csv'), 'slope_cps_mean')
-    st = _by_speed(os.path.join(H, 'exp1/data_tcp/analysis_by_speed.csv'), 'slope_cps_mean')
-    r2s = _by_speed(os.path.join(H, 'exp1/data/analysis_by_speed.csv'), 'r2_mean')
-    r2t = _by_speed(os.path.join(H, 'exp1/data_tcp/analysis_by_speed.csv'), 'r2_mean')
+    ss = _by_speed(os.path.join(RAIZ, 'exp1/data/analysis_by_speed.csv'), 'slope_cps_mean')
+    st = _by_speed(os.path.join(RAIZ, 'exp1/data_tcp/analysis_by_speed.csv'), 'slope_cps_mean')
+    r2s = _by_speed(os.path.join(RAIZ, 'exp1/data/analysis_by_speed.csv'), 'r2_mean')
+    r2t = _by_speed(os.path.join(RAIZ, 'exp1/data_tcp/analysis_by_speed.csv'), 'r2_mean')
     print(f"  {'v':>5} | {'pendiente c/s (ser→tcp)':>24} | {'R² (ser→tcp)':>16}")
     for v in sorted(set(ss) | set(st)):
         a, b = ss.get(v), st.get(v)
@@ -80,9 +82,9 @@ def main():
 
     # ── Exp 2 ──
     print("\n[Exp 2 · F_max (g) vs velocidad, Fset=500]")
-    fs = _fmax_by_speed(os.path.join(H, 'exp2/data/grid_index.csv'))
-    ft = _fmax_by_speed(os.path.join(H, 'exp2/data_tcp/grid_index.csv'))
-    rt2 = _rate_from_index(os.path.join(H, 'exp2/data_tcp/grid_index.csv'))
+    fs = _fmax_by_speed(os.path.join(RAIZ, 'exp2/data/grid_index.csv'))
+    ft = _fmax_by_speed(os.path.join(RAIZ, 'exp2/data_tcp/grid_index.csv'))
+    rt2 = _rate_from_index(os.path.join(RAIZ, 'exp2/data_tcp/grid_index.csv'))
     print(f"  {'v':>5} | {'F_max serial':>13} | {'F_max TCP':>12}")
     for v in sorted(set(fs) | set(ft)):
         a, b = fs.get(v), ft.get(v)

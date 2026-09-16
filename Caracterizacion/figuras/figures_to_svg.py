@@ -12,16 +12,18 @@ STYLE = ('<style>text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans
          '.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;}'
          '.b{font-weight:600;}.ey{letter-spacing:.14em;}</style>')
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # HTML -> nombres de cada <svg> en orden de aparición (los SVG se escriben junto al HTML)
 JOBS = [
-    (os.path.join(_HERE, 'exp1', 'figures', 'exp1_step_response.html'),
+    (os.path.join(RAIZ, 'exp1', 'figures', 'exp1_step_response.html'),
      ['exp1_overlay_pos_vs_t', 'exp1_slope_vs_speed', 'exp1_latency_vs_speed']),
-    (os.path.join(_HERE, 'exp2', 'figures', 'exp2_force_overshoot.html'),
+    (os.path.join(RAIZ, 'exp2', 'figures', 'exp2_force_overshoot.html'),
      ['exp2_overshoot_bars', 'exp2_hybrid_comparison']),
-    (os.path.join(_HERE, 'figures', 'comparativa_indice_pulgar.html'),
+    (os.path.join(RAIZ, 'figuras', 'comparativa_indice_pulgar.html'),
      ['cmp_pendiente_vs_speed', 'cmp_fset100_vs_speed', 'cmp_modoA_vs_modoB']),
-    (os.path.join(_HERE, 'exp2', 'figures', 'exp2_dof4_distribucion.html'),
+    (os.path.join(RAIZ, 'exp2', 'figures', 'exp2_dof4_distribucion.html'),
      ['exp2_dof4_hist_deltaF', 'exp2_dof4_regimenes']),
 ]
 

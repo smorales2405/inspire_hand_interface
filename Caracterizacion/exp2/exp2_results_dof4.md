@@ -133,7 +133,7 @@ original parecía alto — capturó parte de esa cola.
 
 **Figura:** `figures/exp2_dof4_distribucion.html` (+ SVG
 `exp2_dof4_hist_deltaF.svg`, `exp2_dof4_regimenes.svg`). Regenerar con
-`python Caracterizacion/impact_distribution_figure.py`.
+`python Caracterizacion/figuras/impact_distribution_figure.py`.
 
 **Consecuencia práctica:** a máxima velocidad el número que importa para
 dimensionar el riesgo **no es la mediana sino la cola**. Un objeto que aguante

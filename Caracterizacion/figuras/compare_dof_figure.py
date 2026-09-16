@@ -25,8 +25,10 @@ import json
 import math
 import os
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-DST = os.path.join(_HERE, 'figures', 'comparativa_indice_pulgar.html')
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DST = os.path.join(RAIZ, 'figuras', 'comparativa_indice_pulgar.html')
 
 IDX = '#285F97'   # índice
 THB = '#B4740F'   # pulgar
@@ -36,12 +38,12 @@ FINGERS = (('Índice (DOF 3)', IDX), ('Pulgar (DOF 4)', THB))
 
 # ── datos ────────────────────────────────────────────────────────────────
 def by_speed(d):
-    rows = list(csv.DictReader(open(os.path.join(_HERE, d, 'analysis_by_speed.csv'))))
+    rows = list(csv.DictReader(open(os.path.join(RAIZ, d, 'analysis_by_speed.csv'))))
     return {int(r['speed']): r for r in rows}
 
 
 def grid(d):
-    return json.load(open(os.path.join(_HERE, d, 'exp2_overshoot_grid.json')))
+    return json.load(open(os.path.join(RAIZ, d, 'exp2_overshoot_grid.json')))
 
 
 def hybrid(d):

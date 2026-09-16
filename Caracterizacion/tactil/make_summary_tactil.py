@@ -2,7 +2,7 @@
 """Arma el documento-resumen de la CARACTERIZACION TACTIL (HTML autocontenido).
 
 Lee los CSV de Fase 0 y Fase A1 y genera graficos SVG + tablas, con el mismo
-sistema de diseno que Caracterizacion/RESUMEN_caracterizacion.html. Reproducible:
+sistema de diseno que Caracterizacion/resumen/RESUMEN_caracterizacion.html. Reproducible:
 
     python Caracterizacion/tactil/make_summary_tactil.py
 """

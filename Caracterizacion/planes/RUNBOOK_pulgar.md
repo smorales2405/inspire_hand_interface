@@ -1,6 +1,6 @@
 # Runbook — Caracterización dinámica de la FLEXIÓN DEL PULGAR (DOF 4)
 
-Réplica del [`PROTOCOL_Dynamic_Characterization_RH56DFTP.md`](PROTOCOL_Dynamic_Characterization_RH56DFTP.md)
+Réplica del [`PROTOCOL_Dynamic_Characterization_RH56DFTP.md`](../protocolos/PROTOCOL_Dynamic_Characterization_RH56DFTP.md)
 —ya ejecutado sobre el índice (DOF 3)— aplicado ahora a la **flexión del pulgar
 (DOF 4)**, con la **rotación del pulgar (DOF 5) anclada en su tope de oposición**
 (`ANGLE_SET(5) = 0`, medido en P0.1) para que la única variable cinemática sea la
@@ -127,7 +127,7 @@ la rotación, y (b) hasta dónde flexiona libre el pulgar en esa postura.
 ### P0.1 — ✔ HECHA (2026-08-25)
 
 ```bash
-.venv/bin/python Caracterizacion/pose_check.py \
+.venv/bin/python Caracterizacion/herramientas/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 \
     --dof 5 --angles 1000,750,500,250,0 --dwell-s 3
 ```
@@ -151,7 +151,7 @@ queda muy por debajo del techo de la vigilancia del DOF anclado.
 ### P0.2 — ✔ HECHA (2026-08-25)
 
 ```bash
-.venv/bin/python Caracterizacion/pose_check.py \
+.venv/bin/python Caracterizacion/herramientas/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 \
     --dof 4 --hold 5:0 --angles 1000,750,500,250,0 --dwell-s 3 \
     --csv Caracterizacion/exp1/data_dof4/pose_dof4.csv
@@ -231,7 +231,7 @@ Escribe en `exp1/data_dof4/` (serie por trial + `index.csv`). Análisis offline:
 .venv/bin/python Caracterizacion/exp1/exp1_analyze.py --outdir Caracterizacion/exp1/data_dof4
 ```
 
-### ✔ P1 HECHA (2026-08-25) — ver [`exp1/exp1_results_dof4.md`](exp1/exp1_results_dof4.md)
+### ✔ P1 HECHA (2026-08-25) — ver [`exp1/exp1_results_dof4.md`](../exp1/exp1_results_dof4.md)
 
 100/100 asentaron, 0 abortos, 86.4 Hz, `Δpos = 649 ± 0.9` counts. Resumen:
 
@@ -461,7 +461,7 @@ el híbrido recupera el rendimiento de la velocidad más lenta aproximándose a
 velocidad máxima. Reducción de **30–82×** frente al modo A a v=1000, con la
 mayor ganancia justo en `Fset = 100`, la celda que en el pulgar no tenía
 protección. `F_max` sigue al setpoint limpiamente. Detalle en
-[`exp2/exp2_results_dof4.md`](exp2/exp2_results_dof4.md).
+[`exp2/exp2_results_dof4.md`](../exp2/exp2_results_dof4.md).
 
 **Fase P2 completa.** Queda P3 (figuras + documento comparativo).
 
@@ -473,7 +473,7 @@ contra un bloque: no se lanza sin que la celda de validación se vea sana.
 ## ✔ Fase P3 HECHA (2026-08-26) — figuras y documento
 
 `compare_dof_figure.py` genera las tres figuras comparativas
-(`figures/comparativa_indice_pulgar.html` + SVG vectoriales para la tesis):
+(`figuras/comparativa_indice_pulgar.html` + SVG vectoriales para la tesis):
 
 1. **Pendiente vs `SPEED_SET`** — la misma constante en los dos dedos (3.04 y
    2.99 counts/s por unidad, ajustadas sobre el tramo donde ambos son lineales),

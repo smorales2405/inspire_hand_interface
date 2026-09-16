@@ -8,11 +8,13 @@ justo lo que el dedo avanza entre dos refrescos del registro de posición de la
 mano, que cambia cada ~30.7 ms sea cual sea la tasa de lectura.
 
 O sea que los dos grupos no son dos posiciones de contacto: son dos escalones del
-registro. Salida: figures/replica_tcp_onset.html (SVG autocontenido).
+registro. Salida: figuras/replica_tcp_onset.html (SVG autocontenido).
 """
 import csv, os, statistics
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INK, MUTED, HAIR = '#12181f', '#5a6472', '#dbe2ec'
 ACC, AMBER = '#285F97', '#B4740F'      # validados: ΔE 22.3 protan · 27.2 normal
 SURF = '#ffffff'
@@ -21,7 +23,7 @@ BIN, LO, HI = 5, 15, 165
 
 
 def onsets(v):
-    d = os.path.join(HERE, f'exp2/data_dof4_tcp_bif_v{v}')
+    d = os.path.join(RAIZ, f'exp2/data_dof4_tcp_bif_v{v}')
     return sorted(int(r['onset_pos']) - GEOM
                   for r in csv.DictReader(open(os.path.join(d, 'onset_trials.csv')))
                   if r['onset_pos'] and r['aborted'] == '0')
@@ -29,7 +31,7 @@ def onsets(v):
 
 def register_step(v, lo=760, hi=960):
     """Counts que avanza POS_ACT entre dos refrescos del registro, cerca del contacto."""
-    d = os.path.join(HERE, f'exp2/data_dof4_tcp_bif_v{v}')
+    d = os.path.join(RAIZ, f'exp2/data_dof4_tcp_bif_v{v}')
     steps = []
     for k in range(1, 61):
         try:
@@ -124,7 +126,7 @@ def main():
     s.append('</svg>')
     svg = '\n'.join(s)
 
-    out = os.path.join(HERE, 'figures/replica_tcp_onset.html')
+    out = os.path.join(RAIZ, 'figuras/replica_tcp_onset.html')
     os.makedirs(os.path.dirname(out), exist_ok=True)
     open(out, 'w').write(
         f'<!doctype html><meta charset="utf-8">'

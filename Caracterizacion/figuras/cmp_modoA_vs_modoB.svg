@@ -6,11 +6,6 @@
 <line x1="66" y1="82.9" x2="910" y2="82.9" stroke="#eef2f7"/>
 <text x="58" y="86.9" fill="#5a6472" font-size="11" text-anchor="end" class="mono">1000</text>
 <text x="150.4" y="294" fill="#5a6472" font-size="11.5" text-anchor="middle" class="mono">100</text>
-<line x1="133.4" y1="181.6" x2="133.4" y2="267.5" stroke="#285F97" stroke-width="2" opacity="0.42"/>
-<circle cx="133.4" cy="181.6" r="5" fill="#fff" stroke="#285F97" stroke-width="2"/>
-<circle cx="133.4" cy="267.5" r="5" fill="#285F97" stroke="#fff" stroke-width="1.6"/>
-<text x="144.4" y="271.5" fill="#285F97" font-size="10.5" class="mono">2</text>
-<text x="133.4" y="171.6" fill="#285F97" font-size="10.5" text-anchor="middle" class="mono">36</text>
 <line x1="167.4" y1="84.9" x2="167.4" y2="203.9" stroke="#B4740F" stroke-width="2" opacity="0.42"/>
 <circle cx="167.4" cy="84.9" r="5" fill="#fff" stroke="#B4740F" stroke-width="2"/>
 <circle cx="167.4" cy="203.9" r="5" fill="#B4740F" stroke="#fff" stroke-width="1.6"/>

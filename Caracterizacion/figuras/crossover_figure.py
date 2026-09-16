@@ -13,8 +13,10 @@ todas las velocidades, y lo que muestra es lo contrario de la creencia.
 """
 import json, math, os
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-DST = os.path.join(_HERE, 'exp2', 'figures', 'exp2_cruce_fset.html')
+# La raíz de Caracterizacion/ es el nivel de ARRIBA: este script vive en una
+# subcarpeta y todas las rutas de datos cuelgan de la raíz.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DST = os.path.join(RAIZ, 'exp2', 'figures', 'exp2_cruce_fset.html')
 
 # Rampa ORDINAL de un solo tono (Fset bajo → alto), la misma que la figura de la
 # distribución de impactos. No es categórica: los dos niveles están ordenados.
@@ -23,7 +25,7 @@ INK, MUTED, HAIR, GRID = '#12181f', '#5a6472', '#dbe2ec', '#eef2f7'
 
 
 def grid(d):
-    return json.load(open(os.path.join(_HERE, 'exp2', d, 'exp2_overshoot_grid.json')))
+    return json.load(open(os.path.join(RAIZ, 'exp2', d, 'exp2_overshoot_grid.json')))
 
 
 G = {'Medio (DOF 2)': grid('data_dof2_tcp'), 'Anular (DOF 1)': grid('data_dof1_tcp')}

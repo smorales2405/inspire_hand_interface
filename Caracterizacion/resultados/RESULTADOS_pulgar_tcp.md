@@ -14,7 +14,7 @@ muestreo: la σ del onset y la captura del pico `F_max`. **Ninguna de las dos
 mejoró** — pero no porque el muestreo no importara, sino porque el cuello de
 botella no es el enlace: **la mano publica estado nuevo a ~33 Hz**, y se estaba
 leyendo a 596. Ese es el hallazgo principal de la réplica, y se midió en el
-sub-experimento de cierre ([`exp2/exp2_results_bifurcacion.md`](exp2/exp2_results_bifurcacion.md)).
+sub-experimento de cierre ([`exp2/exp2_results_bifurcacion.md`](../exp2/exp2_results_bifurcacion.md)).
 
 ## Lo que reproduce
 
@@ -49,7 +49,7 @@ decía la comparativa del índice.
 > 596 Hz un valor que cambia a **33 Hz**. La explicación original era correcta.
 >
 > Medido después con 120 toques y traza completa
-> ([`exp2/exp2_results_bifurcacion.md`](exp2/exp2_results_bifurcacion.md)): la
+> ([`exp2/exp2_results_bifurcacion.md`](../exp2/exp2_results_bifurcacion.md)): la
 > mano publica estado nuevo cada **30.7 ms**, igual a cualquier velocidad y para
 > `POS_ACT`, `FORCE_ACT` y `CURRENT` por igual. Cerca del contacto a `v=1000` eso
 > son **82 counts de avance entre refrescos** — exactamente la separación entre

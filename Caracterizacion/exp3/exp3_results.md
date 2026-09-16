@@ -1,8 +1,8 @@
 # Exp 3 — Régimen de contacto sostenido · resultados
 
-Plan: [`../EXP3_regimen_contacto_sostenido.md`](../EXP3_regimen_contacto_sostenido.md).
+Plan: [`../EXP3_regimen_contacto_sostenido.md`](../planes/EXP3_regimen_contacto_sostenido.md).
 Transporte TCP `192.168.124.210:6000`. Montaje: **`block1`** (la fuente de
-alimentación, contacto sobre arista — ver [`../MONTAJES.md`](../MONTAJES.md)),
+alimentación, contacto sobre arista — ver [`../MONTAJES.md`](../resultados/MONTAJES.md)),
 remontado para esta serie y re-sondeado: onset **POS 1487**, residual 45 g.
 
 ---

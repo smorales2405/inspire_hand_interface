@@ -3,7 +3,7 @@
 Verificación **por muestreo** de que los dos hallazgos de la caracterización se
 sostienen en los DOF no caracterizados. **No es una réplica de la campaña
 completa** y no debe describirse como tal: es el mínimo de corridas que puede
-falsar H-A y H-B. Plan: [`RUNBOOK_verificacion_muestreo.md`](RUNBOOK_verificacion_muestreo.md).
+falsar H-A y H-B. Plan: [`RUNBOOK_verificacion_muestreo.md`](../planes/RUNBOOK_verificacion_muestreo.md).
 
 Mano derecha, GUI cerrada, `/dev/ttyUSB0`. Fechas: 2026-09-07.
 

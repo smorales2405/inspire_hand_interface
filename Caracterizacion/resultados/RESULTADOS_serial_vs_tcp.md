@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-09-12 · DOF 3 (índice) · mano Inspire RH56DFTP.
 **Serial:** RS-485 @ 115 200 baud (`/dev/ttyUSB*`). **TCP:** Ethernet, `192.168.124.210:6000`.
-Reproducible: `python Caracterizacion/compare_serial_tcp.py`.
+Reproducible: `python Caracterizacion/herramientas/compare_serial_tcp.py`.
 
 **Objetivo:** verificar si cambian, respecto a serial, la **tasa de muestreo**, la
 **latencia** y la **resolución** de las mediciones al pasar a Modbus TCP.

@@ -15,6 +15,67 @@ Newton: `N = g * 9.80665 / 1000`.
 
 ---
 
+## Mapa de la carpeta
+
+```
+Caracterizacion/
+├── README.md                  este documento: cómo correr cada experimento
+├── hand_modbus.py             driver Modbus compartido — LO IMPORTAN TODOS
+│
+├── protocolos/                QUÉ medir y por qué (los documentos fundacionales)
+│   ├── PROTOCOL_Dynamic_Characterization_RH56DFTP.md
+│   └── protocolo_caracterizacion_tactil_RH56DFTP.md
+│
+├── planes/                    CÓMO se va a medir: planes de campaña y runbooks
+│   ├── PROMPT_verificacion_muestreo_y_rigidez.md
+│   ├── RUNBOOK_pulgar.md
+│   ├── RUNBOOK_verificacion_muestreo.md
+│   └── EXP3_regimen_contacto_sostenido.md
+│
+├── resultados/                resultados TRANSVERSALES (los de un solo
+│   ├── RESULTADOS_serial_vs_tcp.md          experimento viven en su exp*/)
+│   ├── RESULTADOS_pulgar_tcp.md
+│   ├── RESULTADOS_dedos_tcp.md
+│   ├── verificacion_muestreo_results.md
+│   └── MONTAJES.md            qué objeto tocaba cada dedo, y con qué cara
+│
+├── resumen/                   el documento para asesor/jurado
+│   ├── make_summary.py        lo genera leyendo los CSV; no se edita a mano
+│   └── RESUMEN_caracterizacion.html
+│
+├── figuras/                   generadores de figuras COMPARATIVAS + sus salidas
+│   ├── compare_dof_figure.py · crossover_figure.py
+│   ├── impact_distribution_figure.py · replica_tcp_figure.py
+│   ├── figures_to_svg.py      extrae los SVG sueltos para embeber en la tesis
+│   └── *.html · *.svg
+│
+├── herramientas/
+│   ├── pose_check.py          Fase 0 de un DOF nuevo: ANGLE_SET → postura real
+│   └── compare_serial_tcp.py  compara las dos campañas por canal
+│
+├── imagenes/
+│   ├── montajes/              fotos de cada bloque contra cada dedo
+│   └── referencia/            objetos candidatos para las pruebas de pinza
+│
+├── exp0/ · exp1/ · exp2/ · exp3/    un experimento por carpeta:
+│   código · data*/ · figures/ · exp*_results.md
+│
+└── tactil/                    línea de trabajo aparte (sensores táctiles)
+```
+
+**Dónde buscar cada cosa.** Si la pregunta es *«¿qué dice el experimento N?»*, el
+resultado está en `expN/expN_results.md`. Si es *«¿qué se concluyó en total?»*,
+en `resumen/`. Si es *«¿contra qué se golpeaba?»*, en `resultados/MONTAJES.md`
+con las fotos en `imagenes/montajes/`.
+
+**Dos reglas que la estructura tiene que respetar.** `hand_modbus.py` se queda en
+la raíz: los ocho scripts de experimento lo localizan como «un nivel por encima
+de mi carpeta». Y los scripts que viven en una subcarpeta (`figuras/`,
+`herramientas/`, `resumen/`) resuelven los datos contra `RAIZ`, que es el
+directorio padre — no contra el suyo.
+
+---
+
 ## Elegir el DOF · DOF anclados (`--hold`)
 
 `exp1_step_response.py` y `exp2_force_overshoot.py` toman `--dof` (def 3 =
@@ -35,7 +96,7 @@ carga aparece ahí y el trial aborta con `fuerza_hold`.
 Los datos **no se mezclan**: el `--outdir` por defecto es `data/` para el DOF 3
 (histórico) y `data_dof<N>/` para cualquier otro.
 
-**Runbook del pulgar:** [`RUNBOOK_pulgar.md`](RUNBOOK_pulgar.md) — la réplica
+**Runbook del pulgar:** [`RUNBOOK_pulgar.md`](planes/RUNBOOK_pulgar.md) — la réplica
 completa del protocolo sobre DOF 4, por fases.
 
 ## Fase 0 de un DOF nuevo (`pose_check.py`)
@@ -56,7 +117,7 @@ anotas. Sirve además para mapear el **recorrido libre** (dónde topa solo) ante
 de montarle un bloque:
 
 ```bash
-.venv/bin/python Caracterizacion/pose_check.py \
+.venv/bin/python Caracterizacion/herramientas/pose_check.py \
     --transport serial --serial-port /dev/ttyUSB0 --dof 5 --angles 1000,500,0
 ```
 
@@ -278,5 +339,5 @@ Regenerar todo desde los CSV (correr desde la raíz del repo):
 .venv/bin/python Caracterizacion/exp1/exp1_make_figure.py
 .venv/bin/python Caracterizacion/exp2/exp2_analyze.py
 .venv/bin/python Caracterizacion/exp2/exp2_make_figure.py
-.venv/bin/python Caracterizacion/figures_to_svg.py       # extrae los SVG standalone
+.venv/bin/python Caracterizacion/figuras/figures_to_svg.py       # extrae los SVG standalone
 ```

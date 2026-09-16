@@ -243,6 +243,50 @@ En la pinza pulgar+índice, **el pulgar es el que puede hacer el ajuste fino y e
 resolución. Y fija el objetivo realista del regulador: **~20 g de precisión si el
 trim lo lleva el pulgar**, no los ~60 que daría el índice ni los ~170 del medio.
 
+### E3.2 a `F₀ = 1000` (medio) — el cuanto empeora con la carga
+
+80 trials, incrementos hasta 5 (a 10 unidades el escalón llevaría la fuerza al
+techo de 1500 g), 0 abortos, contacto establecido en 1024 g.
+
+| Paso | Sentido | `F₀=250` | `F₀=1000` |
+|---|---|---|---|
+| 1 | cerrar | **10/10** · +41 g | **6/10** · +26 g |
+| 1 | abrir | 4/10 · +0 g | **2/10** · −1 g |
+| 2 | cerrar | 10/10 · +59 g | 10/10 · +200 g |
+| 2 | abrir | 6/10 · −69 g | **3/10** · −2 g |
+| 3 | cerrar | 10/10 · +171 g | 10/10 · +221 g |
+| 3 | abrir | 10/10 · −72 g | 10/10 · **−225 g** |
+| 5 | cerrar | 10/10 · +304 g | 10/10 · +307 g |
+| 5 | abrir | 10/10 · −188 g | 10/10 · −245 g |
+
+**Los pasos pequeños empeoran con la carga.** Una unidad cerrando cae de 10/10 a
+6/10; dos unidades abriendo, de 6/10 a 3/10. Más carga es más fricción, y el
+umbral para arrancar el dedo sube.
+
+**Pero 3 unidades sigue siendo fiable a los dos niveles** (10/10 en todos los
+casos). La regla del paso mínimo aguanta el rango de carga.
+
+**Y el cuanto de fuerza crece: la rigidez local depende del punto de operación.**
+A 3 unidades abriendo, el medio pasa de 24 a **75 g por unidad** — un factor 3.
+En rigidez local eso es **15 → 47 g/count**.
+
+> **Esto ya contesta, de forma preliminar, el criterio de decisión de E3.1.** El
+> plan dice: si `k_local` varía **≥ 2×** entre `F₀ = 100` y `F₀ = 1000` dentro del
+> mismo contacto, el *gain scheduling* del regulador debe ir sobre la **rigidez
+> local estimada en línea**, no sobre una constante por dedo. Entre 250 y 1000 ya
+> varía **3×**. E3.1 lo medirá con escalones dedicados, pero la dirección está
+> puesta.
+
+**Precisión alcanzable, por nivel de fuerza** (medio, paso de 3 unidades):
+
+| `F₀` | Cerrando | Abriendo |
+|---|---|---|
+| 250 g | 171 g | 72 g |
+| 1000 g | 221 g | 225 g |
+
+La precisión del lazo **se degrada al subir la consigna**. No es un lazo con una
+resolución fija: resuelve peor cuanto más aprieta.
+
 ---
 
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
@@ -278,6 +322,8 @@ no para medirlo fino.
 | E3.2 · `F₀ = 250` (medio) | ✔ |
 | E3.2 · `F₀ = 250` (índice) | ✔ |
 | E3.2 · `F₀ = 250` (pulgar) | ✔ |
+| E3.2 · `F₀ = 1000` (medio) | ✔ |
+| E3.2 · `F₀ = 1000` (índice, pulgar) | pendiente de montaje |
 | E3.2 · `F₀ = 1000` (medio) | pendiente — **espera térmica** (44 °C, límite de arranque 45) |
 | E3.1 rigidez local | pendiente (gateada por E3.2) |
 | E3.3 planta en contacto | pendiente |

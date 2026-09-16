@@ -682,13 +682,83 @@ A 250 g no hay nada de esto: la caída mediana durante los 0.6 s de línea base 
 > que con 6 unidades llega a ~630 g y dispara el mismo deslizamiento (deriva
 > −212 g/s); por eso esa celda se excluyó del modelo de planta.
 
-**Es del dedo y su montaje, no del firmware.** El pulgar sostiene 944 g y el medio
-1036 g en sus campañas de E3.2 sin este colapso. El índice es el que se cae — y
-es el dedo cuyo `block1` ya se escapó de lado dos veces durante los montajes.
+> **Esto se escribió como «es del dedo y su montaje, no del firmware», apoyándose
+> en que el pulgar sostenía 944 g y el medio 1036 g en E3.2. Era falso**, y la
+> campaña del pulgar de más abajo lo desmonta: E3.2 medía en ventanas de 0.30 s,
+> más cortas que los ~0.3 s que tarda el colapso en empezar. El pulgar hace
+> exactamente lo mismo, y acaba en la misma meseta.
 
 > **Para el regulador:** la consigna del índice **no puede pedir más de ~590 g**
 > en este montaje. Si se le pide 1000, el lazo verá la fuerza caer 400 g sin que
 > él haya hecho nada, el integrador empujará, y el dedo caminará hacia dentro.
+
+### E3.3 en el pulgar — y el techo de ~585 g resulta ser de la mano, no del montaje
+
+Montaje `e4s` (`--hold 5:0`): onset POS 789, `k_c` 5.63, parada 854, frenado 22.
+Reproduce `m1`/`m3` y `e4r`. Escalones de **10 y 20 unidades**, no de 4 y 7: el
+`g/unidad` del pulgar es 4–9 a 250 g, así que un escalón pequeño no levanta una
+respuesta por encima del ruido.
+
+**A `F₀ = 250` el pulgar es el dedo bien portado.** 40 trials, `f_base` entre 234
+y 268 g con σ de **7.5 g** — el índice daba σ 18 — y amplitudes repetibles al
+gramo (20u abriendo: −76…−88 g en diez trials).
+
+| Sentido | Paso | ΔF | Retardo | `τ` | Asienta | Deriva |
+|---|---|---|---|---|---|---|
+| cerrar | 10u | +74 g | 41 ms | 46 ms | 174 ms | +0.1 g/s |
+| cerrar | 20u | +121 g | 73 ms | 90 ms | 193 ms | −0.7 g/s |
+| abrir | 10u | −39 g | 74 ms | 44 ms | 77 ms | +0.0 g/s |
+| abrir | 20u | −86 g | 63 ms | 87 ms | 156 ms | +0.1 g/s |
+
+Modelo de planta: **retardo 61 ms** (IQR 46–80), **`τ` 65 ms**, asienta en
+**156 ms**, `L/τ = 0.9`. Comparado con el índice (52 ms, 46 ms, 111 ms, `L/τ` 1.1)
+es **el mismo orden en todo**. La planta es la misma a los dos lados de la pinza:
+dominada por el retardo, con el refresco de 30.7 ms marcando el suelo.
+
+**Y el decaimiento del pulgar a 250 g es cero** (+0.1 / −0.7 g/s) contra los
+−3.0 g/s del índice. A esta fuerza el pulgar sostiene y el índice no.
+
+### CORRECCIÓN — el techo de fuerza sostenible NO es del montaje del índice
+
+Cuando E3.3 encontró el colapso en el índice, esta página lo atribuyó al dedo y su
+montaje, apoyándose en que el pulgar «sostiene 944 g» y el medio «1036 g» según
+sus campañas de E3.2. **Eso era un artefacto de la ventana de medida.** E3.2 lee
+la fuerza en ventanas de 0.30 s justo después de que el dedo llega — y el colapso
+tarda ~0.3 s en empezar. E3.2 medía dentro del tiempo de agarre, antes de la
+suelta.
+
+La tanda de E3.3 a `F₀ = 1000` en el pulgar, con ventanas de 0.6 s de base y 2.0 s
+de captura, lo ve perfectamente:
+
+| | Índice | Pulgar |
+|---|---|---|
+| Aguanta hasta perder 200 g | 0.36 s | **0.29 s** |
+| Meseta donde acaba | 586 ± 70 g | **585 ± 291 g** |
+| Caída total | 407 g | **351 g** |
+| `k_c` del contacto | 12.7 g/count | 5.6 g/count |
+
+**Dos dedos distintos, dos contactos distintos, dos rigideces que difieren 2.3×, y
+la misma meseta: ~585 g.** Eso no es un bloque que se mueve ni una arista que
+resbala — es un límite **de la mano**, común a los dos actuadores.
+
+> **Hay un techo de fuerza SOSTENIBLE en torno a 585 g, y es de la mano.** Por
+> encima, la fuerza es transitoria: se alcanza, se aguanta ~0.3 s y se cae a la
+> meseta. Los ~3000 g de sobreimpulso del Exp 2 y los «≥30 N» de la hoja de datos
+> son picos de impacto, no fuerza sostenible.
+>
+> **Para el regulador esto fija el alcance:** las consignas útiles del lazo viven
+> **por debajo de ~585 g**, y ahí sí se sostienen — E3.4 mantuvo 450 g durante 60 s
+> con solo un 10 % de caída. Pedir más no es apretar más: es entrar en un régimen
+> donde la fuerza que el lazo lee no es la que va a tener medio segundo después.
+
+**Lo que esto invalida:** las celdas de `F₀ = 1000` de E3.2 y E3.1 no se midieron
+a 1000 g sino durante el transitorio de bajada. Sus `k_local` y sus cuantos de
+fuerza siguen siendo válidos *como medidas relativas dentro de cada trial* —el
+escalón y su respuesta ocurren en la misma ventana— pero **la etiqueta «1000 g» no
+describe un punto de operación sostenible**, y la mediana real ya avisaba (836 g
+en el índice, 944 en el pulgar). Las conclusiones que dependen de comparar 250
+contra 1000 hay que leerlas como «fuerza baja contra transitorio alto».
+
 
 ### Decaimiento asimétrico (adelanto de E3.4)
 
@@ -812,7 +882,7 @@ no para medirlo fino.
 | E3.1 `k_local(F₀)` · pulgar | ✔ (250 / 500 / 1000) |
 | E3.1 `k_local(F₀)` · índice | ✔ (250 / 500 / 1000) |
 | E3.3 planta en contacto · índice | ✔ (250 y 450 g; 1000 g no es sostenible) |
-| E3.3 planta en contacto · pulgar | pendiente — requiere block1 sobre las falanges |
+| E3.3 planta en contacto · pulgar | ✔ (250 g; 1000 g tampoco es sostenible) |
 | E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.4 + E3.5 · pulgar | pendiente — requiere block1 sobre las falanges |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |

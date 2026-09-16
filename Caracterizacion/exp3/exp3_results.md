@@ -470,6 +470,79 @@ simétrica**. Pero el factor hay que medirlo por dedo, no suponerlo.
 
 ---
 
+## E3.1 — Rigidez local `k_local(F₀)` · **pulgar hecho, índice pendiente de montaje**
+
+**Redimensionado respecto al plan.** El plan pide escalones de «+2, +5, +10 counts
+de `POS`» y niveles `F₀` de 100, 250, 500 y 1000 g. Dos cambios, los dos forzados
+por lo medido:
+
+- **Escalones en unidades de comando: 3, 5 y 10.** El cuanto efectivo son 3
+  unidades (E3.2), y 1 unidad de comando vale 0.4–2.5 counts de `POS` según dedo,
+  sentido y carga. «+2 counts de `POS`» no es una orden que la mano acepte.
+- **Sin el nivel de 100 g.** El residual de flexión vale 49 g en el pulgar y 78 g
+  en el índice; a 100 g de consigna la fuerza *externa* sería ~20 g, dentro del
+  ruido. Los niveles medibles son 250, 500 y 1000.
+
+Los niveles de 250 y 1000 ya estaban medidos en E3.2 con el mismo script, el mismo
+montaje y el mismo protocolo, así que E3.1 solo añadió **`F₀ = 500`**.
+
+### El pulgar: la rigidez sube, pero satura
+
+60 trials a `F₀ = 500`, 0 abortos, contacto en 518 g (POS 858), 44 °C plano,
+montaje `e4r` con `--hold 5:0`.
+
+`k_local` en g/count, ajuste por el origen sobre los escalones **3 y 5** (los
+comunes a los tres niveles):
+
+| `F₀` | Cerrar | Abrir |
+|---|---|---|
+| 250 g | 7.5 | 8.4 |
+| **500 g** | **22.9** | **21.7** |
+| 1000 g | 27.7 | 17.8 |
+
+**La curva no es una rampa, satura.** Cerrando, de 250 a 500 sube **3.1×**; de 500
+a 1000, solo **1.2×**. Abriendo llega a su máximo en 500 y baja. Comparado con la
+secante `k_c = 5.79` del sondeo, la local es **4–5× mayor** en el rango de
+trabajo: **el `k_c` secante no es el número correcto para control**, como el plan
+sospechaba.
+
+> **Consecuencia para el regulador:** el *gain scheduling* importa sobre todo
+> **por debajo de 500 g**, donde la planta triplica su ganancia en un tramo de
+> 250 g. Por encima de 500 la ganancia es casi constante y un valor fijo basta.
+> Es decir: el tramo peligroso no es apretar fuerte, es **la aproximación**.
+
+### El estimador no puede ir por escalones de sondeo
+
+`k_local = ΔF/Δpos` de **un solo escalón no es medible**: `POS_ACT` está
+cuantizado a 1 count y los escalones pequeños mueven muy poco.
+
+Sobre los 600 trials de E3.1 + E3.2:
+
+- **15 % tienen `Δpos = 0`** → el cociente es indefinido.
+- **38 % tienen `|Δpos| < 3 counts`** → el cociente lo domina la cuantización.
+
+Se ve en la dispersión del cociente crudo: el pulgar a 500 g abriendo da 18.2
+g/count con 3 unidades, 25.3 con 5 y 34.0 con 10; el medio a 250 g abriendo da
+69.0 con 2 unidades y 13.2 con 10. **No es rigidez que cambie, es ruido de
+división.** Por eso todas las cifras de esta página salen de un **ajuste por el
+origen sobre varios tamaños de escalón**, nunca de un escalón suelto.
+
+Un escalón de sondeo suficientemente grande para medir bien (`Δpos ≳ 5 counts`)
+pide 5–10 unidades, y a 1000 g eso mete **300–400 g** de perturbación — más que la
+precisión que el lazo pretende dar. **El sondeo dedicado se descarta.**
+
+**Lo que queda:** estimar `k_local` de **las propias correcciones del regulador**,
+acumuladas en ventana (mínimos cuadrados recursivos de `ΔF` contra `Δpos` sobre
+las últimas N acciones), con la ganancia congelada mientras `Σ|Δpos|` no supere
+el umbral de unos 5 counts. Sale gratis y no perturba.
+
+### Pendiente
+
+`F₀ = 500` en el **índice**, para tener su curva de tres puntos. Requiere volver a
+montar `block1` sobre la palma (`block1_index_contact.jpeg`).
+
+---
+
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
@@ -506,7 +579,8 @@ no para medirlo fino.
 | E3.2 · `F₀ = 1000` (medio) | ✔ |
 | E3.2 · `F₀ = 1000` (índice) | ✔ |
 | E3.2 · `F₀ = 1000` (pulgar) | ✔ |
-| E3.1 rigidez local | pendiente — **escalones de 3, 5 y 10 unidades**, no «+2 counts de POS» |
+| E3.1 `k_local(F₀)` · pulgar | ✔ (250 / 500 / 1000) |
+| E3.1 `k_local(F₀)` · índice | pendiente — falta `F₀ = 500`, requiere block1 en la palma |
 | E3.3 planta en contacto | pendiente |
 | E3.4 + E3.5 decaimiento y deriva | pendiente |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |

@@ -259,9 +259,13 @@ techo de 1500 g), 0 abortos, contacto establecido en 1024 g.
 | 5 | cerrar | 10/10 · +304 g | 10/10 · +307 g |
 | 5 | abrir | 10/10 · −188 g | 10/10 · −245 g |
 
-**Los pasos pequeños empeoran con la carga.** Una unidad cerrando cae de 10/10 a
-6/10; dos unidades abriendo, de 6/10 a 3/10. Más carga es más fricción, y el
-umbral para arrancar el dedo sube.
+**Los pasos pequeños empeoran con la carga** — *en este dedo*. Una unidad
+cerrando cae de 10/10 a 6/10; dos unidades abriendo, de 6/10 a 3/10. Más carga es
+más fricción, y el umbral para arrancar el dedo sube.
+
+> La campaña del índice (más abajo) da **lo contrario**, así que esto no es una
+> regla de la mano sino del medio. Lo que sobrevive a los dos dedos es el paso
+> mínimo de 3 unidades.
 
 **Pero 3 unidades sigue siendo fiable a los dos niveles** (10/10 en todos los
 casos). La regla del paso mínimo aguanta el rango de carga.
@@ -288,6 +292,73 @@ La precisión del lazo **se degrada al subir la consigna**. No es un lazo con un
 resolución fija: resuelve peor cuanto más aprieta.
 
 ---
+
+### E3.2 a `F₀ = 1000` (índice) — el que sí resuelve bajo carga
+
+80 trials, incrementos hasta 5, 0 abortos, contacto establecido en 1007 g
+(POS 1498), 42 °C de principio a fin. Montaje `e3d`: onset POS 1442,
+`k_c` 12.67 g/count, frenado 16 counts — el mismo contacto que la campaña de
+`F₀ = 250`, reproducido tras dos montajes fallidos en los que el bloque se
+escapaba de lado.
+
+| Paso | Sentido | `F₀=250` | `F₀=1000` |
+|---|---|---|---|
+| 1 | cerrar | 6/10 · +16 g | 7/10 · +14 g |
+| 1 | abrir | 6/10 · −5 g | **10/10** · −89 g |
+| 2 | cerrar | 8/10 · +17 g | **10/10** · +92 g |
+| 2 | abrir | 10/10 · −67 g | 10/10 · −163 g |
+| **3** | **cerrar** | **10/10 · +64 g** | **10/10 · +108 g** |
+| **3** | **abrir** | **9/10 · −55 g** | **10/10 · −154 g** |
+| 5 | cerrar | 10/10 · +156 g | 10/10 · +309 g |
+| 5 | abrir | 10/10 · −145 g | 10/10 · −244 g |
+
+**«Los pasos pequeños empeoran con la carga» no generaliza — era del medio.** En
+el índice pasa lo contrario: 1 unidad abriendo sube de 6/10 a **10/10**, y 2
+unidades cerrando de 8/10 a **10/10**. La única casilla que sigue floja es 1
+unidad cerrando (6/10 → 7/10), y lo está a los dos niveles.
+
+Lo que sí generaliza es la regla: **3 unidades es fiable en los dos dedos y a los
+dos niveles de carga** — en el índice a `F₀ = 1000` sale 10/10 en ambos sentidos,
+mejor incluso que a 250.
+
+**La asimetría de sentido crece con la carga.** Ajustando por el origen sobre
+todos los trials de ≤ 5 unidades:
+
+| `F₀` | Sentido | counts/unidad | g/unidad | `k_local` |
+|---|---|---|---|---|
+| 250 | cerrar | 1.29 | 24.3 | 18.8 g/count |
+| 250 | abrir | 1.84 | 27.8 | 15.0 g/count |
+| 1000 | cerrar | 1.38 | 51.3 | **37.3 g/count** |
+| 1000 | abrir | 2.23 | 56.5 | **25.3 g/count** |
+
+El dedo **devuelve más recorrido del que toma**: a 1000 g, 2.23 counts por unidad
+abriendo contra 1.38 cerrando, un 60 % más. Está precargado contra el bloque y
+parte de la apertura la paga la elasticidad acumulada, no el motor. Cerrando hay
+que vencer fricción *y* rigidez; abriendo, la rigidez ayuda.
+
+> Para el regulador esto significa que **el mismo escalón no vale en los dos
+> sentidos**. Con ganancia simétrica, cada corrección hacia abajo se pasa ~60 %
+> respecto a la equivalente hacia arriba.
+
+**Y confirma el criterio de E3.1 en un segundo dedo.** Entre 250 y 1000 la
+rigidez local del índice sube **2.0× cerrando y 1.7× abriendo**. El medio daba
+3×. Dos dedos, misma dirección, y el umbral del plan (≥ 2×) queda cruzado: el
+*gain scheduling* va sobre **rigidez local estimada en línea**, no sobre una
+constante por dedo.
+
+**Precisión a 3 unidades, por nivel** (mediana de |ΔF|):
+
+| `F₀` | Índice cerrar | Índice abrir | Medio cerrar | Medio abrir |
+|---|---|---|---|---|
+| 250 g | 64 g | 55 g | 171 g | 72 g |
+| 1000 g | 108 g | 154 g | 221 g | 225 g |
+
+Los dos dedos resuelven peor cuanto más aprietan, pero **el índice mantiene la
+ventaja bajo carga**: a 1000 g resuelve ~1.5–2× mejor que el medio. El orden
+pulgar > índice > medio que salió a 250 g se sostiene.
+
+---
+
 
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
@@ -323,9 +394,9 @@ no para medirlo fino.
 | E3.2 · `F₀ = 250` (índice) | ✔ |
 | E3.2 · `F₀ = 250` (pulgar) | ✔ |
 | E3.2 · `F₀ = 1000` (medio) | ✔ |
-| E3.2 · `F₀ = 1000` (índice, pulgar) | pendiente de montaje |
-| E3.2 · `F₀ = 1000` (medio) | pendiente — **espera térmica** (44 °C, límite de arranque 45) |
-| E3.1 rigidez local | pendiente (gateada por E3.2) |
+| E3.2 · `F₀ = 1000` (índice) | ✔ |
+| E3.2 · `F₀ = 1000` (pulgar) | pendiente — requiere block1 sobre las falanges proximales |
+| E3.1 rigidez local | pendiente — **escalones de 3, 5 y 10 unidades**, no «+2 counts de POS» |
 | E3.3 planta en contacto | pendiente |
 | E3.4 + E3.5 decaimiento y deriva | pendiente |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
@@ -334,3 +405,9 @@ no para medirlo fino.
 **Nota para `F₀ = 1000`:** con el `g/unidad` medido (~40–60 cerrando), un escalón
 de 10 unidades desde 1000 g llevaría la fuerza a ~1400–1600 g, en el techo propio
 de 1500. Esa tanda debe correr con incrementos hasta 5, no hasta 10.
+
+**Nota para E3.1:** el plan pide escalones de «+2 counts de `POS`». No es
+ejecutable: el cuanto de comando medido son **3 unidades de `ANGLE_SET`**, que en
+el índice y el medio valen 1.3–2.2 counts de `POS` cada una. E3.1 debe correr con
+escalones de **3, 5 y 10 unidades de comando** y leer la rigidez del ajuste
+`ΔF` contra `Δpos`, que es lo que E3.2 ya hace por dentro.

@@ -248,6 +248,15 @@ trim lo lleva el pulgar**, no los ~60 que daría el índice ni los ~170 del medi
 
 ### E3.2 a `F₀ = 1000` (medio) — el cuanto empeora con la carga
 
+> **Leer con la corrección de E3.3.** `F₀ = 1000` **no es un punto de operación
+> sostenible**: la mano tiene un techo de fuerza sostenible en ~585 g y por encima
+> la fuerza cae a esa meseta en ~0.3 s. Las ventanas de 0.30 s de E3.2 miden
+> dentro de ese tiempo, así que lo de abajo es válido **dentro de cada trial**
+> (escalón y respuesta caen en la misma ventana) pero la etiqueta «1000 g»
+> describe un transitorio, no un régimen. Léase «fuerza baja contra transitorio
+> alto», no «250 contra 1000».
+
+
 80 trials, incrementos hasta 5 (a 10 unidades el escalón llevaría la fuerza al
 techo de 1500 g), 0 abortos, contacto establecido en 1024 g.
 
@@ -297,6 +306,15 @@ resolución fija: resuelve peor cuanto más aprieta.
 ---
 
 ### E3.2 a `F₀ = 1000` (índice) — el que sí resuelve bajo carga
+
+> **Leer con la corrección de E3.3.** `F₀ = 1000` **no es un punto de operación
+> sostenible**: la mano tiene un techo de fuerza sostenible en ~585 g y por encima
+> la fuerza cae a esa meseta en ~0.3 s. Las ventanas de 0.30 s de E3.2 miden
+> dentro de ese tiempo, así que lo de abajo es válido **dentro de cada trial**
+> (escalón y respuesta caen en la misma ventana) pero la etiqueta «1000 g»
+> describe un transitorio, no un régimen. Léase «fuerza baja contra transitorio
+> alto», no «250 contra 1000».
+
 
 80 trials, incrementos hasta 5, 0 abortos, contacto establecido en 1007 g
 (POS 1498), 42 °C de principio a fin. Montaje `e3d`: onset POS 1442,
@@ -364,6 +382,15 @@ pulgar > índice > medio que salió a 250 g se sostiene.
 
 
 ### E3.2 a `F₀ = 1000` (pulgar) — se rompe la regla de las 3 unidades
+
+> **Leer con la corrección de E3.3.** `F₀ = 1000` **no es un punto de operación
+> sostenible**: la mano tiene un techo de fuerza sostenible en ~585 g y por encima
+> la fuerza cae a esa meseta en ~0.3 s. Las ventanas de 0.30 s de E3.2 miden
+> dentro de ese tiempo, así que lo de abajo es válido **dentro de cada trial**
+> (escalón y respuesta caen en la misma ventana) pero la etiqueta «1000 g»
+> describe un transitorio, no un régimen. Léase «fuerza baja contra transitorio
+> alto», no «250 contra 1000».
+
 
 80 trials, incrementos hasta 5, 0 abortos, contacto establecido en 1019 g
 (POS 906), 44 → 46 °C. Rotación anclada en oposición (`--hold 5:0`), montaje
@@ -608,7 +635,7 @@ acumuladas en ventana (mínimos cuadrados recursivos de `ΔF` contra `Δpos` sob
 las últimas N acciones), con la ganancia congelada mientras `Σ|Δpos|` no supere
 el umbral de unos 5 counts. Sale gratis y no perturba.
 
-## E3.3 — Planta en contacto · **índice hecho; y aparece un techo de fuerza sostenible**
+## E3.3 — Planta en contacto · **cerrado en índice y pulgar**
 
 Script: `exp3/exp3_step_response.py`. Captura el transitorio leyendo **solo
 `FORCE_ACT`** a tasa máxima (`POS_ACT` cada 12 lecturas), porque aquí interesa
@@ -655,7 +682,7 @@ Tres lecturas:
    proporcional hay que bajarla o meter un predictor de Smith; subir la ganancia
    para «ir más rápido» lo único que da es oscilación.
 
-### El hallazgo gordo: el índice no sostiene 1000 g en este montaje
+### El hallazgo gordo: a 1000 g la fuerza no se sostiene
 
 La tanda a `F₀ = 1000` **no es medible, y esa es la medida.** La línea base no es
 una línea base: la fuerza aguanta un momento y **se suelta de golpe**.
@@ -692,7 +719,7 @@ A 250 g no hay nada de esto: la caída mediana durante los 0.6 s de línea base 
 > en este montaje. Si se le pide 1000, el lazo verá la fuerza caer 400 g sin que
 > él haya hecho nada, el integrador empujará, y el dedo caminará hacia dentro.
 
-### E3.3 en el pulgar — y el techo de ~585 g resulta ser de la mano, no del montaje
+### E3.3 en el pulgar — y el techo de ~585 g resulta ser de la mano
 
 Montaje `e4s` (`--hold 5:0`): onset POS 789, `k_c` 5.63, parada 854, frenado 22.
 Reproduce `m1`/`m3` y `e4r`. Escalones de **10 y 20 unidades**, no de 4 y 7: el
@@ -775,7 +802,7 @@ integrador o banda muerta, y **solo en el sentido de cierre**.
 
 ---
 
-## E3.4 + E3.5 — Decaimiento y deriva del cero · **índice cerrado**
+## E3.4 + E3.5 — Decaimiento y deriva del cero · **cerrado en índice y pulgar**
 
 Script: `exp3/exp3_hold_drift.py`. Las dos pruebas comparten ciclo: el de E3.5
 (abrir → base sin contacto → cerrar a `F₀` → sostener 60 s → abrir → base)
@@ -914,6 +941,133 @@ no para medirlo fino.
 
 ---
 
+## Síntesis — la especificación del regulador PI que sale del Exp 3
+
+Todo lo de arriba, reducido a lo que hay que escribir en el código del lazo. Cada
+número lleva la prueba de la que sale. **Las cifras son del montaje de bloque; la
+pinza real (E3.6) puede moverlas.**
+
+### 1. El rango de consigna
+
+| | Valor | De dónde |
+|---|---|---|
+| **Techo de fuerza sostenible** | **~585 g** | E3.3, dos dedos, misma meseta |
+| Fuerza que sí se sostiene 60 s | 450 g, con 5–10 % de caída | E3.4, 34 ciclos |
+| Suelo utilizable (índice) | ~80 g (residual de flexión 78 g) | Prerrequisito |
+| Suelo utilizable (pulgar) | ~79 g (residual 49 g) | Sondeo `e4r` |
+
+**La consigna del lazo vive entre ~100 y ~585 g.** Por encima del techo, la fuerza
+que el lazo lee no es la que tendrá medio segundo después: se alcanza, se aguanta
+~0.3 s y cae a la meseta. Los ~3000 g de sobreimpulso del Exp 2 y los «≥30 N» de
+la hoja de datos son picos de impacto, no fuerza sostenible.
+
+### 2. La acción de control
+
+| | Valor | De dónde |
+|---|---|---|
+| **Escalón mínimo fiable** | **5 unidades cerrando, 3 abriendo** | E3.2, 3 dedos × 2 niveles |
+| Resolución de fuerza resultante (pulgar) | ~20 g | E3.2 |
+| Resolución de fuerza resultante (índice) | ~60–90 g | E3.2 |
+| Ganancia de la planta `k_local` | **7–39 g/count**, según dedo, sentido y fuerza | E3.1 |
+
+**No hay un escalón «de 1 unidad».** Por debajo de 3 unidades el dedo no se mueve
+de forma dependible, y el par (5 cerrando / 3 abriendo) es el único que cubre los
+tres dedos y las dos cargas medidas.
+
+**Reparto en el modo 1:** el pulgar resuelve fuerza **3× mejor** que el índice
+(mapa `POS↔ANGLE` comprimido × contacto más blando). **El pulgar hace el ajuste
+fino, el índice sostiene.** Repartirlo al revés desperdicia un factor 3.
+
+### 3. La dinámica
+
+| | Índice | Pulgar |
+|---|---|---|
+| Retardo comando → fuerza | 52 ms | 61 ms |
+| `τ` | ≲ 46 ms | ≲ 65 ms |
+| Asentamiento | 111 ms | 156 ms |
+| `L/τ` | 1.1 | 0.9 |
+| **Retardo total del lazo** | **52–82 ms** | **61–92 ms** |
+
+**La planta está dominada por el retardo** (`L/τ ≈ 1`), que es el caso difícil para
+un PI: subir la ganancia proporcional no acelera el lazo, lo hace oscilar. O se
+sintoniza conservador, o se mete un **predictor de Smith** — y para eso el modelo
+de primer orden con retardo ya está medido.
+
+**El periodo de control no debe bajar de ~30 ms.** La mano publica estado cada
+30.7 ms pase lo que pase; un lazo más rápido solo reprocesa muestras repetidas.
+`τ` está *en* ese límite (sus valores caen en 46/92/138 ms = 1/2/3 × 1.5 × 30.7),
+así que **lo que limita al lazo es el refresco, no la mecánica**.
+
+### 4. El integrador
+
+| | Valor | De dónde |
+|---|---|---|
+| Decaimiento a comando congelado | 5–10 % en los primeros segundos, luego meseta | E3.4 |
+| Magnitud, no predecible | bimodal: unos ciclos 50–90 g, otros 9–17 g | E3.4 |
+| Movimiento del actuador | 0 a −2 counts | E3.4 |
+| Corriente durante el sostenimiento | **0 mA** | E3.4, 34 ciclos |
+
+**El firmware no sostiene fuerza.** Cero miliamperios durante 60 s: no hay par
+activo, la fuerza la retiene la fricción de la transmisión. **Todo lo que el lazo
+quiera, lo pone el lazo.**
+
+**Necesita fuga en el integrador, no guarda de posición.** La caída se agota en
+pocos segundos y el actuador no cede, así que el «caminar hacia dentro del objeto»
+no ocurre por debajo del techo. Un integrador sin fuga perseguiría indefinidamente
+una caída que ya paró.
+
+**`FORCE_SET` siempre por encima del rango de trabajo.** Si `FORCE_ACT` lo alcanza,
+el dedo **deja de aceptar `ANGLE_SET` en los dos sentidos** — el paro del firmware
+secuestra la posición. El techo real tiene que ser el del propio lazo.
+
+### 5. La tara
+
+| | Índice | Pulgar |
+|---|---|---|
+| Deriva térmica del cero | −7 g | +6 g |
+| **Salto tras sostener fuerza** | **−46 g** | **+21 g** |
+| Recuperación | +6.0 g/s → ~8 s | — |
+
+**Nunca tarar justo después de soltar**: ahí el cero está corrido 21–46 g y el lazo
+se comería el error entero. Esperar **≥ 10 s** con la mano abierta y descargada.
+
+**La re-tara periódica por temperatura casi no hace falta** (6–7 g, contra 20–90 g
+de resolución del lazo). El plan señalaba la deriva térmica como el problema; es la
+menor de las dos, y la grande —histéresis de carga— no estaba en el plan.
+
+**El offset es por DOF.** Índice y pulgar se corren en direcciones opuestas, tanto
+en el salto como en la deriva térmica. No hay corrección común: hay que medirla
+por dedo.
+
+### 6. El estimador de ganancia
+
+**`k_local` varía 1.7–3.7× dentro del rango de trabajo**, y el codo está en sitios
+distintos en cada dedo (el pulgar se endurece todo por debajo de 500 g, el índice
+por encima). **No cabe un punto de ruptura fijo**: el seguimiento tiene que ser
+continuo.
+
+**Pero no por escalones de sondeo.** `k_local = ΔF/Δpos` de un solo escalón no es
+medible: `POS_ACT` está cuantizado a 1 count y, sobre 600 trials, el 15 % dan
+`Δpos = 0` y el 38 % menos de 3 counts. Un escalón lo bastante grande para medir
+bien inyecta 300–400 g, más que la precisión que el lazo pretende dar.
+
+**Va por mínimos cuadrados recursivos sobre las propias correcciones del
+regulador**, con la ganancia congelada mientras `Σ|Δpos|` no pase de ~5 counts.
+Sale gratis y no perturba.
+
+### 7. Lo que el Exp 3 NO contesta
+
+- **La sincronía del refresco entre DOF** (E3.6a) sigue abierta: hace falta un
+  dataset con ≥ 2 DOF moviéndose a la vez, y sale de E3.6b.
+- **El acoplamiento entre dedos de la pinza** (E3.6b/c) no está medido.
+- **Todo esto es sobre bloque apoyado, contacto en arista.** Un objeto sujeto entre
+  dos dedos es un contacto distinto y más blando; el techo de 585 g y las `k_local`
+  hay que re-verificarlos ahí.
+- **El medio** solo tiene E3.2. Si el modo 2 (pulgar+índice+medio) entra en el
+  alcance, le faltan E3.1, E3.3, E3.4 y E3.5.
+
+---
+
 ## Estado
 
 | Prueba | Estado |
@@ -931,12 +1085,18 @@ no para medirlo fino.
 | E3.3 planta en contacto · pulgar | ✔ (250 g; 1000 g tampoco es sostenible) |
 | E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.4 + E3.5 · pulgar | ✔ (17 ciclos, 32 → 42 °C) |
-| E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
-| E3.6b acoplamiento | pendiente |
+| E3.6a sincronía | abierta — sale de E3.6b (necesita ≥2 DOF en movimiento) |
+| E3.6b pinza pulgar+índice | pendiente — cambia el montaje |
+| E3.6c pinza pulgar+índice+medio | pendiente |
+| E3.1/E3.3/E3.4/E3.5 · **medio** | no medidas — solo hacen falta si el modo 2 entra en alcance |
 
-**Nota para `F₀ = 1000`:** con el `g/unidad` medido (~40–60 cerrando), un escalón
-de 10 unidades desde 1000 g llevaría la fuerza a ~1400–1600 g, en el techo propio
-de 1500. Esa tanda debe correr con incrementos hasta 5, no hasta 10.
+**Los dos DOF obligatorios del regulador (índice y pulgar) están completos.** La
+especificación que sale de ellos está arriba, en «Síntesis».
+
+**Nota sobre los techos, que son dos y se confunden:** el de **1500 g** es la
+guarda de seguridad de los scripts, y limita los escalones que se pueden pedir
+desde `F₀` alto. El de **~585 g** es físico y es el que importa para el diseño: es
+donde la mano deja de sostener. Son independientes.
 
 **Lo que queda del scheduling:** E3.1 cerró la pregunta de *si* hace falta (sí,
 1.7–3.7× dentro del rango de trabajo, en los dos dedos) y la de *cómo no* hacerlo

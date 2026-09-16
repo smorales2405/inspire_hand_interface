@@ -135,6 +135,64 @@ esperar a que el dedo LLEGARA al comando, así que a `v=25` el comando corría p
 delante. Corregido con espera de llegada de `POS_ACT`; con el arreglo el contacto
 se establece en 256 g contra los 250 pedidos.)*
 
+### E3.2 en el índice — qué generaliza y qué no
+
+100 trials, `F₀ = 250`, montaje `e3`, 0 abortos, 36 → 38 °C. Contacto en 254 g.
+
+| Paso | Sentido | Índice: movió | ΔF | Medio: movió | ΔF |
+|---|---|---|---|---|---|
+| 1 | cerrar | **6/10** | +16 g | 10/10 | +41 g |
+| 1 | abrir | 6/10 | −5 g | **4/10** | +0 g |
+| 2 | cerrar | 8/10 | +17 g | 10/10 | +59 g |
+| 2 | abrir | 10/10 | −67 g | 6/10 | −69 g |
+| 3 | cerrar | 10/10 | +64 g | 10/10 | +171 g |
+| 3 | abrir | 9/10 | −55 g | 10/10 | −72 g |
+| 10 | cerrar | 10/10 | +309 g | 10/10 | +409 g |
+| 10 | abrir | 10/10 | −156 g | 10/10 | −204 g |
+
+**Generaliza: el incremento mínimo fiable es 3 unidades.** Una unidad no es
+dependible en ninguno de los dos dedos (6/10 en el índice cerrando, 4/10 en el
+medio abriendo). A partir de 3 unidades los dos van a 9–10 de 10.
+
+**No generaliza: la dirección de la asimetría.** En el medio lo fiable es cerrar
+(10/10 a 1u) y lo dudoso abrir (4/10); en el índice es al revés a 2 unidades
+(10/10 abriendo contra 8/10 cerrando). Lo que informé como «1 unidad cerrando,
+3 abriendo» era **del medio, no de la familia**.
+
+**Tampoco generaliza el cuanto de fuerza, y por una razón que sí se entiende.**
+El índice resuelve 16–31 g por unidad y el medio 30–61: el índice es el doble de
+fino. Sigue a la rigidez del contacto — `k_c` 12.4 contra 26.2 — que es
+exactamente el resultado contraintuitivo que el plan anticipaba: **un contacto
+más blando da control de fuerza más fino**.
+
+### El modelo de unidades funciona
+
+| Dedo | counts/unidad | `k_c` | Predicho | Medido (10u) |
+|---|---|---|---|---|
+| Índice | 1.60 | 12.4 | 20 g | **31 g** |
+| Medio | 1.60 | 26.2 | 42 g | **41 g** |
+
+El medio clava la predicción; el índice sale 1.5× por encima, dentro de la
+dispersión de su `k_c` (8.3–12.4 según el sondeo). **El modelo sirve para
+dimensionar, no para sustituir la medida.**
+
+Y entonces la predicción que importa: el pulgar tiene **0.75 counts por unidad**
+—no 1.60, porque su mapa `POS↔ANGLE` es mucho más comprimido— y `k_c ≈ 5.7`.
+Eso da **~4 g por unidad de comando**, un orden de magnitud por debajo del medio.
+Si se confirma, el pulgar es el único dedo donde el lazo puede aspirar a precisión
+de gramos, y eso condiciona cómo se reparte el trabajo entre los dos lazos del
+modo 1.
+
+### Precisión alcanzable, revisada
+
+Con el paso mínimo fiable de **3 unidades**:
+
+| Dedo | Cerrando | Abriendo |
+|---|---|---|
+| Índice | 64 g | 55 g |
+| Medio | 171 g | 72 g |
+| Pulgar | *(predicho ~12 g)* | — |
+
 ---
 
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
@@ -168,6 +226,7 @@ no para medirlo fino.
 |---|---|
 | Prerrequisito §3 · índice | ✔ |
 | E3.2 · `F₀ = 250` (medio) | ✔ |
+| E3.2 · `F₀ = 250` (índice) | ✔ |
 | E3.2 · `F₀ = 1000` (medio) | pendiente — **espera térmica** (44 °C, límite de arranque 45) |
 | E3.1 rigidez local | pendiente (gateada por E3.2) |
 | E3.3 planta en contacto | pendiente |

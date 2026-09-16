@@ -215,8 +215,11 @@ días y de hace un mes, `k_c` **5.96** contra 5.66–5.92. 100 trials, 0 abortos
 | 10 | cerrar | 10/10 · +42 g | 10/10 · +309 g | 10/10 · +409 g |
 
 **El incremento mínimo fiable son 3 unidades de `ANGLE_SET`, en los tres dedos.**
-A 3 unidades todos van a 9–10 de 10; por debajo, ninguno es dependible. Es el
-resultado que generaliza, y es el que el regulador debe adoptar.
+A 3 unidades todos van a 9–10 de 10; por debajo, ninguno es dependible.
+
+> **Válido a `F₀ = 250`.** A 1000 g el pulgar cerrando cae a 5/10 con 3 unidades
+> y necesita 5 — ver el cierre de E3.2 más abajo. El valor único que cubre los
+> tres dedos y las dos cargas es **5 unidades cerrando, 3 abriendo**.
 
 **El cuanto de fuerza no generaliza, y esa es la información útil:**
 
@@ -360,6 +363,113 @@ pulgar > índice > medio que salió a 250 g se sostiene.
 ---
 
 
+### E3.2 a `F₀ = 1000` (pulgar) — se rompe la regla de las 3 unidades
+
+80 trials, incrementos hasta 5, 0 abortos, contacto establecido en 1019 g
+(POS 906), 44 → 46 °C. Rotación anclada en oposición (`--hold 5:0`), montaje
+`e4r`: onset POS 783, `k_c` 5.79 g/count, parada en POS 845 — reproduce
+`m1`/`m3` (775–780, 5.66–5.96, 840).
+
+> **Nota de método.** El primer sondeo de este montaje salió con `k_c` 0.73 y
+> onset en POS 513: el pulgar rozaba el bloque durante toda la carrera. No era el
+> montaje: el sondeo se lanzó **sin anclar el DOF 5**. Sin oponer la rotación el
+> pulgar describe otra trayectoria. **Cualquier prueba del pulgar exige
+> `--hold 5:0`**, y la salida hay que leerla: si dice `Anclado: —`, está mal.
+
+| Paso | Sentido | `F₀=250` | `F₀=1000` |
+|---|---|---|---|
+| 1 | cerrar | 1/10 · +0 g | 2/10 · +2 g |
+| 1 | abrir | 1/10 · +0 g | **10/10** · −26 g |
+| 2 | cerrar | 6/10 · +8 g | 5/10 · +18 g |
+| 2 | abrir | 5/10 · −1 g | 10/10 · −38 g |
+| **3** | **cerrar** | **9/10 · +17 g** | **5/10** · +11 g |
+| 3 | abrir | 10/10 · −20 g | 10/10 · −42 g |
+| 5 | cerrar | 10/10 · +18 g | **10/10 · +64 g** |
+| 5 | abrir | 10/10 · −41 g | 10/10 · −68 g |
+
+**A 1000 g el pulgar deja de cerrar con 3 unidades** (9/10 → 5/10) y necesita 5.
+Y a la vez **abre con una sola** (1/10 → 10/10). Un factor **5×** entre los dos
+sentidos, en el mismo dedo y el mismo punto de operación.
+
+---
+
+## E3.2 — cierre: lo que sobrevive a los tres dedos y a las dos cargas
+
+**El escalón mínimo fiable (≥ 9/10) no es una constante.** Depende del dedo, del
+sentido y de la carga:
+
+| Dedo | `F₀` | Cerrar | Abrir |
+|---|---|---|---|
+| Pulgar | 250 | 3 u · 17 g | 3 u · 20 g |
+| Pulgar | 1000 | **5 u · 64 g** | **1 u · 26 g** |
+| Índice | 250 | 3 u · 64 g | 2 u · 67 g |
+| Índice | 1000 | 2 u · 92 g | **1 u · 89 g** |
+| Medio | 250 | 1 u · 41 g | 3 u · 72 g |
+| Medio | 1000 | 2 u · 200 g | 3 u · 225 g |
+
+Lo que se puede llevar al regulador:
+
+1. **3 unidades basta a `F₀ = 250` en los tres dedos.** Es la regla de la campaña
+   de 250 y sigue en pie — pero solo ahí.
+2. **A 1000 g el peor caso es 5 unidades cerrando** (pulgar). Un escalón de cierre
+   de **5 unidades** es el único valor único que cubre los tres dedos y las dos
+   cargas. Abriendo, 3 unidades cubre todo.
+3. **La resolución se degrada al subir la consigna, en los tres dedos**, entre 1.4×
+   (índice) y 5× (medio).
+4. **El orden pulgar > índice > medio se mantiene bajo carga**: 26–64 g contra
+   89–92 y 200–225. La decisión del modo 1 —el pulgar hace el ajuste fino, el
+   índice sostiene— aguanta a las dos cargas.
+
+**Lo que NO generaliza** (y estaba escrito como si lo hiciera): el sentido del
+efecto de la carga. En pulgar e índice la carga **facilita abrir**; en el medio lo
+**dificulta** (1 u abriendo cae de 4/10 a 2/10). Tampoco generaliza qué sentido es
+el barato: pulgar e índice abren con 1 unidad a 1000 g, el medio necesita 3.
+
+### Rigidez local: el criterio de E3.1, resuelto en tres dedos
+
+Ajuste por el origen sobre todos los trials de ≤ 5 unidades:
+
+| Dedo | `F₀` | Sentido | counts/u | g/u | `k_local` |
+|---|---|---|---|---|---|
+| Pulgar | 250 | cerrar | 0.59 | 4.4 | 7.4 |
+| Pulgar | 250 | abrir | 0.97 | 8.2 | 8.4 |
+| Pulgar | 1000 | cerrar | 0.38 | 10.6 | **28.0** |
+| Pulgar | 1000 | abrir | 0.83 | 14.8 | **17.7** |
+| Índice | 250 | cerrar | 1.29 | 24.3 | 18.8 |
+| Índice | 250 | abrir | 1.84 | 27.8 | 15.0 |
+| Índice | 1000 | cerrar | 1.38 | 51.3 | **37.3** |
+| Índice | 1000 | abrir | 2.23 | 56.5 | **25.3** |
+| Medio | 250 | cerrar | 1.84 | 56.0 | 30.4 |
+| Medio | 250 | abrir | 1.15 | 31.1 | 27.2 |
+| Medio | 1000 | cerrar | 2.50 | 72.7 | 29.1 |
+| Medio | 1000 | abrir | 1.07 | 49.0 | **45.8** |
+
+Factor `k_local(1000)/k_local(250)`: pulgar **3.8× / 2.1×**, índice **2.0× / 1.7×**,
+medio **1.0× / 1.7×** (cerrar / abrir).
+
+**Cinco de las seis combinaciones dedo×sentido suben con la carga, y tres cruzan
+el umbral de 2× del plan.** El criterio de E3.1 queda contestado en la dirección
+que pedía: el *gain scheduling* va sobre **rigidez local estimada en línea**, no
+sobre una constante por dedo — y tampoco sobre una constante por dedo y carga,
+porque el sentido también la cambia.
+
+> La cifra de «3×» que esta página daba antes para el medio salía de un solo
+> tamaño de escalón (3 unidades). El ajuste sobre todos los trials de ≤ 5 da
+> **1.7× abriendo y 1.0× cerrando**. La conclusión no cambia —el medio sigue
+> variando con la carga en un sentido— pero el número bueno es el del ajuste.
+
+### La asimetría de sentido, y que no tiene un signo común
+
+`counts/unidad` no es igual en los dos sentidos, y a 1000 g la diferencia es
+grande: pulgar 0.38 cerrando contra 0.83 abriendo (2.2×), índice 1.38 contra 2.23
+(1.6×) — **devuelven más recorrido del que toman**. El medio va al revés: 2.50
+cerrando contra 1.07 abriendo.
+
+Para el regulador, las dos versiones dicen lo mismo: **la ganancia no puede ser
+simétrica**. Pero el factor hay que medirlo por dedo, no suponerlo.
+
+---
+
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
@@ -395,7 +505,7 @@ no para medirlo fino.
 | E3.2 · `F₀ = 250` (pulgar) | ✔ |
 | E3.2 · `F₀ = 1000` (medio) | ✔ |
 | E3.2 · `F₀ = 1000` (índice) | ✔ |
-| E3.2 · `F₀ = 1000` (pulgar) | pendiente — requiere block1 sobre las falanges proximales |
+| E3.2 · `F₀ = 1000` (pulgar) | ✔ |
 | E3.1 rigidez local | pendiente — **escalones de 3, 5 y 10 unidades**, no «+2 counts de POS» |
 | E3.3 planta en contacto | pendiente |
 | E3.4 + E3.5 decaimiento y deriva | pendiente |
@@ -406,7 +516,12 @@ no para medirlo fino.
 de 10 unidades desde 1000 g llevaría la fuerza a ~1400–1600 g, en el techo propio
 de 1500. Esa tanda debe correr con incrementos hasta 5, no hasta 10.
 
-**Nota para E3.1:** el plan pide escalones de «+2 counts de `POS`». No es
+**Nota para E3.1:** su criterio de decisión ya está contestado por E3.2 en los
+tres dedos (ver «Rigidez local» arriba): `k_local` varía 1.0–3.8× con la carga y
+cambia con el sentido, así que el *gain scheduling* va sobre estimación en línea.
+Lo que E3.1 aporta ahora es el **estimador**, no la decisión.
+
+Además, el plan pide escalones de «+2 counts de `POS`». No es
 ejecutable: el cuanto de comando medido son **3 unidades de `ANGLE_SET`**, que en
 el índice y el medio valen 1.3–2.2 counts de `POS` cada una. E3.1 debe correr con
 escalones de **3, 5 y 10 unidades de comando** y leer la rigidez del ajuste

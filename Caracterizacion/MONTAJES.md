@@ -48,7 +48,11 @@ una cara no ablandó nada. Pero las dos medidas están además en poses distinta
 
 Para que el pulgar alcanzara el borde, `block1` tuvo que colocarse **encima de
 las falanges proximales de los cuatro dedos**, no sobre la palma
-(`hand_block1_for_thumb.jpeg`). Es decir: su objeto estaba sostenido por **dedos
+(`hand_block1_for_thumb.jpeg`). **Y con la rotación del pulgar anclada en
+oposición** (`--hold 5:0`, `ANGLE_SET(5)=0 ≈ 90°`): sin ese ancla el pulgar
+describe otra trayectoria, roza el bloque durante toda la carrera y el sondeo da
+`k_c` 0.73 en vez de 5.8. Si la salida dice `Anclado: —`, la medida del pulgar no
+vale. Es decir: su objeto estaba sostenido por **dedos
 compliantes**, mientras que el de los demás se apoyaba en la palma rígida.
 
 Eso abre una explicación alternativa para el hallazgo 1 de

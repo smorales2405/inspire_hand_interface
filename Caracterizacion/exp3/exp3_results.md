@@ -843,6 +843,52 @@ sube a **+6.0 g/s**, así que los 46 g tardan **~8 s** en irse.
 
 ---
 
+### E3.4 + E3.5 en el pulgar — mismo fenómeno, signo contrario
+
+17 ciclos, arranque en frío a 32 °C, rampa a 42 °C, `F₀ = 450 g`, una sola tara.
+Mismo montaje `e4s` y `--hold 5:0`.
+
+| | Índice | Pulgar |
+|---|---|---|
+| Deriva térmica del cero | **−7 g** | **+6 g** |
+| Salto del cero tras sostener | **−46 g** | **+21 g** |
+| Caída de fuerza en 60 s | 44 g (**10 %**) | 23 g (**5 %**) |
+| `t63` del decaimiento | 2.5 s | 7.3 s |
+| Ciclos que caen rápido (`t63` < 5 s) | 13 / 17 | 8 / 17 |
+| `ΔPOS` con el comando congelado | −2 counts | **0 counts** |
+| Corriente durante los 60 s | **0 mA** | **0 mA** |
+
+**Lo que se repite en los dos dedos, y por tanto es de la mano:**
+
+1. **Cero miliamperios durante 60 s.** El firmware no aplica par para sostener; la
+   fuerza la retiene la fricción de la transmisión. Confirmado en 34 ciclos.
+2. **La fuerza decae, poco y pronto**, y se agota: 5–10 % en los primeros segundos
+   y luego meseta. El decaimiento es **bimodal** en los dos (unos ciclos caen
+   rápido y mucho, otros despacio y poco), así que la magnitud no se puede
+   predecir por adelantado.
+3. **El actuador no cede.** 0 y −2 counts de movimiento con el comando congelado:
+   el «caminar hacia dentro del objeto» no ocurre por debajo del techo de 585 g.
+4. **El cero se corre al sostener fuerza, y mucho más que por temperatura.** La
+   componente térmica es de 6–7 g; el salto por historia de carga es de 21–46 g,
+   de 3 a 7 veces mayor.
+
+**Lo que NO se repite: el signo.** El cero del índice se va a **−46 g** tras
+sostener; el del pulgar a **+21 g**. Y sus derivas térmicas también van en
+direcciones opuestas (−7 contra +6). No hay una corrección común: si el regulador
+quiere compensarlo, **el offset es por DOF y hay que medirlo por DOF**.
+
+> **Cadencia de re-tara, ya con los dos dedos:**
+> - **Nunca tarar justo después de soltar.** En el índice cuesta 46 g, en el
+>   pulgar 21. Esperar **≥ 10 s** con la mano abierta y descargada (en el índice
+>   se midió una recuperación de +6.0 g/s).
+> - **La re-tara periódica por temperatura es casi innecesaria**: 6–7 g contra una
+>   resolución de lazo de ~20 g (pulgar) o ~90 g (índice).
+> - El plan apuntaba a la deriva térmica como el problema. Es el menor de los dos,
+>   y el grande —la histéresis de carga— no estaba en el plan.
+
+
+---
+
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
@@ -884,7 +930,7 @@ no para medirlo fino.
 | E3.3 planta en contacto · índice | ✔ (250 y 450 g; 1000 g no es sostenible) |
 | E3.3 planta en contacto · pulgar | ✔ (250 g; 1000 g tampoco es sostenible) |
 | E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
-| E3.4 + E3.5 · pulgar | pendiente — requiere block1 sobre las falanges |
+| E3.4 + E3.5 · pulgar | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
 | E3.6b acoplamiento | pendiente |
 

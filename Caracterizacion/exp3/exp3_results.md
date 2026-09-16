@@ -7,6 +7,57 @@ remontado para esta serie y re-sondeado: onset **POS 1487**, residual 45 g.
 
 ---
 
+## Prerrequisito §3 — El índice, completo por fin
+
+El índice era el DOF peor caracterizado: `k_c` de 1.6 a 8.45 g/count según cómo se
+mirara, onset fijado a ojo, y el único sin curva libre propia en el pipeline. Con
+los modos de agarre 1 y 2 pasa a ser la mitad del par en oposición, así que dejó
+de ser un pendiente y se convirtió en bloqueante.
+
+| | Valor |
+|---|---|
+| Recorrido libre | POS **99 … 1913** (serial dio 98–1913) |
+| Onset geométrico (montaje `e3`) | POS **1448** (`ANGLE_SET 298` ≈ 66.5°) |
+| `k_c` | **12.44 g/count** |
+| Distancia de frenado a 100 g | **14 counts** |
+| Residual en el onset (curva fría) | 79 g |
+| `--start-angle` / `--approach-angle` | **452 / 372** |
+| Validación `v=250, Fset=500` | `F_max` 1351 g · 1260 g externos · 0 abortos |
+
+**El re-análisis del sondeo archivado se sostiene.** Contra la curva libre nueva da
+onset 1416 y `k_c` 8.28; contra la vieja, 1416 y 8.45. La distancia de frenado sale
+**15 counts** contra los **14** del sondeo nuevo — en otro montaje y nueve días
+después. Ese número es el sólido del índice; el `k_c` arrastra la dispersión de
+siempre (dónde caiga la muestra del onset respecto al refresco de 33 Hz).
+
+### El residual no se puede predecir de la curva libre
+
+La curva libre se mide **con el dedo en movimiento**; el `f_base` del regulador se
+mide **con el dedo parado** en la pre-posición. No coinciden, y la diferencia no es
+pequeña ni consistente:
+
+| Dedo | POS | Curva libre | `f_base` medido | Δ |
+|---|---|---|---|---|
+| Índice | 1200 | 18 g | **91 g** | **+73** |
+| Medio (`block1`) | 1237 | 7 g | 3 g | −4 |
+| Medio (`block2`) | 1481 | 45 g | 122 g | +77 |
+| Anular | 1169 | 33 g | 36 g | +3 |
+| Meñique | 1481 | 85 g | 122 g | +37 |
+
+**Consecuencia directa para el regulador: el piso de `F*` hay que medirlo en la
+pose de operación, no derivarlo de la curva libre.** La curva sirve para detectar
+el contacto (es una diferencia entre dos corridas y los sesgos se cancelan); no
+sirve para predecir cuánta fuerza propia tendrá el dedo parado ahí.
+
+> **Corrección.** En el commit anterior atribuí a la **temperatura** los ~60 g de
+> diferencia entre la curva libre del índice tomada en frío (32 °C) y la de la
+> campaña serial. Con esta tabla, la explicación **estático-vs-movimiento** da
+> igual de bien y probablemente mejor, porque aparece dentro de una misma sesión y
+> con la mano igual de fría. Las dos siguen siendo candidatas y están confundidas;
+> **E3.5 puede separarlas** midiendo el residual estático a varias temperaturas.
+
+---
+
 ## E3.2 — Incremento mínimo efectivo · DOF 2 (medio), `F₀ = 250 g`
 
 100 trials (5 incrementos × 2 sentidos × N=10), orden aleatorizado, 0 abortos.
@@ -115,6 +166,7 @@ no para medirlo fino.
 
 | Prueba | Estado |
 |---|---|
+| Prerrequisito §3 · índice | ✔ |
 | E3.2 · `F₀ = 250` (medio) | ✔ |
 | E3.2 · `F₀ = 1000` (medio) | pendiente — **espera térmica** (44 °C, límite de arranque 45) |
 | E3.1 rigidez local | pendiente (gateada por E3.2) |

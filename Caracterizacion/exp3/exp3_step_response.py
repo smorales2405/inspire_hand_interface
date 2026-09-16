@@ -167,6 +167,31 @@ def analyse(base_rows, rows, thr_g, settle_frac, settle_hold, tail_s):
                 n_fresh=len(fresh))
 
 
+def retrim(hand, rd, guard, args, cmd, log):
+    """Devuelve el dedo a `F0` antes de cada escalón, y el comando que lo logra.
+
+    Hace falta porque la fuerza DECAE con el comando congelado: en la primera
+    tanda de E3.3 el punto de operación se deslizó de 271 g a 147 g en 140 s, y
+    con él la amplitud de un mismo escalón (4 unidades cerrando dio entre +27 y
+    +157 g). Sin sujetarlo, E3.3 mide la respuesta a un punto de operación
+    distinto en cada trial. El decaimiento en sí es el objeto de E3.4; aquí es
+    una perturbación que hay que anular.
+    """
+    dof = args.dof
+    for _ in range(args.retrim_max):
+        f, pos, _, _, _ = window(rd, dof, args.settle_s, log)
+        if guard.check(pos, f, None):
+            return None, cmd
+        if f is None or abs(f - args.f0) <= args.f0_tol:
+            return f, cmd
+        cmd = max(0, min(1000, cmd + (-1 if f < args.f0 else +1) * args.retrim_step))
+        hand.write_block(ANGLE_SET, angle_vector(dof, cmd, args.hold_map))
+        time.sleep(args.step_dwell)
+        wait_arrived(rd, dof, log)
+    f, _, _, _, _ = window(rd, dof, args.settle_s, log)
+    return f, cmd
+
+
 # ── la medida ─────────────────────────────────────────────────────────────
 def run(hand, args):
     dof = args.dof
@@ -241,7 +266,11 @@ def run(hand, args):
         for k, (step, direction, n) in enumerate(order, 1):
             sgn = -1 if direction == 'cerrar' else +1
 
-            # asentar en el punto de operación
+            # devolver el dedo a F0 ANTES de medir (la fuerza decae sola)
+            f_trim, cmd = retrim(hand, rd, guard, args, cmd, log)
+            if f_trim is None:
+                print(f"  ABORTA: {guard.reason}")
+                break
             _, pos_b, _, _, _ = window(rd, dof, args.settle_s, log)
             if guard.check(pos_b, None, None):
                 print(f"  ABORTA: {guard.reason}")
@@ -298,7 +327,7 @@ def run(hand, args):
                       f"ΔF={m['amp']:+6.0f} g  retardo={ms(m['t_onset']) or '—':>6} ms  "
                       f"L={ms(m['lag_s']) or '—':>6} τ={ms(m['tau_s']) or '—':>6} ms  "
                       f"asienta={ms(m['t_settle']) or '—':>6} ms  "
-                      f"deriva={drift_s:>6} g/s  "
+                      f"deriva={drift_s:>6} g/s  base={m['f_base']:4.0f} g  "
                       f"({temp} °C)" + (f"   ⚠ABORT {bad}" if bad else ''))
             fh.flush()
             if bad:
@@ -350,6 +379,13 @@ def parse_args(argv=None):
     p.add_argument('--settle-frac', type=float, default=0.05)
     p.add_argument('--settle-hold', type=float, default=0.30)
     p.add_argument('--tail-s', type=float, default=0.50, help='cola para f_inf y deriva')
+
+    p.add_argument('--f0-tol', type=float, default=30.0,
+                   help='tolerancia del punto de operación antes de cada escalón (g)')
+    p.add_argument('--retrim-step', type=int, default=2,
+                   help='unidades de comando por iteración de re-ajuste')
+    p.add_argument('--retrim-max', type=int, default=12,
+                   help='iteraciones máximas de re-ajuste por trial')
 
     p.add_argument('--settle-s', type=float, default=0.30)
     p.add_argument('--step-dwell', type=float, default=0.25)

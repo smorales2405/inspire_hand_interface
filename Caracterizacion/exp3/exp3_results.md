@@ -531,6 +531,32 @@ montaje `e3e` (onset 1445, frenado 16 counts — reproduce `e3`/`e3d`).
 | 500 g | **22.9** | **21.7** | 18.7 | 17.2 |
 | 1000 g | 27.7 | 17.8 | **39.0** | **24.9** |
 
+#### Corrección de etiquetas: `F₀` nominal ≠ fuerza de trabajo
+
+E3.3 destapó que el punto de operación **decae durante la tanda**, así que el
+`F₀` de cada campaña es la fuerza a la que se *estableció* el contacto, no a la
+que se midió. Como cada trial guarda su `f_before`, se puede comprobar:
+
+| Dedo | `F₀` nominal | mediana real |
+|---|---|---|
+| Pulgar | 250 / 500 / 1000 | 242 / 476 / **946** |
+| Índice | 250 / 500 / 1000 | **158** / **370** / **836** |
+| Medio | 250 / 1000 | 259 / 1036 |
+
+**El pulgar y el medio sostienen su consigna; el índice no.** Reagrupando los 240
+trials del índice por fuerza **real** en vez de por etiqueta:
+
+| Índice · F real | Cerrar | Abrir |
+|---|---|---|
+| ~132 g | 21.6 | 13.6 |
+| ~332 g | 17.4 | 17.0 |
+| ~838 g | **39.0** | **24.9** |
+
+La **forma no cambia** —plano de 130 a 330 g, endurecimiento después— así que la
+conclusión de E3.1 (codos en sitios opuestos, sin punto de ruptura común) se
+sostiene. Lo que cambia es el eje: el índice no se midió a 250/500/1000 sino a
+~160/370/840.
+
 > Las cifras de `k_local` de E3.1 salen del ajuste sobre los escalones **3 y 5**,
 > los únicos comunes a los tres niveles. Las tablas de E3.2 ajustan sobre **todos
 > los de ≤ 5 unidades**, así que difieren en un 1–5 % (índice cerrando a 1000:
@@ -582,6 +608,103 @@ acumuladas en ventana (mínimos cuadrados recursivos de `ΔF` contra `Δpos` sob
 las últimas N acciones), con la ganancia congelada mientras `Σ|Δpos|` no supere
 el umbral de unos 5 counts. Sale gratis y no perturba.
 
+## E3.3 — Planta en contacto · **índice hecho; y aparece un techo de fuerza sostenible**
+
+Script: `exp3/exp3_step_response.py`. Captura el transitorio leyendo **solo
+`FORCE_ACT`** a tasa máxima (`POS_ACT` cada 12 lecturas), porque aquí interesa
+*cuándo* cambia la fuerza, no el valor asentado.
+
+**Escalones dimensionados por presupuesto de fuerza, no por los «10–20 counts» del
+plan.** A `F₀ = 250` un escalón de 20 counts abriendo quitaría más fuerza de la
+que hay (el dedo se despega). Se usaron 4 y 7 unidades a 250 g, 4 y 8 a 1000, y 3
+y 6 a 450 — entre 5 y 11 counts de `POS`.
+
+### El punto de operación no se queda quieto, y hubo que sujetarlo
+
+La primera tanda salió inutilizable para las amplitudes: **`f_base` se deslizó de
+271 g a 147 g en 140 s** con el comando congelado, y con ella la amplitud de un
+mismo escalón (4 unidades cerrando dio entre +27 y +157 g). El script incorporó
+un **re-ajuste antes de cada trial** (`--f0-tol`, `--retrim-step`), y con él
+`f_base` quedó en 217–277 g (σ 18 contra 61). El CSV de la primera tanda se
+conserva como `..._noretrim.csv`: es la evidencia del decaimiento.
+
+### Modelo de planta
+
+Celdas limpias (250 g en los dos sentidos y 450 g abriendo, n = 60 trials):
+
+| Métrica | Valor |
+|---|---|
+| Retardo comando → cambio de fuerza detectable | **52 ms** (IQR 45–63) |
+| Constante de subida `τ` (dos puntos) | **46 ms** (IQR 43–54) |
+| Asentamiento | **111 ms** |
+| **Retardo total del lazo** | **52–82 ms** (retardo + hasta un periodo de publicación) |
+
+Tres lecturas:
+
+1. **El contacto no añade retardo.** En aire, el Exp 1 midió 64 ms de comando a
+   primer cambio de `POS_ACT`; en contacto, 52 ms de comando a primer cambio de
+   `FORCE_ACT`. Del mismo orden, y no peor. La planta que el PI regula **no es
+   más lenta** que la que ya se conocía.
+2. **`τ` está en el límite de resolución.** Los valores que toma se agrupan en
+   ~46, ~92 y ~138 ms, que son 1, 2 y 3 veces 1.5 × 30.7 ms. Con la mano
+   publicando cada 30.7 ms solo caben ~4 muestras frescas en el flanco, así que
+   **τ ≲ 46 ms es todo lo que se puede afirmar**: la mecánica es más rápida que
+   el refresco, y lo que limita al lazo es el refresco.
+3. **La planta está dominada por el retardo: `L/τ ≈ 1.1`.** Es el caso difícil
+   para un PI. Con el retardo del orden de la constante de tiempo, la ganancia
+   proporcional hay que bajarla o meter un predictor de Smith; subir la ganancia
+   para «ir más rápido» lo único que da es oscilación.
+
+### El hallazgo gordo: el índice no sostiene 1000 g en este montaje
+
+La tanda a `F₀ = 1000` **no es medible, y esa es la medida.** La línea base no es
+una línea base: la fuerza aguanta un momento y **se suelta de golpe**.
+
+```
+  t(s):  0.00  0.08  0.16  0.28  0.33  0.34  0.36  0.37   |  0.42  0.45  0.51  0.60
+  F(g):  1030  1030  1030  1030  1030   969   803   803   |   752   594   554   560
+```
+
+Sobre los 38 trials que arrancan por encima de 800 g:
+
+- **Aguanta una mediana de 0.36 s** (rango 0.09–0.58) antes de perder 200 g.
+- **Suelta 407 g** y se estabiliza en una meseta de **586 g ± 70**.
+- La σ de la línea base sube a **148 g** (contra ~4 g a 250 g), así que el umbral
+  de detección de 4σ se va a 594 g y ningún escalón puede verse. Por eso 24 de
+  40 trials no tienen onset.
+
+A 250 g no hay nada de esto: la caída mediana durante los 0.6 s de línea base es
+**0 g**.
+
+> **Hay un techo de fuerza SOSTENIBLE, y está en ~590 g** — muy por debajo de los
+> ~1000 g que el dedo alcanza en transitorio. Cruzarlo no da más fuerza: da un
+> transitorio y un deslizamiento. Se ve también en la celda de 450 g cerrando,
+> que con 6 unidades llega a ~630 g y dispara el mismo deslizamiento (deriva
+> −212 g/s); por eso esa celda se excluyó del modelo de planta.
+
+**Es del dedo y su montaje, no del firmware.** El pulgar sostiene 944 g y el medio
+1036 g en sus campañas de E3.2 sin este colapso. El índice es el que se cae — y
+es el dedo cuyo `block1` ya se escapó de lado dos veces durante los montajes.
+
+> **Para el regulador:** la consigna del índice **no puede pedir más de ~590 g**
+> en este montaje. Si se le pide 1000, el lazo verá la fuerza caer 400 g sin que
+> él haya hecho nada, el integrador empujará, y el dedo caminará hacia dentro.
+
+### Decaimiento asimétrico (adelanto de E3.4)
+
+Con el comando congelado, sobre las celdas limpias:
+
+| Sentido | Deriva de la cola |
+|---|---|
+| Después de cerrar | **−3.0 g/s** · 16 de 20 trials pierden más de 1 g/s |
+| Después de abrir | **+0.1 g/s** · 2 de 19 |
+
+**La fuerza se cae sola después de apretar, y no después de aflojar.** E3.4 lo
+medirá en 60 s, pero la dirección ya está: el regulador necesita fuga en el
+integrador o banda muerta, y **solo en el sentido de cierre**.
+
+---
+
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
@@ -620,7 +743,8 @@ no para medirlo fino.
 | E3.2 · `F₀ = 1000` (pulgar) | ✔ |
 | E3.1 `k_local(F₀)` · pulgar | ✔ (250 / 500 / 1000) |
 | E3.1 `k_local(F₀)` · índice | ✔ (250 / 500 / 1000) |
-| E3.3 planta en contacto | pendiente |
+| E3.3 planta en contacto · índice | ✔ (250 y 450 g; 1000 g no es sostenible) |
+| E3.3 planta en contacto · pulgar | pendiente — requiere block1 sobre las falanges |
 | E3.4 + E3.5 decaimiento y deriva | pendiente |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
 | E3.6b acoplamiento | pendiente |

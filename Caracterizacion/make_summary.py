@@ -98,6 +98,64 @@ _cmp_rows=''.join(
     f'<td class="mono">{_c(_gT["median"]["1000"].get(str(F)))}</td>'
     f'<td class="mono">{_c(_bT.get(F))}</td>'
     f'<td class="mono b">{_redT[F]:.0f}×</td></tr>' for F in _FS)
+
+# ── Exp 3: régimen de contacto sostenido ─────────────────────────────────────
+def _e3(path):
+    return list(csv.DictReader(open(os.path.join(REPO,'exp3/data',path))))
+
+def _med(rows, key, pred=None):
+    v=[float(r[key]) for r in rows
+       if r.get(key) not in ('',None) and (pred is None or pred(r))]
+    return statistics.median(v) if v else float('nan')
+
+def _plateau(traces_csv):
+    """Meseta a la que cae la fuerza cuando se pide por encima del techo, y
+    cuanto aguanta antes. Reconstruye cada trial de la traza cruda de E3.3."""
+    from collections import defaultdict
+    g=defaultdict(lambda: {'base':[], 'step':[]})
+    for r in _e3(traces_csv):
+        if r['fresh_force']!='1' or not r['force_g']: continue
+        g[(r['trial'],r['step_units'],r['dir'])][r['phase']].append(
+            (float(r['t_s']), float(r['force_g'])))
+    hold, plat = [], []
+    for v in g.values():
+        b, st_ = sorted(v['base']), sorted(v['step'])
+        if len(b)<5 or len(st_)<10: continue
+        f0=statistics.median([f for _,f in b[:5]])
+        if f0 < 800: continue
+        tb=b[-1][0]
+        seq=b + [(tb+0.05+t, f) for t,f in st_]
+        t_rel=next((t for t,f in seq if f < f0-200), None)
+        if t_rel is None: continue
+        hold.append(t_rel)
+        plat.append(statistics.median([f for t,f in seq if t>=seq[-1][0]-0.5]))
+    return (statistics.median(hold), statistics.median(plat),
+            statistics.pstdev(plat), len(hold))
+
+# modelo de planta: celdas limpias (por debajo del techo sostenible)
+_e33I=[r for r in (_e3('e33_dof3_F250.csv')+ _e3('e33_dof3_F450.csv')) if r['f_base']]
+_e33I=[r for r in _e33I if not (r['dir']=='cerrar' and r['cmd_before'] and
+                                float(r['f_base'])>400)]
+_e33T=[r for r in _e3('e33_dof4_F250.csv') if r['f_base']]
+_fast=lambda r: float(r['t_onset_ms'])<400 if r['t_onset_ms'] else False
+_lagI=_med(_e33I,'t_onset_ms',_fast); _tauI=_med(_e33I,'tau_smith_ms')
+_setI=_med(_e33I,'t_settle_ms', lambda r: r['t_settle_ms'] and float(r['t_settle_ms'])<900)
+_lagT=_med(_e33T,'t_onset_ms',_fast); _tauT=_med(_e33T,'tau_smith_ms')
+_setT=_med(_e33T,'t_settle_ms', lambda r: r['t_settle_ms'] and float(r['t_settle_ms'])<900)
+_holdI,_platI,_sdI,_nI=_plateau('e33_dof3_F1000_traces.csv')
+_holdT,_platT,_sdT,_nT=_plateau('e33_dof4_F1000_traces.csv')
+_plat=(_platI+_platT)/2
+
+# E3.4 + E3.5
+_hdI=[r for r in _e3('e345_dof3_F450.csv') if r['f_start']]
+_hdT=[r for r in _e3('e345_dof4_F450.csv') if r['f_start']]
+def _jump(rows):
+    return statistics.median([float(r['base_after_g'])-float(r['base_before_g'])
+                              for r in rows if r['base_after_g'] and r['base_before_g']])
+_jI,_jT=_jump(_hdI),_jump(_hdT)
+_dropI=_med(_hdI,'drop_frac')*100; _dropT=_med(_hdT,'drop_frac')*100
+_cycles=len(_hdI)+len(_hdT)
+
 overlay, slope, latency = e1[0], e1[1], e1[2]
 bars, compare = e2[0], e2[1]
 
@@ -427,6 +485,42 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <hr class="rule">
 
   <section>
+    <h2>Exp 3 <span class="tag">régimen de contacto sostenido · hacia el regulador de fuerza</span></h2>
+    <h3>Del golpe al apriete: lo que hace falta para cerrar un lazo</h3>
+
+    <p class="lead">Los experimentos anteriores miden el <b>impacto</b>: qué pasa en los primeros cientos de milisegundos de un contacto. Un regulador de fuerza vive en el régimen contrario —el dedo ya apoyado, sosteniendo— y ese régimen no estaba caracterizado. El Exp 3 lo mide sobre los dos grados de libertad que forman la pinza: <b>índice y pulgar</b>.</p>
+
+    <div class="callout"><b>El hallazgo que cambia el alcance: hay un techo de fuerza <i>sostenible</i> en torno a {_plat:.0f}&nbsp;g.</b> Por encima, la fuerza no se mantiene: se alcanza, se aguanta unas décimas de segundo y cae. El índice pedido a 1000&nbsp;g aguanta {_holdI:.2f}&nbsp;s y se estabiliza en {_platI:.0f}&nbsp;g; el pulgar aguanta {_holdT:.2f}&nbsp;s y acaba en {_platT:.0f}&nbsp;g. <b>Dos dedos, dos contactos distintos, rigideces que difieren 2.3×, y la misma meseta.</b> No es un objeto que se mueve ni una arista que resbala: es un límite de la mano. Los ~3000&nbsp;g de sobreimpulso del Exp 2 y los «≥30&nbsp;N» de la hoja de datos son <b>picos de impacto, no fuerza sostenible</b>.</div>
+
+    <p>Debajo de ese techo la mano sí sostiene: a 450&nbsp;g, durante 60&nbsp;s, la fuerza cae solo un {_dropI:.0f}&nbsp;% en el índice y un {_dropT:.0f}&nbsp;% en el pulgar, y el actuador no cede (0 a −2 counts de movimiento con el comando congelado). <b>La consigna útil del lazo vive entre ~100 y ~{_plat:.0f}&nbsp;g</b>, y eso es lo que el diseño del regulador tiene que asumir.</p>
+
+    <h3>La planta que el regulador controla</h3>
+
+    <div class="tbl-wrap"><table><caption><b>Tabla 5.</b> Modelo de planta en contacto: del comando al cambio de fuerza, medido sobre muestras frescas (Exp 3, prueba E3.3).</caption>
+      <thead><tr><th>Métrica</th><th>Índice</th><th>Pulgar</th></tr></thead>
+      <tbody>
+        <tr><td>Retardo comando → fuerza</td><td class="mono b">{_lagI:.0f} ms</td><td class="mono b">{_lagT:.0f} ms</td></tr>
+        <tr><td>Constante de subida τ</td><td class="mono">≲ {_tauI:.0f} ms</td><td class="mono">≲ {_tauT:.0f} ms</td></tr>
+        <tr><td>Asentamiento</td><td class="mono">{_setI:.0f} ms</td><td class="mono">{_setT:.0f} ms</td></tr>
+        <tr><td>Cociente L/τ</td><td class="mono b">{_lagI/_tauI:.1f}</td><td class="mono b">{_lagT/_tauT:.1f}</td></tr>
+      </tbody></table></div>
+
+    <p><b>El contacto no añade retardo.</b> En espacio libre el Exp 1 midió ~64&nbsp;ms del comando al primer movimiento; en contacto son {_lagI:.0f}–{_lagT:.0f}&nbsp;ms del comando al primer cambio de fuerza. La planta que el regulador controla no es más lenta que la que ya se conocía.</p>
+
+    <p>Pero <b>está dominada por el retardo</b>: con L/τ ≈ 1, subir la ganancia proporcional no acelera el lazo, lo hace oscilar. Y τ está <i>en</i> el límite de resolución del sistema —sus valores caen en múltiplos exactos del periodo de publicación de ~30.7&nbsp;ms—, así que <b>lo que limita al lazo es el refresco de la mano, no la mecánica</b>. El periodo de control no debe bajar de ~30&nbsp;ms: por debajo solo se reprocesan muestras repetidas.</p>
+
+    <h3>Dos cosas que el regulador no puede ignorar</h3>
+
+    <p><b>El firmware no sostiene fuerza.</b> Durante {_cycles} ciclos de sostenimiento de 60&nbsp;s en los dos dedos, la corriente del actuador fue <b>0&nbsp;mA</b>, siempre. No hay par activo: lo que retiene la fuerza es la fricción de la transmisión. Todo lo que el lazo quiera, lo tiene que poner el lazo — y la fuerza decae sola en los primeros segundos, lo que obliga a <b>fuga en el integrador</b>.</p>
+
+    <p><b>El cero de fuerza se corre al sostener, y mucho más que por temperatura.</b> La deriva térmica de la tara es de 6–7&nbsp;g y satura. Pero tras sostener fuerza, el cero salta <b>{_jI:+.0f}&nbsp;g en el índice y {_jT:+.0f}&nbsp;g en el pulgar</b> —igual en frío que en caliente, de modo que es histéresis de carga, no temperatura— y tarda unos 8&nbsp;s en volver. La consecuencia práctica es una regla: <b>nunca re-tarar justo después de soltar</b>. Nótese que el signo es opuesto en cada dedo: no hay una corrección común, hay que medirla por grado de libertad.</p>
+
+    <div class="callout"><b>Lección de método, otra vez sobre la ventana de medida.</b> Este trabajo concluyó primero que el colapso de fuerza era del índice y su montaje, porque el pulgar parecía sostener 944&nbsp;g. Era un artefacto: esa campaña leía la fuerza en ventanas de 0.30&nbsp;s, más cortas que las ~0.3&nbsp;s que el colapso tarda en empezar, de modo que medía dentro del tiempo de agarre. Con ventanas de 2&nbsp;s el pulgar hace exactamente lo mismo. <b>Una ventana más corta que el fenómeno no lo mide: lo esconde.</b></div>
+  </section>
+
+  <hr class="rule">
+
+  <section>
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
@@ -436,8 +530,11 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
       <li>La réplica en un <b>segundo dedo</b>, y la verificación en los otros tres, separan lo general de lo particular: la calibración de velocidad y la latencia son de la plataforma; <b>bajar el umbral de fuerza no protege en ninguno</b>. La política híbrida es la única que generaliza.</li>
       <li>La caracterización se <b>replicó por un segundo canal de comunicación</b> con nueve veces la tasa de muestreo: la física reproduce, lo que valida las campañas previas. Pero <b>ninguna de las tres mejoras de medida que se le atribuían era real</b>, y a cambio reveló por qué: la mano publica estado nuevo a ~33&nbsp;Hz, así que leer más rápido no añade información — y lo que parecían dos posiciones de contacto eran <b>dos escalones del registro de posición</b>.</li>
       <li>Un umbral de fuerza por debajo de la fuerza de flexión propia del dedo produce ensayos <b>sin contacto</b> que aparentan protección perfecta. Detectarlo exige comprobar que hubo carga, no leer el sobreimpulso: es la lección metodológica de este trabajo, y costó el hallazgo que se creía central.</li>
+      <li>La mano tiene un <b>techo de fuerza sostenible en torno a {_plat:.0f}&nbsp;g</b>, medido en dos grados de libertad con contactos y rigideces distintos. Por encima, la fuerza es transitoria. Esto acota el alcance de cualquier regulador de fuerza que se monte sobre esta plataforma, y separa por primera vez la fuerza de <b>impacto</b> —que llega a los miles de gramos— de la fuerza que la mano puede <b>mantener</b>.</li>
+      <li>El firmware <b>no aplica par para sostener</b>: 0&nbsp;mA durante 60&nbsp;s en {_cycles} ciclos. La fuerza la retiene la fricción de la transmisión, y decae. Un lazo de fuerza no puede delegar el sostenimiento en la mano: tiene que regularlo él, con fuga en el integrador para no perseguir una caída que ya paró.</li>
+      <li>La planta en contacto está <b>dominada por el retardo</b> (L/τ ≈ 1) y su constante de tiempo está en el límite de resolución del sistema: <b>el refresco de ~33&nbsp;Hz, no la mecánica, es lo que limita al lazo</b>. Es el mismo techo que apareció en el Exp 0, ahora medido desde el otro extremo.</li>
     </ul>
-    <p class="lead"><b>Próximos pasos:</b> los cinco grados de libertad están medidos —el medio con el protocolo completo, meñique y anular por muestreo— y la constante de velocidad y la política híbrida se sostienen en todos. Queda integrar la política en el lazo de agarre, y decidir si el contacto sobre <b>arista</b> que comparten todas las campañas basta como condición de prueba o conviene repetir el mapa contra una cara plana.</p>
+    <p class="lead"><b>Próximos pasos:</b> los cinco grados de libertad están medidos y el régimen de contacto sostenido está caracterizado en los dos que forman la pinza, con la especificación del regulador ya cerrada: rango de consigna, escalón mínimo de comando, modelo de planta, política de integrador y cadencia de re-tara. Queda <b>medir el acoplamiento entre dedos en las pinzas reales</b> —pulgar+índice y pulgar+índice+medio— que es también el único ensayo que puede responder si los grados de libertad refrescan su estado en el mismo instante o escalonados. Y queda una condición de prueba por levantar: todas las campañas usan un objeto <b>apoyado</b> y contacto sobre <b>arista</b>; un objeto sujeto entre dos dedos es un contacto distinto y más blando, así que el techo de {_plat:.0f}&nbsp;g y las rigideces hay que re-verificarlos ahí.</p>
   </section>
 
   <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU (RS-485) y Modbus TCP.</p>

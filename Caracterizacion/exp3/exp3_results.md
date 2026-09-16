@@ -470,7 +470,7 @@ simétrica**. Pero el factor hay que medirlo por dedo, no suponerlo.
 
 ---
 
-## E3.1 — Rigidez local `k_local(F₀)` · **pulgar hecho, índice pendiente de montaje**
+## E3.1 — Rigidez local `k_local(F₀)` · **cerrado en pulgar e índice**
 
 **Redimensionado respecto al plan.** El plan pide escalones de «+2, +5, +10 counts
 de `POS`» y niveles `F₀` de 100, 250, 500 y 1000 g. Dos cambios, los dos forzados
@@ -506,10 +506,56 @@ secante `k_c = 5.79` del sondeo, la local es **4–5× mayor** en el rango de
 trabajo: **el `k_c` secante no es el número correcto para control**, como el plan
 sospechaba.
 
-> **Consecuencia para el regulador:** el *gain scheduling* importa sobre todo
-> **por debajo de 500 g**, donde la planta triplica su ganancia en un tramo de
-> 250 g. Por encima de 500 la ganancia es casi constante y un valor fijo basta.
-> Es decir: el tramo peligroso no es apretar fuerte, es **la aproximación**.
+En el pulgar, el tramo que concentra el cambio es **el de abajo**: de 250 a 500 la
+ganancia se triplica, y de 500 a 1000 apenas se mueve.
+
+> **Ojo: esto es del pulgar, no de la mano.** El índice hace lo contrario —ver
+> abajo—, así que **no hay un codo común** y el scheduler no puede llevar un punto
+> de ruptura fijo.
+
+### El índice: el mismo rango, el codo en el otro sitio
+
+60 trials a `F₀ = 500`, 0 abortos, contacto en 506 g (POS 1475), 40 °C plano,
+montaje `e3e` (onset 1445, frenado 16 counts — reproduce `e3`/`e3d`).
+
+> **Nota de método.** El sondeo de este montaje salió con el residual de flexión
+> en **138 g**, contra los 78 g de las campañas de 250 y 1000: la mano se había
+> quedado fría (30 °C) tras un corte de alimentación. Medir el nivel de 500 así
+> habría confundido **temperatura con carga**. Se calentó el dedo en aire (117
+> ciclos entre `ANGLE_SET` 500 y 900, lejos del bloque) hasta los 42 °C de las
+> otras dos campañas, y de ahí salió la tanda.
+
+| `F₀` | Pulgar cerrar | Pulgar abrir | Índice cerrar | Índice abrir |
+|---|---|---|---|---|
+| 250 g | 7.5 | 8.4 | 19.3 | 14.9 |
+| 500 g | **22.9** | **21.7** | 18.7 | 17.2 |
+| 1000 g | 27.7 | 17.8 | **39.0** | **24.9** |
+
+> Las cifras de `k_local` de E3.1 salen del ajuste sobre los escalones **3 y 5**,
+> los únicos comunes a los tres niveles. Las tablas de E3.2 ajustan sobre **todos
+> los de ≤ 5 unidades**, así que difieren en un 1–5 % (índice cerrando a 1000:
+> 39.0 aquí contra 37.3 allí). Es el mismo dato con distinta ventana, no dos
+> medidas.
+
+Y los tramos:
+
+| | 250→500 | 500→1000 | total |
+|---|---|---|---|
+| Pulgar cerrar | **3.1×** | 1.2× | 3.7× |
+| Pulgar abrir | 2.6× | 0.8× | 2.1× |
+| Índice cerrar | 1.0× | **2.1×** | 2.0× |
+| Índice abrir | 1.2× | 1.4× | 1.7× |
+
+**Los dos dedos recorren un rango parecido —de 1.7× a 3.7× entre 250 y 1000 g—
+pero el codo está en sitios opuestos.** El pulgar se endurece entero por debajo de
+500 g y luego se aplana; el índice está plano hasta 500 y se endurece después.
+
+> **Consecuencia para el regulador, ya con dos dedos:** el *gain scheduling* no
+> puede llevar un **punto de ruptura fijo**, ni por dedo heredado de otro ni por
+> nivel de consigna. Lo que sí se sostiene es que la ganancia **cambia de forma
+> relevante dentro del rango de trabajo en los dos dedos**, así que el
+> seguimiento tiene que ser **continuo**. Es el mismo sitio al que apunta la
+> limitación del estimador de la sección anterior.
 
 ### El estimador no puede ir por escalones de sondeo
 
@@ -535,13 +581,6 @@ precisión que el lazo pretende dar. **El sondeo dedicado se descarta.**
 acumuladas en ventana (mínimos cuadrados recursivos de `ΔF` contra `Δpos` sobre
 las últimas N acciones), con la ganancia congelada mientras `Σ|Δpos|` no supere
 el umbral de unos 5 counts. Sale gratis y no perturba.
-
-### Pendiente
-
-`F₀ = 500` en el **índice**, para tener su curva de tres puntos. Requiere volver a
-montar `block1` sobre la palma (`block1_index_contact.jpeg`).
-
----
 
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
 
@@ -580,7 +619,7 @@ no para medirlo fino.
 | E3.2 · `F₀ = 1000` (índice) | ✔ |
 | E3.2 · `F₀ = 1000` (pulgar) | ✔ |
 | E3.1 `k_local(F₀)` · pulgar | ✔ (250 / 500 / 1000) |
-| E3.1 `k_local(F₀)` · índice | pendiente — falta `F₀ = 500`, requiere block1 en la palma |
+| E3.1 `k_local(F₀)` · índice | ✔ (250 / 500 / 1000) |
 | E3.3 planta en contacto | pendiente |
 | E3.4 + E3.5 decaimiento y deriva | pendiente |
 | E3.6a sincronía | abierta — necesita ≥2 DOF en movimiento |
@@ -590,13 +629,7 @@ no para medirlo fino.
 de 10 unidades desde 1000 g llevaría la fuerza a ~1400–1600 g, en el techo propio
 de 1500. Esa tanda debe correr con incrementos hasta 5, no hasta 10.
 
-**Nota para E3.1:** su criterio de decisión ya está contestado por E3.2 en los
-tres dedos (ver «Rigidez local» arriba): `k_local` varía 1.0–3.8× con la carga y
-cambia con el sentido, así que el *gain scheduling* va sobre estimación en línea.
-Lo que E3.1 aporta ahora es el **estimador**, no la decisión.
-
-Además, el plan pide escalones de «+2 counts de `POS`». No es
-ejecutable: el cuanto de comando medido son **3 unidades de `ANGLE_SET`**, que en
-el índice y el medio valen 1.3–2.2 counts de `POS` cada una. E3.1 debe correr con
-escalones de **3, 5 y 10 unidades de comando** y leer la rigidez del ajuste
-`ΔF` contra `Δpos`, que es lo que E3.2 ya hace por dentro.
+**Lo que queda del scheduling:** E3.1 cerró la pregunta de *si* hace falta (sí,
+1.7–3.7× dentro del rango de trabajo, en los dos dedos) y la de *cómo no* hacerlo
+(ni con punto de ruptura fijo, ni con escalones de sondeo). Falta implementarlo:
+mínimos cuadrados recursivos sobre las correcciones del propio lazo.

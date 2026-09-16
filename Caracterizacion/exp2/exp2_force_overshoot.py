@@ -285,8 +285,16 @@ def run_probe(hand, args):
             elif ((t - ref_t) >= args.stall_hold
                   and elapsed >= (t_cmd - t_start) + 0.3
                   and (pos - start_pos) > 50
-                  and (resid_live is None or force is None or live_off is None
-                       or (force - live_off) - resid_live(pos) > args.contact_force_g)):
+                  # Con curva libre, el contacto EXIGE fuerza externa. Mientras el
+                  # offset de alineación no está calculado (el dedo sigue dentro
+                  # de la ventana temprana) no puede haber contacto por
+                  # construcción, así que no se declara — antes esto estaba
+                  # escrito como `or live_off is None`, que lo declaraba
+                  # incondicionalmente y paraba el sondeo en POS 413.
+                  and (resid_live is None
+                       or (live_off is not None and force is not None
+                           and (force - live_off) - resid_live(pos)
+                           > args.contact_force_g))):
                 contact_pos = pos
                 reason = 'contacto'; break
 

@@ -105,6 +105,33 @@ def window(rd, dof, seconds, log, min_fresh=0):
             statistics.median(ps) if ps else None, nf, np_, n)
 
 
+def wait_arrived(rd, dof, log, band=1, hold_s=0.15, timeout=2.5):
+    """Espera a que `POS_ACT` deje de avanzar: el dedo ha LLEGADO al comando.
+
+    Sin esto el lazo de búsqueda corre por delante del dedo. `ANGLE_SET` es un
+    comando de posición y a v=25 el dedo tarda; evaluando la fuerza cada 0.12 s
+    sin esperar, el comando se adelanta decenas de unidades y el dedo sigue
+    cerrando después de que la búsqueda haya parado. Pasó: la búsqueda dio F0
+    por alcanzada en 304 g y la fuerza siguió hasta ~800, que era el `FORCE_SET`
+    del firmware — y ahí el dedo dejó de aceptar comandos de posición EN AMBOS
+    SENTIDOS.
+    """
+    t0 = time.perf_counter()
+    last = None
+    stable_since = None
+    while time.perf_counter() - t0 < timeout:
+        p, f, c, fp, ff = rd.sample()
+        log(p, f, c, fp, ff)
+        pos = p[dof] if p else None
+        if pos is not None:
+            if last is None or abs(pos - last) > band:
+                last, stable_since = pos, time.perf_counter()
+            elif stable_since and time.perf_counter() - stable_since >= hold_s:
+                return pos
+        time.sleep(0.002)
+    return last
+
+
 # ── seguridad ─────────────────────────────────────────────────────────────
 class Guard:
     """Techo de fuerza, de temperatura, de corriente sostenida y de posición.
@@ -154,6 +181,7 @@ def seek_contact(hand, rd, guard, args, log):
 
     t0 = time.perf_counter()
     while time.perf_counter() - t0 < args.seek_timeout:
+        wait_arrived(rd, dof, log)          # que el dedo LLEGUE antes de medir
         fv, pos, _, _, _ = window(rd, dof, args.seek_dwell, log)
         _, _, c, _, _ = rd.sample()
         if guard.check(pos, fv, c[dof] if c else None):
@@ -239,6 +267,7 @@ def run(hand, args):
             cmd2 = max(0, min(1000, cmd + sgn * step))
             hand.write_block(ANGLE_SET, angle_vector(dof, cmd2, args.hold_map))
             time.sleep(args.step_dwell)
+            wait_arrived(rd, dof, log)
             f_a, pos_a, nfa, npa, _ = window(rd, dof, args.settle_s, log)
             _, _, c_a, _, _ = rd.sample()
             temp = guard.temp()
@@ -263,6 +292,7 @@ def run(hand, args):
             # Volver al punto de operación y dejar que se asiente otra vez.
             hand.write_block(ANGLE_SET, angle_vector(dof, cmd, args.hold_map))
             time.sleep(args.step_dwell)
+            wait_arrived(rd, dof, log)
 
     log_path = os.path.join(args.outdir, f'e32_dof{dof}_F{args.f0}_log.csv')
     with open(log_path, 'w', newline='') as fh:
@@ -304,8 +334,12 @@ def parse_args(argv=None):
     p.add_argument('--seek-step', type=int, default=2, help='paso de búsqueda de F0 (unidades)')
     p.add_argument('--seek-dwell', type=float, default=0.12)
     p.add_argument('--seek-timeout', type=float, default=60.0)
-    p.add_argument('--fset-margin', type=int, default=500,
-                   help='FORCE_SET se pone en F0+margen: respaldo del firmware, no objetivo')
+    p.add_argument('--fset-margin', type=int, default=900,
+                   help='FORCE_SET = F0 + margen. Tiene que quedar POR ENCIMA del techo '
+                        'propio (--safety-force-g): si el firmware llega a su umbral, el '
+                        'dedo deja de aceptar ANGLE_SET en ambos sentidos y la prueba se '
+                        'congela. Medido: con F0=250 y margen 500 el lazo se quedó clavado '
+                        'en 800 g sin responder ni a comandos de apertura.')
     p.add_argument('--step-dwell', type=float, default=0.25,
                    help='espera tras cada escalón (≥ 8 refrescos de 30.7 ms)')
     p.add_argument('--settle-s', type=float, default=0.30,

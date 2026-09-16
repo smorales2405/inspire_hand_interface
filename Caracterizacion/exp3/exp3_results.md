@@ -193,6 +193,56 @@ Con el paso mínimo fiable de **3 unidades**:
 | Medio | 171 g | 72 g |
 | Pulgar | *(predicho ~12 g)* | — |
 
+### E3.2 en el pulgar — la predicción se confirma
+
+Montaje `e3`: `block1` **encima de las falanges**, rotación anclada en oposición
+(`--hold 5:0`). El sondeo previo reproduce la geometría del pulgar mejor que
+ningún otro dedo: **onset POS 780** contra 775–777 de las campañas de hace dos
+días y de hace un mes, `k_c` **5.96** contra 5.66–5.92. 100 trials, 0 abortos,
+28 → 32 °C.
+
+### La tabla de los tres dedos
+
+| Paso | Sentido | Pulgar | Índice | Medio |
+|---|---|---|---|---|
+| 1 | cerrar | **1/10** · +0 g | 6/10 · +16 g | 10/10 · +41 g |
+| 1 | abrir | **1/10** · +0 g | 6/10 · −5 g | 4/10 · +0 g |
+| 2 | cerrar | 6/10 · +8 g | 8/10 · +17 g | 10/10 · +59 g |
+| 2 | abrir | 5/10 · −1 g | 10/10 · −67 g | 6/10 · −69 g |
+| **3** | **cerrar** | **9/10 · +17 g** | **10/10 · +64 g** | **10/10 · +171 g** |
+| **3** | **abrir** | **10/10 · −20 g** | **9/10 · −55 g** | **10/10 · −72 g** |
+| 5 | cerrar | 10/10 · +18 g | 10/10 · +156 g | 10/10 · +304 g |
+| 10 | cerrar | 10/10 · +42 g | 10/10 · +309 g | 10/10 · +409 g |
+
+**El incremento mínimo fiable son 3 unidades de `ANGLE_SET`, en los tres dedos.**
+A 3 unidades todos van a 9–10 de 10; por debajo, ninguno es dependible. Es el
+resultado que generaliza, y es el que el regulador debe adoptar.
+
+**El cuanto de fuerza no generaliza, y esa es la información útil:**
+
+| Dedo | g/unidad | `k_c` | counts/u | **Resolución a 3 unidades** |
+|---|---|---|---|---|
+| **Pulgar** | **4–8** | 5.96 | 0.75 | **~18 g** |
+| Índice | 16–31 | 12.44 | 1.60 | ~60 g |
+| Medio | 24–57 | 26.25 | 1.60 | ~72–171 g |
+
+El pulgar resuelve fuerza **3× mejor que el índice y 5–9× mejor que el medio**, y
+lo hace por dos factores que se multiplican: su mapa `POS↔ANGLE` está comprimido
+(0.75 counts por unidad de comando contra 1.60) y su contacto es el más blando
+(5.96 g/count contra 12.4 y 26.2). La predicción del modelo de unidades era
+**~4 g/unidad** y se mide **4–8**.
+
+> El pulgar paga ese fino con **fiabilidad de comando**: a 1 unidad solo se mueve
+> 1 de 10 veces, peor que los otros dos. Pero el producto que importa —paso
+> mínimo fiable × g por unidad— sigue saliéndole a favor por un factor de 3.
+
+### Implicación para el modo 1: los dos lazos no son intercambiables
+
+En la pinza pulgar+índice, **el pulgar es el que puede hacer el ajuste fino y el
+índice el que sostiene**. Repartir el trabajo al revés desperdicia un factor 3 de
+resolución. Y fija el objetivo realista del regulador: **~20 g de precisión si el
+trim lo lleva el pulgar**, no los ~60 que daría el índice ni los ~170 del medio.
+
 ---
 
 ## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
@@ -227,6 +277,7 @@ no para medirlo fino.
 | Prerrequisito §3 · índice | ✔ |
 | E3.2 · `F₀ = 250` (medio) | ✔ |
 | E3.2 · `F₀ = 250` (índice) | ✔ |
+| E3.2 · `F₀ = 250` (pulgar) | ✔ |
 | E3.2 · `F₀ = 1000` (medio) | pendiente — **espera térmica** (44 °C, límite de arranque 45) |
 | E3.1 rigidez local | pendiente (gateada por E3.2) |
 | E3.3 planta en contacto | pendiente |

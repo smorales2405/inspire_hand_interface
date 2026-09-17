@@ -941,6 +941,96 @@ no para medirlo fino.
 
 ---
 
+## E3.6b — Acoplamiento en la pinza real (modo 1) · **el objeto se traslada, no se comprime**
+
+Objeto: bola de espuma de 7 cm, sujeta entre **pulgar e índice** con la rotación
+en oposición. Dos tandas independientes (32 y 23 trials), con montaje y algoritmo
+de re-ajuste distintos. Script `exp3/exp3_coupling.py`, en tres fases porque entre
+ellas actúa una persona: **agarre** (la persona sostiene el objeto, la mano tara,
+cierra a `v=25` y congela cada dedo al tocar), **acoplamiento** y **soltar**.
+
+### La predicción era falsa
+
+Este experimento se diseñó prediciendo acoplamiento **~100 %**: en una pinza sobre
+un objeto libre, acción y reacción obligan a que las dos normales se igualen.
+Medido:
+
+| Mueve | Sentido | → Pulgar | → Índice | Cruzado/diagonal (tanda 1 · 2) |
+|---|---|---|---|---|
+| Pulgar | cerrar | +110 · +58 | +19 · +20 | **17 % · 34 %** |
+| Pulgar | abrir | −82 · −67 | −26 · −18 | **33 % · 27 %** |
+| Índice | cerrar | +25 · +28 | +186 · +200 | **13 % · 14 %** |
+| Índice | abrir | −20 · −28 | −194 · −150 | **10 % · 19 %** |
+
+**14–34 %, reproducible en las dos tandas.** El razonamiento de acción y reacción
+solo vale si los contactos son **colineales y sin fricción**, y ninguna de las dos
+cosas se cumple aquí.
+
+### Por qué: el vídeo lo separa, las fuerzas no
+
+Dos explicaciones daban las mismas fuerzas —que el objeto se trasladara con el
+dedo, o que estuviera apoyado en algo no medido— y **las fuerzas no las
+distinguen**. Hicieron falta dos cámaras:
+
+- Una **cenital** (Logitech BRIO) que muestra la pinza y confirma el agarre.
+- Una **a ras de mesa, perpendicular al eje de la pinza** (Logitech C925e). Esta
+  fue decisiva: al ampliarla se ve **fondo por debajo de la bola**, así que no
+  apoya en nada; y es la única orientación que puede ver la traslación. La cenital
+  mira casi *a lo largo* del eje y es ciega a ese movimiento.
+
+Seguimiento subpíxel del logo impreso en la bola (`exp3/exp3_track_object.py`),
+con el suelo de ruido medido en el propio vídeo:
+
+| | Pico a pico en 5 s (un trial) |
+|---|---|
+| Mano quieta sujetando | **0.054 mm** |
+| Durante los escalones | **0.462 mm** (máx 1.13) |
+
+**8.6× por encima del ruido.** Y el dedo que se mueve avanza **0.45–0.60 mm por
+escalón**: la bola se desplaza **casi tanto como avanza el dedo**.
+
+> **El dedo no comprime el objeto contra el otro dedo: lo empuja, y el objeto se
+> va con él.** El otro contacto apenas se comprime, y por eso su fuerza apenas
+> cambia. Eso es el 14–34 %.
+
+> **Nota de método que estuvo a punto de costar la conclusión.** El primer
+> seguimiento se hizo **sin subpíxel**, a 0.48 mm/px — el mismo tamaño que el
+> movimiento buscado. Dio «la bola no se mueve», que es lo que una medida sin
+> resolución siempre dice. El refinamiento subpíxel cuesta diez líneas y cambia el
+> signo del resultado.
+
+### Lo que esto fija para el regulador
+
+**Los dos lazos son casi independientes en fuerza, pero comparten la posición del
+objeto.** Las coordenadas naturales no son «fuerza del pulgar» y «fuerza del
+índice», sino:
+
+- **Apretar** (los dos dedos en sentidos opuestos) → cambia la fuerza de agarre.
+- **Trasladar** (los dos en el mismo sentido) → mueve el objeto sin cambiar la
+  fuerza.
+
+Un regulador con un lazo de fuerza por dedo gasta la mayor parte de su acción
+moviendo el objeto. El criterio del plan —desacoplar si el cruce supera 10–20 %—
+se cumple justo en el margen, pero la conclusión útil no es «hace falta
+desacoplar»: es **que el acoplamiento que importa está en la posición del objeto,
+no en la fuerza**.
+
+### Anotaciones de banco
+
+- **Dimensionado de los escalones.** El índice responde **+186…+280 g con 6
+  unidades**; el pulgar, **+44…+71 g con 12**. Un factor 4 por unidad de comando,
+  coherente con E3.2. Partiendo de `F₀ = 300 g` el índice cruza el techo: hay que
+  usar **4 unidades en el índice y 12 en el pulgar**. Las dos tandas terminaron
+  con el objeto en el suelo por no haberlo dimensionado antes.
+- **El re-ajuste del punto de operación debe ser por dedo.** La primera versión
+  llevaba un dedo de referencia a `F₀` moviendo los dos, suponiendo acoplamiento
+  fuerte. Con 14–34 % eso empujó el índice a 601 g persiguiendo 300 en el pulgar.
+- **Sin sostener nada, las fuerzas de los dos dedos no son comparables entre sí.**
+  Al establecer el agarre quedaron en 124/127 g y 123/195 g en tandas distintas
+  con el mismo procedimiento.
+
+---
+
 ## Síntesis — la especificación del regulador PI que sale del Exp 3
 
 Todo lo de arriba, reducido a lo que hay que escribir en el código del lazo. Cada
@@ -1086,7 +1176,7 @@ Sale gratis y no perturba.
 | E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.4 + E3.5 · pulgar | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.6a sincronía | abierta — sale de E3.6b (necesita ≥2 DOF en movimiento) |
-| E3.6b pinza pulgar+índice | pendiente — cambia el montaje |
+| E3.6b pinza pulgar+índice | ✔ (2 tandas, 55 trials, bola de espuma) |
 | E3.6c pinza pulgar+índice+medio | pendiente |
 | E3.1/E3.3/E3.4/E3.5 · **medio** | no medidas — solo hacen falta si el modo 2 entra en alcance |
 

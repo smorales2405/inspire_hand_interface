@@ -21,12 +21,20 @@ SEGURIDAD — hay manos humanas en el recorrido. En la fase de agarre:
   · antes de cualquier apertura se sube `FORCE_SET`, para que un dedo que hubiera
     llegado al paro del firmware acepte la orden de abrir.
 
-FÍSICA que condiciona la lectura. En una pinza de dos dedos sobre un objeto
-libre, las dos fuerzas normales están obligadas a igualarse (acción y reacción a
-través del objeto), así que el acoplamiento del modo 1 tiene que salir cerca del
-100 %. Lo informativo es la DESVIACIÓN de ese 100 % —que es una calibración
-cruzada de los sensores de yema— y el retardo entre la fuerza del dedo movido y la
-reacción en el otro.
+FÍSICA — corregida por la medida. Este script se escribió prediciendo que el
+acoplamiento del modo 1 saldría cerca del 100 %, porque en una pinza sobre un
+objeto libre las dos normales se igualan por acción y reacción. **Falso**: eso
+solo vale si los dos contactos son colineales y sin fricción. Con la bola de
+espuma se midió **10–33 %**, y la bola NO se movió durante la tanda (seguida por
+correlación de plantilla: 4 px en dos minutos). Las yemas de goma sostienen por
+fricción estática una diferencia grande de fuerzas normales sin que el objeto se
+mueva, y las normales del pulgar y del índice forman un ángulo grande, no se
+oponen de frente.
+
+Queda una alternativa que la foto no distingue y que conviene descartar por
+montaje: que el objeto apoye contra la PROPIA MANO (palma o falanges proximales).
+El sensor está solo en la yema, así que un contacto ahí no lo ve nadie y
+absorbería la diferencia.
 
 E3.6a sale del log de la fase de agarre: es el primer registro en el que dos o
 más DOF se mueven a la vez, que es lo único que permite ver si la mano refresca
@@ -292,8 +300,13 @@ def phase_couple(hand, args, dofs, log):
                         'f_base', 'f_end', 'df', 'pos_base', 'pos_end', 'dpos',
                         't_onset_ms', 'ref_force_before', 'aborted'])
         for k, (m, dr, n) in enumerate(order, 1):
-            # re-ajuste: la fuerza del dedo de referencia a F0, moviendo TODOS a la vez
-            # (en oposición no se pueden fijar por separado: se aprieta o se afloja)
+            # Re-ajuste INDEPENDIENTE por dedo. La primera versión llevaba un solo
+            # dedo de referencia a F0 moviendo todos a la vez, suponiendo que en
+            # oposición no se pueden fijar por separado. Medido: el acoplamiento
+            # cruzado es del 10–33 %, así que SÍ se pueden — y con la versión
+            # acoplada, llevar el pulgar a 300 g empujó el índice a 601 y tiró el
+            # objeto. Cada dedo se corrige solo, y ninguno se empuja por encima
+            # de `--f-cap`.
             for _ in range(args.retrim_max):
                 cur, _ = sample(hand, dofs, 0.25, log, 'couple', f'trim{k}')
                 bad = check({d: cur[d][0] for d in dofs}, dofs, args)
@@ -301,13 +314,18 @@ def phase_couple(hand, args, dofs, log):
                     print(f"ABORTA: {bad}. Abro (el objeto caerá).")
                     open_hand(hand, args)
                     return 4
-                fr = cur[ref][0]
-                if fr is None or abs(fr - args.f0) <= args.f0_tol:
-                    break
-                sgn = -1 if fr < args.f0 else +1
+                moves = {}
                 for d in dofs:
-                    cmds[d] = max(0, min(1000, cmds[d] + sgn))
-                hand.write_block(ANGLE_SET, vec(cmds, args.hold_map))
+                    fd = cur[d][0]
+                    if fd is None or abs(fd - args.f0) <= args.f0_tol:
+                        continue
+                    if fd < args.f0 and fd >= args.f_cap:
+                        continue                     # nunca apretar más allá del tope
+                    moves[d] = max(0, min(1000, cmds[d] + (-1 if fd < args.f0 else +1)))
+                if not moves:
+                    break
+                cmds.update(moves)
+                hand.write_block(ANGLE_SET, vec(moves, args.hold_map))
                 time.sleep(args.step_dwell)
 
             base, _ = sample(hand, dofs, args.base_s, log, 'couple', f'base{k}')
@@ -455,7 +473,11 @@ def parse_args(argv=None):
     # acoplamiento
     p.add_argument('--f0', type=float, default=300.0, help='fuerza del dedo de referencia (g)')
     p.add_argument('--f0-tol', type=float, default=40.0)
-    p.add_argument('--retrim-dof', type=int, default=4, help='DOF cuya fuerza se lleva a F0')
+    p.add_argument('--retrim-dof', type=int, default=4,
+                   help='DOF de referencia que se anota en el CSV (el re-ajuste es por dedo)')
+    p.add_argument('--f-cap', type=float, default=520.0,
+                   help='ningún dedo se aprieta por encima de esto en el re-ajuste. Por debajo '
+                        'del techo sostenible de ~585 g que midió E3.3')
     p.add_argument('--retrim-max', type=int, default=20)
     p.add_argument('--steps', default='4:12,3:6,2:6', help='DOF:unidades del escalón')
     p.add_argument('--trials', type=int, default=8)

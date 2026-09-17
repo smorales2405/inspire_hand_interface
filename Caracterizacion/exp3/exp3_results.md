@@ -1073,8 +1073,13 @@ no en la fuerza**.
 ## Síntesis — la especificación del regulador PI que sale del Exp 3
 
 Todo lo de arriba, reducido a lo que hay que escribir en el código del lazo. Cada
-número lleva la prueba de la que sale. **Las cifras son del montaje de bloque; la
-pinza real (E3.6) puede moverlas.**
+número lleva la prueba de la que sale.
+
+> **Cómo leer los apartados 1–6.** Se midieron con el dedo contra un **bloque
+> apoyado**, que no se mueve: allí todo el avance del dedo se convierte en fuerza.
+> El apartado 7 es lo que cambia cuando el objeto está **sujeto en la pinza** y sí
+> se mueve — y cambia bastante. Los apartados 1–6 describen el actuador y el
+> contacto; el 7, el agarre.
 
 ### 1. El rango de consigna
 
@@ -1184,14 +1189,58 @@ bien inyecta 300–400 g, más que la precisión que el lazo pretende dar.
 regulador**, con la ganancia congelada mientras `Σ|Δpos|` no pase de ~5 counts.
 Sale gratis y no perturba.
 
-### 7. Lo que el Exp 3 NO contesta
+### 7. Las coordenadas del lazo: apretar no es lo mismo que mover
 
-- **La sincronía del refresco entre DOF** (E3.6a) sigue abierta: hace falta un
-  dataset con ≥ 2 DOF moviéndose a la vez, y sale de E3.6b.
-- **El acoplamiento entre dedos de la pinza** (E3.6b/c) no está medido.
-- **Todo esto es sobre bloque apoyado, contacto en arista.** Un objeto sujeto entre
-  dos dedos es un contacto distinto y más blando; el techo de 585 g y las `k_local`
-  hay que re-verificarlos ahí.
+Todo lo anterior (E3.1–E3.5) se midió con el dedo contra un **bloque apoyado**:
+una superficie que no se mueve, así que todo el avance del dedo se convierte en
+fuerza. **En una pinza real eso deja de ser cierto**, y es el resultado de E3.6b:
+
+| | |
+|---|---|
+| Acoplamiento cruzado entre los dos dedos | **14–34 %** de la diagonal |
+| Traslación del objeto por escalón | **0.46 mm** (ruido: 0.054) |
+| Avance del dedo por escalón | **0.45–0.60 mm** |
+
+**El objeto se desplaza casi tanto como avanza el dedo.** El comando de un dedo no
+comprime el objeto contra el otro: lo empuja. Por eso el otro apenas nota nada.
+
+> **Consecuencia de diseño:** las variables del regulador no son «fuerza del
+> pulgar» y «fuerza del índice», que están casi desacopladas y no describen el
+> agarre. Son:
+>
+> - **Apretar** — los dos dedos en sentidos **opuestos**. Es lo único que cambia
+>   la fuerza de agarre.
+> - **Trasladar** — los dos en el **mismo** sentido. Mueve el objeto sin cambiar
+>   la fuerza.
+>
+> Un lazo de fuerza por dedo gasta la mayor parte de su acción moviendo el objeto
+> dentro de la pinza. El lazo de fuerza debe cerrarse sobre el **modo de apriete**;
+> la posición del objeto es el otro grado de libertad, y hay que decidir si se
+> regula o se deja libre.
+
+**Y esto acota el estimador del apartado 6.** Las `k_local` de 7–39 g/count son
+contra un apoyo rígido: son la rigidez del **contacto**, no la ganancia que el
+lazo verá en pinza. La ganancia efectiva en pinza es menor en la proporción en que
+el objeto se mueva, y eso depende del objeto. El estimador en línea no es un lujo:
+es la única forma de tener el número correcto, porque **no se puede trasladar
+desde el banco de bloque**.
+
+**Sincronía entre DOF (E3.6a): no es un problema.** Los DOF se refrescan con
+**1.9 ms** de desfase, el 6 % del frame y el 3 % del retardo del lazo. Los lazos
+pueden tratarse como simultáneos.
+
+### 8. Lo que el Exp 3 NO contesta
+
+- **El modo 2** (pulgar + índice + medio, E3.6c) no está medido. Con tres dedos
+  aparece un reparto que el modo 1 no tiene: al empujar el pulgar, ¿cómo se divide
+  la reacción entre índice y medio?
+- **El techo de fuerza sostenible en pinza.** Los ~585 g se midieron contra bloque
+  apoyado. En pinza el objeto se mueve, así que ese techo hay que re-verificarlo:
+  puede que ni siquiera se alcance antes de que el objeto se escape.
+- **Un solo objeto, y blando.** El 14–34 % de acoplamiento y los 0.46 mm de
+  traslación son de una bola de espuma de 7 cm. Un objeto rígido y pequeño debería
+  acoplar mucho más — el límite teórico del 100 % sigue siendo el de un contacto
+  colineal y rígido. **Medirlo con el bloque cerraría el rango.**
 - **El medio** solo tiene E3.2. Si el modo 2 (pulgar+índice+medio) entra en el
   alcance, le faltan E3.1, E3.3, E3.4 y E3.5.
 

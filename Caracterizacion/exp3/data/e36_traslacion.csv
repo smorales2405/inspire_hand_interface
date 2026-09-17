@@ -1,0 +1,8 @@
+# Traslación del objeto agarrado, medida con exp3_track_object.py (seguimiento
+# subpíxel). El desplazamiento es el pico-a-pico mediano en ventanas del tamaño de
+# un trial; el avance del dedo por escalón es ~0.5 mm. La fracción es lo comparable
+# entre montajes: la relación con el ruido depende de la resolución de cada cámara.
+tanda,objeto,rigidez,dedos,mm_per_px,ruido_mm,despl_mm,avance_dedo_mm,fuente
+E3.6b,bola de espuma 7 cm 21.6 g,blanda,2,0.48,0.054,0.480,0.50,c2_c925_20260916_222958.mp4
+E3.6c,bola de espuma 7 cm 21.6 g,blanda,3,0.150,0.050,0.093,0.50,burst4k c3_brio4k
+E3.6c,cubo PLA 6 cm 60.5 g,rígida,3,0.093,0.007,0.072,0.50,burst4k c4_brio4k

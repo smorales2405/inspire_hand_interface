@@ -160,6 +160,47 @@ _jI,_jT=_jump(_hdI),_jump(_hdT)
 _dropI=_med(_hdI,'drop_frac')*100; _dropT=_med(_hdT,'drop_frac')*100
 _cycles=len(_hdI)+len(_hdT)
 
+
+# ── E3.6: acoplamiento en las pinzas reales ──────────────────────────────────
+def _e36(path):
+    """Matriz de acoplamiento: {(mueve, sentido, observa): mediana de ΔF}."""
+    from collections import defaultdict
+    g = defaultdict(list)
+    for r in _e3(path):
+        if r['df']:
+            g[(int(r['moved_dof']), r['dir'], int(r['obs_dof']))].append(float(r['df']))
+    return {k: statistics.median(v) for k, v in g.items() if v}
+
+def _cross(g, m, d, j):
+    """Acoplamiento cruzado en % de la diagonal."""
+    if (m, d, m) not in g or (m, d, j) not in g:
+        return None
+    return 100 * g[(m, d, j)] / g[(m, d, m)]
+
+_m1 = _e36('e36_modo1_bola2.csv')       # pinza pulgar+índice, bola de espuma
+_m2 = _e36('e36_modo2_bola_m2.csv')     # + medio, mismo objeto
+_m2r = _e36('e36_modo2_cubo_m2b.csv')   # + medio, cubo rígido
+
+# modo 1: rango del cruce sobre las cuatro celdas
+_c1 = [abs(_cross(_m1, m, d, 3 if m == 4 else 4))
+       for m in (4, 3) for d in ('cerrar', 'abrir')
+       if _cross(_m1, m, d, 3 if m == 4 else 4) is not None]
+# modo 2: el par índice-medio, que es el que sale negativo
+_c2im = [_cross(_m2, 3, 'cerrar', 2), _cross(_m2, 2, 'cerrar', 3)]
+_c2rim = [_cross(_m2r, 3, 'cerrar', 2), _cross(_m2r, 2, 'cerrar', 3)]
+_c2pulg = [_cross(_m2, 4, 'abrir', 3), _cross(_m2, 4, 'abrir', 2)]
+
+# ganancia: cuánto sube la diagonal con el objeto rígido
+_gain = [abs(_m2r[(m, d, m)] / _m2[(m, d, m)])
+         for m in (4, 3, 2) for d in ('cerrar', 'abrir')
+         if (m, d, m) in _m2r and (m, d, m) in _m2 and _m2[(m, d, m)]]
+
+# traslación del objeto (medida sobre vídeo con exp3_track_object.py)
+with open(os.path.join(RAIZ, 'exp3/data/e36_traslacion.csv')) as _fh:
+    _tr = list(csv.DictReader(l for l in _fh if not l.startswith('#')))
+_trf = {(r['rigidez'], r['dedos']): 100 * float(r['despl_mm']) / float(r['avance_dedo_mm'])
+        for r in _tr}
+
 overlay, slope, latency = e1[0], e1[1], e1[2]
 bars, compare = e2[0], e2[1]
 
@@ -525,6 +566,47 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
   <hr class="rule">
 
   <section>
+    <h2>Exp 3 · agarre <span class="tag">acoplamiento entre dedos en las pinzas reales</span></h2>
+    <h3>Cuando dos lazos de fuerza comparten un objeto</h3>
+
+    <p class="lead">Todo lo anterior mide <b>un dedo contra una superficie</b>. Un regulador de agarre tiene dos o tres lazos actuando sobre el <b>mismo objeto</b>, y la pregunta de diseño es si pueden ignorarse entre sí o hay que coordinarlos. Se midió escalonando el comando de <b>un</b> dedo y registrando la fuerza de <b>todos</b>, en los dos modos de pinza que la cinemática de esta mano permite.</p>
+
+    <div class="tbl-wrap"><table><caption><b>Tabla 6.</b> Acoplamiento cruzado en porcentaje de la diagonal: cuánto cambia la fuerza de un dedo cuando se mueve otro. Mediana sobre los trials de cada celda.</caption>
+      <thead><tr><th>Modo</th><th>Par de dedos</th><th>Acoplamiento</th></tr></thead>
+      <tbody>
+        <tr><td rowspan="2"><b>1</b> · pulgar + índice</td><td>entre los dos, cerrando y abriendo</td><td class="mono b">{min(_c1):.0f}–{max(_c1):.0f} %</td></tr>
+        <tr><td colspan="2" class="mono">todo positivo</td></tr>
+        <tr><td rowspan="3"><b>2</b> · pulgar + índice + medio</td><td>pulgar → índice y medio</td><td class="mono">+{min(_c2pulg):.0f} a +{max(_c2pulg):.0f} %</td></tr>
+        <tr><td><b>índice ↔ medio</b></td><td class="mono b">{statistics.median(_c2im):.0f} %</td></tr>
+        <tr><td colspan="2" class="mono">el signo NEGATIVO es el hallazgo</td></tr>
+      </tbody></table></div>
+
+    <div class="callout"><b>En el modo 2, índice y medio no suman fuerza: se la quitan.</b> Cuando uno aprieta más, el otro recibe menos — el signo fue opuesto al de la diagonal en 23 de 24 ensayos. Los dos comparten la misma reacción del pulgar y <b>compiten por ella</b>. La consecuencia de control es directa: dos lazos de fuerza independientes sobre esos dedos <b>se pelean de frente</b>, porque subir la consigna de uno baja la fuerza real del otro, que responde subiendo, que baja la del primero. No es lentitud: es realimentación positiva en el lazo del error.</div>
+
+    <h3>Por qué: el vídeo separa lo que las fuerzas no pueden</h3>
+
+    <p>Dos explicaciones daban las mismas lecturas de fuerza —que el dedo <b>comprima</b> el objeto contra los otros, o que simplemente lo <b>empuje</b>— y las fuerzas no las distinguen. Se resolvió con una segunda cámara mirando <b>perpendicular al eje de la pinza</b> y seguimiento subpíxel del objeto. Expresado como fracción de lo que avanza el dedo en cada escalón (~0.5&nbsp;mm), que es lo comparable entre montajes:</p>
+
+    <div class="tbl-wrap"><table><caption><b>Tabla 7.</b> Cuánto del avance del dedo se convierte en <b>movimiento del objeto</b> en vez de en fuerza.</caption>
+      <thead><tr><th>Objeto</th><th>Dedos</th><th>Desplazamiento</th><th>% del avance del dedo</th></tr></thead>
+      <tbody>
+        <tr><td>bola de espuma (blanda)</td><td class="mono">2</td><td class="mono">{float(_tr[0]['despl_mm']):.3f} mm</td><td class="mono b">{_trf[('blanda','2')]:.0f} %</td></tr>
+        <tr><td>bola de espuma (blanda)</td><td class="mono">3</td><td class="mono">{float(_tr[1]['despl_mm']):.3f} mm</td><td class="mono b">{_trf[('blanda','3')]:.0f} %</td></tr>
+        <tr><td>cubo de PLA (rígido)</td><td class="mono">3</td><td class="mono">{float(_tr[2]['despl_mm']):.3f} mm</td><td class="mono b">{_trf[('rígida','3')]:.0f} %</td></tr>
+      </tbody></table></div>
+
+    <p><b>Con dos dedos, casi todo el comando se va en mover el objeto</b> — se desplaza tanto como avanza el dedo, así que el otro contacto apenas se comprime y por eso el acoplamiento sale débil. <b>Con tres dedos el objeto queda inmovilizado</b> y la carga, que ya no puede irse en movimiento, se redistribuye entre índice y medio: de ahí el signo negativo. Las dos matrices quedan explicadas por un solo mecanismo.</p>
+
+    <p><b>Y lo que inmoviliza el objeto es el tercer dedo, no la rigidez.</b> Pasar de dos a tres dedos baja el movimiento del {_trf[('blanda','2')]:.0f}&nbsp;% al {_trf[('blanda','3')]:.0f}&nbsp;%; cambiar espuma por PLA solo lo baja al {_trf[('rígida','3')]:.0f}&nbsp;%. Repetida con el cubo rígido, la matriz <b>conserva su estructura</b> (índice ↔ medio sigue en {statistics.median(_c2rim):.0f}&nbsp;%) y lo único que sube es la ganancia: <b>{statistics.median(_gain):.1f}× más fuerza por unidad de comando</b> (mediana; sube en cinco de las seis celdas). Con yemas de goma, <b>la compliancia que manda es la del dedo, no la del objeto</b>.</p>
+
+    <div class="callout"><b>Las variables del regulador no son las fuerzas de cada dedo.</b> En el modo 1 están casi desacopladas y no describen el agarre; en el modo 2 se pelean. Lo que hay que regular son los <b>modos del agarre</b>: <b>apretar</b> (dedos en sentidos opuestos, lo único que cambia la fuerza de contacto) y <b>trasladar</b> (mismo sentido, mueve el objeto sin cambiarla). Y la buena noticia para el diseño: como la estructura de acoplamiento es del <b>agarre</b> y no del objeto, la matriz medida con uno sirve para otros — lo único que hay que re-estimar al cambiar de pieza es la ganancia, que es justo lo que un estimador en línea hace solo.</div>
+
+    <p>Como subproducto, el registro del cierre simultáneo resolvió una pregunta abierta desde el principio: los grados de libertad <b>no</b> refrescan su estado en el mismo instante, pero el escalonado es de <b>1.9&nbsp;ms</b> — el 6&nbsp;% del ciclo de publicación y el 3&nbsp;% del retardo del lazo. A efectos de control, están sincronizados.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
     <h2>Conclusiones</h2>
     <ul>
       <li>El <b>sobreimpulso de fuerza es el riesgo dominante</b> al agarrar rápido: puede triplicar la fuerza deseada, lo que justifica una estrategia de aproximación híbrida.</li>
@@ -537,8 +619,10 @@ HTML=f'''<title>Caracterización dinámica RH56DFTP — Resultados iniciales</ti
       <li>La mano <b>no sostiene cualquier fuerza que alcance</b>: por encima de un punto el actuador resbala hacia atrás hasta reenganchar, y ese punto <b>no es una constante</b> — se midió entre 455 y 745&nbsp;g según el dedo y su postura. Esto separa por primera vez la fuerza de <b>impacto</b> —que llega a los miles de gramos— de la que la mano puede <b>mantener</b>, y obliga a que el regulador detecte el borde en vez de suponerlo.</li>
       <li>El firmware <b>no aplica par para sostener</b>: 0&nbsp;mA durante 60&nbsp;s en {_cycles} ciclos. La fuerza la retiene la fricción de la transmisión, y decae. Un lazo de fuerza no puede delegar el sostenimiento en la mano: tiene que regularlo él, con fuga en el integrador para no perseguir una caída que ya paró.</li>
       <li>La planta en contacto está <b>dominada por el retardo</b> (L/τ ≈ 1) y su constante de tiempo está en el límite de resolución del sistema: <b>el refresco de ~33&nbsp;Hz, no la mecánica, es lo que limita al lazo</b>. Es el mismo techo que apareció en el Exp 0, ahora medido desde el otro extremo.</li>
+      <li>En una pinza de tres dedos, <b>índice y medio compiten por la misma reacción del pulgar</b>: el acoplamiento entre ellos es <b>negativo</b>. Dos lazos de fuerza independientes sobre esos dedos no son simplemente subóptimos — se realimentan positivamente en el error. El regulador debe actuar sobre los <b>modos del agarre</b> (apretar y trasladar), no sobre la fuerza de cada dedo por separado.</li>
+      <li>El acoplamiento se explica por <b>cuánto se mueve el objeto</b>, y eso hizo falta medirlo con vídeo: las fuerzas por sí solas no distinguen comprimir de empujar. Con dos dedos el {_trf[('blanda','2')]:.0f}&nbsp;% del avance del dedo se va en mover el objeto; con tres, el {_trf[('blanda','3')]:.0f}&nbsp;%. <b>Lo que inmoviliza el objeto es el tercer dedo, no su rigidez</b>: repetido con un cubo rígido, la estructura de la matriz no cambia y solo sube la ganancia.</li>
     </ul>
-    <p class="lead"><b>Próximos pasos:</b> los cinco grados de libertad están medidos y el régimen de contacto sostenido está caracterizado en los dos que forman la pinza, con la especificación del regulador ya cerrada: rango de consigna, escalón mínimo de comando, modelo de planta, política de integrador y cadencia de re-tara. Queda <b>medir el acoplamiento entre dedos en las pinzas reales</b> —pulgar+índice y pulgar+índice+medio— que es también el único ensayo que puede responder si los grados de libertad refrescan su estado en el mismo instante o escalonados. Y queda una condición de prueba por levantar: todas las campañas usan un objeto <b>apoyado</b> y contacto sobre <b>arista</b>; un objeto sujeto entre dos dedos es un contacto distinto y más blando, así que el techo de {_plat:.0f}&nbsp;g y las rigideces hay que re-verificarlos ahí.</p>
+    <p class="lead"><b>Próximos pasos:</b> la caracterización está completa para el diseño: cinco grados de libertad medidos, el régimen de contacto sostenido cerrado en los dos dedos de la pinza, y el acoplamiento medido en los dos modos de agarre y con objetos blando y rígido. <b>Lo que sigue es implementar el regulador</b> con la especificación que sale de aquí, y en particular sus dos piezas no triviales: el estimador de ganancia en línea y la detección del resbalón por posición. Quedan dos verificaciones acotadas para cuando eso esté en pie: el <b>modo 1 con objeto rígido</b>, que exige el doble de fuerza y pediría un diseño 2×2 para no confundir rigidez con nivel de consigna, y el comportamiento sobre <b>objetos deformables reales</b> —una mandarina se deslizó a 150&nbsp;g por su cáscara encerada—, donde el umbral de agarre depende del objeto y es justo el caso que motiva el trabajo.</p>
   </section>
 
   <p class="foot">Documento de trabajo — resultados iniciales de tesis. Datos, código y figuras reproducibles en el repositorio: <span class="mono">github.com/smorales2405/inspire_hand_interface</span>. Hardware: Inspire Hand RH56DFTP · comunicación Modbus RTU (RS-485) y Modbus TCP.</p>

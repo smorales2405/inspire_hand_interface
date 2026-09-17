@@ -66,7 +66,7 @@ La interfaz se abre sin necesidad de conectar la mano; las secciones de lectura 
 ### Conexión TCP (por defecto)
 
 ```
-IP:    192.168.11.210
+IP:    192.168.124.210
 Puerto: 6000
 ```
 

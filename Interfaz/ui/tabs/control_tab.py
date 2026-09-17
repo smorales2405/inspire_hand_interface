@@ -54,7 +54,7 @@ class ControlTab(QWidget):
         tcp = QHBoxLayout(self._tcp_w)
         tcp.setContentsMargins(0, 0, 0, 0)
         tcp.addWidget(QLabel("IP:"))
-        self._ip = QLineEdit("192.168.11.210")
+        self._ip = QLineEdit("192.168.124.210")
         self._ip.setFixedWidth(145)
         tcp.addWidget(self._ip)
         tcp.addWidget(QLabel("Puerto:"))

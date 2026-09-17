@@ -18,7 +18,7 @@ class HandConnection:
 
     # ── Connection ───────────────────────────────────────────────────
 
-    def connect_tcp(self, ip='192.168.11.210', port=6000, device_id=1):
+    def connect_tcp(self, ip='192.168.124.210', port=6000, device_id=1):
         try:
             self.client = ModbusTcpClient(ip, port=port)
             self.device_id = device_id

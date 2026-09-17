@@ -770,7 +770,12 @@ resbala — es un límite **de la mano**, común a los dos actuadores.
 
 > **Hay un techo de fuerza SOSTENIBLE en torno a 585 g, y es de la mano.** Por
 > encima, la fuerza es transitoria: se alcanza, se aguanta ~0.3 s y se cae a la
-> meseta. Los ~3000 g de sobreimpulso del Exp 2 y los «≥30 N» de la hoja de datos
+> meseta.
+>
+> **CORREGIDO más abajo** (sección «Techo de fuerza sostenible»): el mecanismo sí
+> es de la mano —el actuador retrocede— pero **el valor no es único**: entre 455 y
+> 745 g según el dedo y la pose. Los ~585 g eran la coincidencia de dos casos con
+> el mismo objeto y el mismo apoyo. Los ~3000 g de sobreimpulso del Exp 2 y los «≥30 N» de la hoja de datos
 > son picos de impacto, no fuerza sostenible.
 >
 > **Para el regulador esto fija el alcance:** las consignas útiles del lazo viven
@@ -1155,6 +1160,79 @@ estática la que sostiene el desequilibrio: al aflojar, se libera.
 
 ---
 
+## Techo de fuerza sostenible — **corrección: el mecanismo es el actuador, el valor no es único**
+
+E3.3 concluyó que hay un **techo de ~585 g de la mano**, apoyándose en que el
+índice y el pulgar, llevados a ~1000 g contra `block1`, se desplomaban los dos a
+la misma meseta. La conclusión se apoyaba en un argumento de coincidencia: dos
+dedos con rigideces distintas, la misma meseta.
+
+**El argumento era débil** — los dos empujaban el mismo bloque sobre el mismo tipo
+de apoyo compliante, así que una meseta común también sería lo esperable si lo que
+cedía fuera el bloque. Esta prueba lo separa: con el objeto **sujeto entre dedos**,
+sin apoyo externo que pueda deslizar, se sube un dedo y se mira si aguanta.
+Script: `exp3/exp3_ceiling_check.py`.
+
+### Lo que pasa (pulgar sobre el cubo de PLA, 6 cm)
+
+```
+  t(s)   pulgar   índice    medio    POS
+  0.00     1008      384      582    662     ← se congela el comando
+  1.00     1014      385      581    664     ← aguanta 1008–1020 g UN SEGUNDO
+  1.50      448      284      422    613     ← resbala de golpe
+  5.00      454      283      424    612
+ 59.00      455      278      423    612     ← +1 g en 55 s
+```
+
+No es fluencia: es un **resbalón súbito**. Aguanta un segundo entero a 1008 g y
+en menos de medio segundo **el dedo retrocede 49 counts** (POS 662 → 613) mientras
+la fuerza cae 553 g. A partir de ahí queda clavado: **+1 g en 55 segundos**, con
+0 mA.
+
+**El retroceso de `POS` es la prueba.** Un objeto que se mueve no hace que el dedo
+retroceda contra su propio comando; eso solo lo hace el **actuador cediendo**. Así
+que la parte de la conclusión de E3.3 que sobrevive es **el mecanismo: es la
+mano**, no el montaje.
+
+### Lo que NO sobrevive: el valor
+
+| Caso | Pose | Fuerza sostenida |
+|---|---|---|
+| Pulgar sobre el cubo, tras resbalar | POS 612 | **455 g** |
+| Índice y pulgar contra `block1` (E3.3) | POS ~1490 / ~845 | **~585 g** |
+| Pulgar sobre el cargador (puesto a mano) | POS 689 | **745 g**, 60 s sin ceder |
+
+**De 455 a 745 g según el dedo y la pose.** No hay un número único, y los ~585 g
+eran la coincidencia de dos casos con el mismo objeto y apoyo. Escribirlo como
+«el techo de la mano son 585 g» era generalizar de dos puntos.
+
+### El modelo que encaja con todo
+
+La fuerza la retiene la **fricción de la transmisión** — es lo mismo que decían
+E3.4 y E3.5 al medir **0 mA durante 60 s de sostenimiento**. Esa fricción tiene un
+límite: cuando la carga lo supera, el mecanismo **se desliza hacia atrás** hasta
+que la carga baja lo suficiente para volver a agarrar. El punto de enganche
+depende de la ventaja mecánica del dedo en esa pose, y por eso varía.
+
+> **Para el regulador, tres consecuencias:**
+>
+> 1. **No hay una consigna máxima fija que programar.** El límite depende de la
+>    pose, entre 455 y 745 g en lo medido. Un tope constante sería o inseguro o
+>    innecesariamente conservador.
+> 2. **Pero el resbalón se anuncia solo, y a gritos.** `POS` se mueve ~50 counts
+>    en menos de medio segundo: es una señal enorme comparada con el 0–2 counts
+>    del sostenimiento normal (E3.4). El lazo no necesita adivinar el umbral —
+>    **necesita vigilar `POS` y reaccionar cuando salte**.
+> 3. **Fuerza alta sí se puede, pero breve.** 1008 g se sostuvieron un segundo
+>    entero antes de resbalar. Para un apriete momentáneo es utilizable; para
+>    sostener, no.
+>
+> Y por debajo del límite el sostenimiento es **excelente**: +1 g en 55 s, sin
+> consumo. El problema del regulador no es mantener la fuerza; es saber dónde está
+> el borde.
+
+---
+
 ## Síntesis — la especificación del regulador PI que sale del Exp 3
 
 Todo lo de arriba, reducido a lo que hay que escribir en el código del lazo. Cada
@@ -1170,15 +1248,20 @@ número lleva la prueba de la que sale.
 
 | | Valor | De dónde |
 |---|---|---|
-| **Techo de fuerza sostenible** | **~585 g** | E3.3, dos dedos, misma meseta |
+| **Techo de fuerza sostenible** | **455–745 g, según pose** | E3.3 + comprobación en pinza |
 | Fuerza que sí se sostiene 60 s | 450 g, con 5–10 % de caída | E3.4, 34 ciclos |
 | Suelo utilizable (índice) | ~80 g (residual de flexión 78 g) | Prerrequisito |
 | Suelo utilizable (pulgar) | ~79 g (residual 49 g) | Sondeo `e4r` |
 
-**La consigna del lazo vive entre ~100 y ~585 g.** Por encima del techo, la fuerza
-que el lazo lee no es la que tendrá medio segundo después: se alcanza, se aguanta
-~0.3 s y cae a la meseta. Los ~3000 g de sobreimpulso del Exp 2 y los «≥30 N» de
-la hoja de datos son picos de impacto, no fuerza sostenible.
+**La consigna del lazo vive entre ~100 g y un techo que NO es fijo:** entre 455 y
+745 g según el dedo y la pose. Por encima, el actuador resbala hacia atrás
+(~50 counts) hasta reenganchar. Los ~3000 g de sobreimpulso del Exp 2 y los
+«≥30 N» de la hoja de datos son picos de impacto, no fuerza sostenible.
+
+**No programes un tope constante: vigila `POS`.** El resbalón mueve la posición
+~50 counts en menos de medio segundo, contra los 0–2 counts del sostenimiento
+normal. Es una señal inconfundible, y es la única forma fiable de encontrar un
+borde que se mueve con la pose.
 
 ### 2. La acción de control
 

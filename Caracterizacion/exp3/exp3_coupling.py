@@ -162,7 +162,21 @@ def phase_grasp(hand, args, dofs, log):
 
     # La persona no ve esta salida en vivo: la ventana de colocación es FIJA y
     # holgada, y empieza después de la tara para que el objeto no cargue el cero.
-    print(f"  VENTANA DE COLOCACIÓN: {args.place_wait:.0f} s para poner el objeto en la pinza...")
+    # SEÑAL VISIBLE de que empieza la ventana: meñique y anular (no participan en
+    # ningún modo) se doblan y vuelven a abrir. La tara ya está hecha.
+    cue = [d for d in (0, 1) if d not in dofs]
+    if cue:
+        spd = [args.close_speed] * NDOF
+        for d in cue:
+            spd[d] = args.cue_speed
+        hand.write_block(SPEED_SET, spd)
+        hand.write_block(ANGLE_SET, vec({d: args.cue_angle for d in cue}, args.hold_map))
+        time.sleep(args.cue_s)
+        hand.write_block(ANGLE_SET, vec({d: args.open_angle for d in cue}, args.hold_map))
+        time.sleep(args.cue_s)
+        hand.write_block(SPEED_SET, [args.close_speed] * NDOF)
+    print(f"  VENTANA DE COLOCACIÓN: {args.place_wait:.0f} s para poner el objeto en la pinza "
+          f"(señal: meñique y anular se doblaron y abrieron)...")
     t_pl = time.perf_counter()
     while time.perf_counter() - t_pl < args.place_wait:
         p, f = read_pf(hand)
@@ -433,6 +447,9 @@ def parse_args(argv=None):
     p.add_argument('--pre-tare-wait', type=float, default=12.0)
     p.add_argument('--place-wait', type=float, default=15.0,
                    help='ventana tras la tara para colocar el objeto, antes de cerrar')
+    p.add_argument('--cue-angle', type=int, default=450, help='flexión de la señal de colocación')
+    p.add_argument('--cue-speed', type=int, default=500)
+    p.add_argument('--cue-s', type=float, default=0.9)
     p.add_argument('--settle-s', type=float, default=1.5)
 
     # acoplamiento

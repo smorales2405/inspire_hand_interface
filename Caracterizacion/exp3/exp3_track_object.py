@@ -134,6 +134,9 @@ def main(argv=None):
     p.add_argument('--every', type=int, default=3, help='procesa 1 de cada N fotogramas')
     p.add_argument('--min-corr', type=float, default=0.6)
     p.add_argument('--fps', type=float, default=28.0)
+    p.add_argument('--finger-mm', type=float, default=None,
+                   help='avance del dedo por escalón (mm). Con esto el resultado se expresa '
+                        'como fracción, que es lo comparable entre montajes')
     a = p.parse_args(argv)
 
     box = lambda s: tuple(int(v) for v in s.split(','))      # noqa: E731
@@ -158,9 +161,19 @@ def main(argv=None):
               f"mediana {r[0]:.3f} mm · máx {r[1]:.3f} mm  ({r[2]} ventanas)")
     if len(res) == 2 and res['quieta'][0] > 0:
         f = res['escalones'][0] / res['quieta'][0]
-        print(f"\n  relación escalones/ruido = {f:.1f}×")
-        print("  → " + ("el objeto SE TRASLADA con el dedo" if f > 3 else
-                        "sin traslación por encima del ruido"))
+        print(f"\n  relación escalones/ruido = {f:.1f}×  "
+              f"({'medible' if f > 3 else 'en el ruido'})")
+    # La relación con el ruido solo dice si la medida EXISTE, y depende del montaje
+    # (resolución y tramo quieto). Lo que dice si el movimiento IMPORTA es cuánto se
+    # desplaza el objeto comparado con lo que avanza el dedo que lo empuja.
+    if 'escalones' in res and a.finger_mm:
+        frac = res['escalones'][0] / a.finger_mm
+        print(f"\n  el objeto se desplaza {res['escalones'][0]:.3f} mm y el dedo avanza "
+              f"{a.finger_mm:.2f} mm  →  {100*frac:.0f} %")
+        print("  → " + (
+            "el dedo MUEVE el objeto en vez de comprimirlo" if frac > 0.6 else
+            "el objeto está sujeto: el avance del dedo se convierte en fuerza" if frac < 0.25
+            else "parte del avance mueve el objeto y parte lo comprime"))
     return 0
 
 

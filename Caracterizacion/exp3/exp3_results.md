@@ -1160,6 +1160,78 @@ estática la que sostiene el desequilibrio: al aflojar, se libera.
 
 ---
 
+### E3.6c con objeto RÍGIDO — la rigidez sube la ganancia, no reorganiza el acoplamiento
+
+Cubo impreso en PLA, **6×6×6 cm, 60.5 g**, contra la bola de espuma de 7 cm y
+21.6 g. Mismo modo (pulgar + índice + medio), **mismo `F₀` = 250 g** y **mismos
+escalones**, para que la única variable sea el objeto. 36 trials, 0 abortos.
+
+| Mueve | Sentido | → Pulgar | → Índice | → Medio |
+|---|---|---|---|---|
+| | | bola · cubo | bola · cubo | bola · cubo |
+| Pulgar | cerrar | — | +9 % · **+21 %** | +20 % · **+27 %** |
+| Pulgar | abrir | — | +47 % · **+36 %** | +44 % · **+35 %** |
+| Índice | cerrar | +8 % · +5 % | — | −38 % · **−29 %** |
+| Índice | abrir | +2 % · +1 % | — | −16 % · **−16 %** |
+| Medio | cerrar | +7 % · +4 % | −37 % · **−23 %** | — |
+| Medio | abrir | +3 % · +3 % | −9 % · **−9 %** | — |
+
+**La estructura es la misma.** Signo negativo entre índice y medio, positivo desde
+el pulgar hacia los dos, y acoplamiento casi nulo de vuelta al pulgar. Las cifras
+se mueven diez puntos, no cambian de naturaleza.
+
+**Lo que sí cambia es la diagonal:** el cubo da **1.2–1.5× más fuerza por unidad
+de comando** que la bola en las seis celdas.
+
+> **Lectura: con yemas de goma, la compliancia que manda es la del dedo, no la del
+> objeto.** Un cubo de PLA y una bola de espuma quedan en serie con la misma goma,
+> y esa domina el lazo. El 1.2–1.5× de más es lo que el objeto aporta por su
+> cuenta. Era lo contrario de lo que este trabajo esperaba al plantear la
+> repetición: se buscaba que un objeto rígido acoplara «mucho más».
+
+### Cuánto se mueve el objeto, en las tres condiciones
+
+Seguimiento subpíxel, expresado como fracción del avance del dedo (~0.5 mm por
+escalón), que es lo comparable entre montajes — la relación con el ruido solo dice
+si la medida existe, y depende de la resolución de cada cámara:
+
+| Tanda | Objeto | Dedos | Desplazamiento | **% del avance del dedo** |
+|---|---|---|---|---|
+| E3.6b | bola, blanda | 2 | 0.480 mm | **96 %** |
+| E3.6c | bola, blanda | 3 | 0.093 mm | **19 %** |
+| E3.6c | **cubo, rígido** | 3 | **0.072 mm** | **14 %** |
+
+**Lo que inmoviliza el objeto es el tercer dedo, no la rigidez.** Pasar de dos a
+tres dedos baja el movimiento del 96 % al 19 %; cambiar espuma por PLA solo lo
+baja de 19 % a 14 %.
+
+> **Para el regulador, esto es una buena noticia y ahorra trabajo:** la matriz de
+> acoplamiento medida con un objeto **sirve para otros**. Lo único que hay que
+> re-estimar al cambiar de objeto es la **ganancia**, que es exactamente lo que el
+> estimador de mínimos cuadrados en línea del apartado 6 ya hace. La estructura
+> —quién compite con quién— es del **agarre**, no del objeto.
+
+### Anotaciones de banco
+
+- **La forma importa más que el peso para poder sujetar.** Un cargador de móvil
+  (82.4 g, 5.5×2.8×4.7 cm, alargado) exigió **745/179/637 g** para no girar; el
+  cubo (60.5 g, compacto) se sujeta con **295/179/341 g**. Por gramo: 9.0 contra
+  4.9, y el cubo sale mejor incluso que la bola (5.9). Las tres yemas agarran casi
+  en línea, así que un objeto alargado casi no tiene brazo para resistir el par y
+  solo se puede sujetar a base de fricción.
+- **El modo 1 con el cubo quedó fuera, y por una razón de método.** Sujetarlo con
+  dos dedos exige **279/507 g** — el doble que con la bola. Como E3.1 midió que
+  `k_local` casi se duplica entre 250 y 500 g, cualquier diferencia no sería
+  atribuible a la rigidez en vez de al nivel de fuerza. Hacerlo bien pediría un
+  diseño 2×2 (los dos objetos a los dos niveles).
+- **Y eso mismo cuantifica qué compra el tercer dedo.** Con el cubo: modo 1 pide
+  279+507 = 786 g repartidos en dos contactos, con un máximo de **507 g** y el
+  agarre inestable; modo 2 pide 295+179+341 = 815 g en tres, con un máximo de
+  **341 g** y estable. **El total es el mismo; el pico por dedo baja un 33 % y la
+  rotación queda cerrada.**
+
+---
+
 ## Techo de fuerza sostenible — **corrección: el mecanismo es el actuador, el valor no es único**
 
 E3.3 concluyó que hay un **techo de ~585 g de la mano**, apoyándose en que el

@@ -51,6 +51,42 @@ def find_device(preferred=None):
     return 0
 
 
+def best_focus(cap, roi, coarse=25, fine=5):
+    """Busca el enfoque manual que maximiza la nitidez sobre la región de interés.
+
+    El autofoco del BRIO se engancha al fondo cuando la mano no llena el cuadro:
+    medido en este banco, 9.9 de varianza del laplaciano con autofoco contra 287
+    con el foco fijado a mano. No es un ajuste fino, es un factor 29.
+    """
+    import numpy as np                                        # noqa: F401
+    y0, y1, x0, x1 = roi
+
+    def sharp(f):
+        cap.set(cv2.CAP_PROP_FOCUS, f)
+        time.sleep(0.8)
+        for _ in range(5):
+            cap.read()
+        ok, fr = cap.read()
+        if not ok:
+            return -1
+        g = cv2.cvtColor(fr[y0:y1, x0:x1], cv2.COLOR_BGR2GRAY)
+        return cv2.Laplacian(g, cv2.CV_64F).var()
+
+    cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    best = max(((f, sharp(f)) for f in range(0, 256, coarse)), key=lambda t: t[1])
+    lo, hi = max(0, best[0] - coarse), min(255, best[0] + coarse)
+    best = max([best] + [(f, sharp(f)) for f in range(lo, hi + 1, fine)], key=lambda t: t[1])
+    # Fijar el mejor y VACIAR el búfer: sin esto la primera captura sale de un
+    # fotograma anterior, tomado con el último foco del barrido. Dentro del bucle
+    # ya se descartaban frames; al final faltaba, y el resultado era una foto
+    # nítida en la medida y borrosa en el disco.
+    cap.set(cv2.CAP_PROP_FOCUS, best[0])
+    time.sleep(0.9)
+    for _ in range(8):
+        cap.read()
+    return best
+
+
 def open_cam(args):
     cap = cv2.VideoCapture(args.device, cv2.CAP_V4L2)
     if not cap.isOpened():
@@ -60,13 +96,22 @@ def open_cam(args):
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     cap.set(cv2.CAP_PROP_FPS, args.fps)
-    if args.focus is not None:
+    for _ in range(args.warmup):        # descartar frames de autoexposición
+        cap.read()
+    if args.focus_auto:
+        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        roi = (h // 5, h * 9 // 10, w // 6, w * 2 // 3)     # donde vive la mano
+        f, sh = best_focus(cap, roi)
+        print(f"enfoque fijado a {f} (nitidez {sh:.0f}) — reutilízalo con --focus {f}")
+    elif args.focus is not None:
         # enfoque fijo: el autofoco del BRIO "bombea" cuando un dedo se mueve, y
         # eso arruina justo los fotogramas del contacto
         cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
         cap.set(cv2.CAP_PROP_FOCUS, args.focus)
-    for _ in range(args.warmup):        # descartar frames de autoexposición
-        cap.read()
+        time.sleep(0.5)
+        for _ in range(5):
+            cap.read()
     return cap
 
 
@@ -155,6 +200,9 @@ def parse_args(argv=None):
     p.add_argument('--no-mjpg', dest='mjpg', action='store_false')
     p.add_argument('--focus', type=int, default=None,
                    help='enfoque manual 0-255 (recomendado: el autofoco bombea al moverse un dedo)')
+    p.add_argument('--focus-auto', action='store_true',
+                   help='barre el enfoque y fija el más nítido sobre la mano (~20 s). '
+                        'Úsalo tras mover la cámara; luego reutiliza el valor con --focus')
     p.add_argument('--warmup', type=int, default=12)
     p.add_argument('--quality', type=int, default=92)
     p.add_argument('--outdir', default=os.path.join(here, 'imagenes', 'pruebas'))

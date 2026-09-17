@@ -1471,18 +1471,29 @@ pueden tratarse como simultáneos.
 
 ### 8. Lo que el Exp 3 NO contesta
 
-- **El modo 2** (pulgar + índice + medio, E3.6c) no está medido. Con tres dedos
-  aparece un reparto que el modo 1 no tiene: al empujar el pulgar, ¿cómo se divide
-  la reacción entre índice y medio?
-- **El techo de fuerza sostenible en pinza.** Los ~585 g se midieron contra bloque
-  apoyado. En pinza el objeto se mueve, así que ese techo hay que re-verificarlo:
-  puede que ni siquiera se alcance antes de que el objeto se escape.
-- **Un solo objeto, y blando.** El 14–34 % de acoplamiento y los 0.46 mm de
-  traslación son de una bola de espuma de 7 cm. Un objeto rígido y pequeño debería
-  acoplar mucho más — el límite teórico del 100 % sigue siendo el de un contacto
-  colineal y rígido. **Medirlo con el bloque cerraría el rango.**
-- **El medio** solo tiene E3.2. Si el modo 2 (pulgar+índice+medio) entra en el
-  alcance, le faltan E3.1, E3.3, E3.4 y E3.5.
+*(Tres puntos que esta lista daba por pendientes ya están medidos: el modo 2
+—E3.6c, 36 trials—, el techo en pinza —ver «Techo de fuerza sostenible»— y el
+objeto rígido —el cubo de PLA—. Lo que sigue es lo que de verdad queda.)*
+
+- **El modo 1 con objeto rígido.** La repetición con el cubo se hizo en modo 2.
+  En modo 1 el cubo exige **279/507 g** contra los ~130 de la bola, y E3.1 midió
+  que `k_local` casi se duplica en ese salto, así que medirlo tal cual confundiría
+  rigidez con nivel de consigna. Hacerlo bien pide un **diseño 2×2**: los dos
+  objetos a los dos niveles de fuerza. Valor esperado bajo — el modo 2 ya mostró
+  que la rigidez no reorganiza la matriz, solo sube la ganancia.
+- **El medio solo tiene E3.2.** Le faltan E3.1, E3.3, E3.4 y E3.5. De ellas, la
+  única que no se puede extrapolar de sus hermanos es **E3.5**: el signo del salto
+  del cero tras sostener carga es **por DOF** y no se predice (índice −46 g,
+  pulgar +21 g), así que el del medio se desconoce. No bloquea la política de
+  re-tara, que es una regla de tiempo —esperar ≥10 s tras soltar— y funciona sea
+  cual sea el signo.
+- **Objetos deformables reales.** Una mandarina se deslizó a 150 g de agarre por
+  su cáscara encerada. El umbral de agarre depende del objeto, y ese es justo el
+  caso de uso que motiva el regulador.
+- **El techo, con más puntos.** Se conoce entre 455 y 745 g y se sabe que depende
+  de la pose, pero con tres medidas no hay modelo. El regulador no lo necesita
+  —detecta el resbalón por `POS`— pero un mapa `pose → techo` permitiría
+  anticiparlo en vez de reaccionar.
 
 ---
 

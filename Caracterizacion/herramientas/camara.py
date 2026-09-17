@@ -36,19 +36,41 @@ except ImportError:
     raise
 
 
-def find_device(preferred=None):
-    """Devuelve el índice de la BRIO, o el preferido si se pasa."""
-    if preferred is not None:
-        return preferred
+def list_cams():
+    """Cámaras presentes: [(índice, nombre, ruta USB)]. Solo el primer nodo de cada
+    aparato captura vídeo; los demás son metadatos, por eso se agrupan por bus."""
     base = '/sys/class/video4linux'
-    for name in sorted(os.listdir(base)):
+    out, seen = [], set()
+    for name in sorted(os.listdir(base), key=lambda n: int(n.replace('video', ''))):
         try:
             with open(os.path.join(base, name, 'name')) as fh:
-                if 'BRIO' in fh.read().upper():
-                    return int(name.replace('video', ''))
+                nm = fh.read().strip()
+            usb = os.path.realpath(os.path.join(base, name, 'device'))
         except OSError:
-            pass
-    return 0
+            continue
+        if usb in seen:
+            continue
+        seen.add(usb)
+        out.append((int(name.replace('video', '')), nm, usb.split('/usb')[-1]))
+    return out
+
+
+def find_device(preferred=None, alias=None):
+    """Resuelve la cámara: índice explícito, o subcadena del nombre (p. ej. 'brio',
+    'c925'), o la primera que no sea la webcam integrada del portátil."""
+    if preferred is not None:
+        return preferred
+    cams = list_cams()
+    if alias:
+        for i, nm, _ in cams:
+            if alias.lower().replace(' ', '') in nm.lower().replace(' ', ''):
+                return i
+        raise SystemExit(f"ninguna cámara coincide con '{alias}'. Disponibles:\n" +
+                         "\n".join(f"  {i}: {nm}" for i, nm, _ in cams))
+    for i, nm, _ in cams:
+        if 'integrated' not in nm.lower():
+            return i
+    return cams[0][0] if cams else 0
 
 
 def best_focus(cap, roi, coarse=25, fine=5):
@@ -90,7 +112,10 @@ def best_focus(cap, roi, coarse=25, fine=5):
 def open_cam(args):
     cap = cv2.VideoCapture(args.device, cv2.CAP_V4L2)
     if not cap.isOpened():
-        raise SystemExit(f"no se pudo abrir /dev/video{args.device}")
+        raise SystemExit(
+            f"no se pudo abrir /dev/video{args.device}. Suele ser que otra aplicación la "
+            f"tiene tomada (Zoom, Meet, el navegador). Compruébalo con:\n"
+            f"  fuser -v /dev/video{args.device}")
     if args.mjpg:
         cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
@@ -187,7 +212,11 @@ def run(args):
 def parse_args(argv=None):
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     p = argparse.ArgumentParser(description="Captura de la cámara como testigo de las pruebas.")
-    p.add_argument('--device', type=int, default=None, help='índice de /dev/videoN (auto: BRIO)')
+    p.add_argument('--device', type=int, default=None, help='índice explícito de /dev/videoN')
+    p.add_argument('--cam', default=None,
+                   help="cámara por nombre, p. ej. 'brio' o 'c925'. Sin esto se toma la "
+                        "primera que no sea la webcam integrada")
+    p.add_argument('--list', action='store_true', help='lista las cámaras y sale')
     p.add_argument('--shot', action='store_true', help='una foto (por defecto)')
     p.add_argument('--burst', type=int, default=1, help='número de fotos')
     p.add_argument('--every', type=float, default=1.0, help='segundos entre fotos del burst')
@@ -207,7 +236,11 @@ def parse_args(argv=None):
     p.add_argument('--quality', type=int, default=92)
     p.add_argument('--outdir', default=os.path.join(here, 'imagenes', 'pruebas'))
     a = p.parse_args(argv)
-    a.device = find_device(a.device)
+    if a.list:
+        for i, nm, usb in list_cams():
+            print(f"  --device {i:<2} --cam '{nm}'   (usb{usb})")
+        raise SystemExit(0)
+    a.device = find_device(a.device, a.cam)
     return a
 
 

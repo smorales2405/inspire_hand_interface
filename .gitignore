@@ -26,3 +26,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Vídeos de las pruebas: ~2.3 MB/s a 1080p. Las fotos sí se versionan.
+Caracterizacion/imagenes/pruebas/*.mp4

@@ -916,7 +916,7 @@ quiere compensarlo, **el offset es por DOF y hay que medirlo por DOF**.
 
 ---
 
-## E3.6a — Sincronía del refresco · **abierta, y ahora se sabe qué hace falta**
+## E3.6a — Sincronía del refresco · *(cómo se quedó abierta; el resultado está más abajo)*
 
 El plan la daba por gratis «con los logs multi-DOF que ya existen». **No existen**:
 todos los CSV de trial del repo guardan un solo dedo, y el Exp 0 registró el
@@ -938,6 +938,45 @@ de E3.6b (la pinza pulgar+medio) o de una prueba trivial de dos dedos en aire.
 Conviene además subir la tasa de lectura para ese caso: 92 Hz da 10.9 ms de
 resolución sobre un frame de 30 ms, suficiente para ver un escalonado grande pero
 no para medirlo fino.
+
+---
+
+## E3.6a — Sincronía del refresco entre DOF · **cerrada: sincronizados**
+
+Abierta desde el principio del Exp 3 porque **no existía ningún registro con dos
+DOF moviéndose a la vez**: con un solo dedo en movimiento, el `POS` de los demás
+no cambia nunca y sus «cambios» de fuerza son ruido cruzando enteros. El plan la
+daba por gratis con los logs existentes; no lo era.
+
+Sale del log de la **fase de agarre de E3.6b**, donde pulgar e índice cierran
+simultáneamente sobre la bola. Dos registros independientes, ~2 200 lecturas cada
+uno en 6.4 s (**periodo de lectura 2.9 ms**, diez veces más fino que el frame).
+
+| | Tanda 1 | Tanda 2 |
+|---|---|---|
+| Periodo de refresco · pulgar | 30.6 ms | 30.7 ms |
+| Periodo de refresco · índice | 30.5 ms | 30.5 ms |
+| **Desfase índice − pulgar** | **−1.90 ms** | **−1.80 ms** |
+| Cuartiles | −3.09 / −1.23 | −3.09 / −1.23 |
+| Dentro de ¼ de frame | 77 % | 86 % |
+
+**Los seis DOF no se refrescan en el mismo instante, pero el escalonado es de
+~1.9 ms: el 6 % del frame de 30.7 ms.** El índice va sistemáticamente por delante
+del pulgar, con los mismos cuartiles en las dos tandas — es un sesgo real y
+repetible, no ruido.
+
+> **Para el control es despreciable.** 1.9 ms frente a los 52–82 ms de retardo
+> total del lazo que midió E3.3 es un 3 %. El riesgo que anticipaba el plan —«cada
+> lazo ve el estado en un instante distinto y hay que compensarlo»— **no se
+> materializa**: a efectos del regulador, los DOF están sincronizados.
+
+> **Nota de método.** El primer criterio contaba qué fracción de los cambios de un
+> DOF caía en la **misma lectura** que un cambio del otro, y daba 11 % → «no
+> concluyente». Es un criterio equivocado: con lecturas de 2.9 ms, dos DOF
+> separados 1.9 ms casi nunca coinciden en la misma lectura y sin embargo están
+> sincronizados frente a un frame de 30.7 ms. Confundía **cuantización de la
+> lectura** con **escalonado de la publicación**. El criterio bueno es el desfase
+> con signo, medido como fracción del frame.
 
 ---
 
@@ -1175,7 +1214,7 @@ Sale gratis y no perturba.
 | E3.3 planta en contacto · pulgar | ✔ (250 g; 1000 g tampoco es sostenible) |
 | E3.4 + E3.5 · índice | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.4 + E3.5 · pulgar | ✔ (17 ciclos, 32 → 42 °C) |
-| E3.6a sincronía | abierta — sale de E3.6b (necesita ≥2 DOF en movimiento) |
+| E3.6a sincronía | ✔ — desfase 1.9 ms (6 % del frame): sincronizados |
 | E3.6b pinza pulgar+índice | ✔ (2 tandas, 55 trials, bola de espuma) |
 | E3.6c pinza pulgar+índice+medio | pendiente |
 | E3.1/E3.3/E3.4/E3.5 · **medio** | no medidas — solo hacen falta si el modo 2 entra en alcance |

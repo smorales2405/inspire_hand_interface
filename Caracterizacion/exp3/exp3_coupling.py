@@ -411,29 +411,33 @@ def analyze_sync(path, dofs):
             print(f"  {DOF_NAMES[d]:<16} {len(ch[d]):4d} cambios de POS · "
                   f"periodo mediano {statistics.median(dt):5.1f} ms")
     print()
+    import statistics as _st
+    read_ms = (t[-1] - t[0]) / len(rows) * 1000
+    frame_ms = 30.7
     for i, a in enumerate(dofs):
         for b in dofs[i + 1:]:
-            if not ch[a] or not ch[b]:
+            if len(ch[a]) < 10 or len(ch[b]) < 10:
                 continue
-            # el dedo con MENOS cambios es el que se mueve más despacio en counts: cada
-            # uno de sus cambios DEBE caer en un frame en que el otro también se mueve
-            slow, fast = (a, b) if len(ch[a]) <= len(ch[b]) else (b, a)
-            fast_t = [t[i2] for i2 in ch[fast]]
-            offs = []
-            for i2 in ch[slow]:
-                offs.append(min(abs(t[i2] - x) for x in fast_t) * 1000)
-            same = sum(1 for o in offs if o == 0)
-            nz = [o for o in offs if o > 0]
-            read_ms = (t[-1] - t[0]) / len(rows) * 1000
-            print(f"  {DOF_NAMES[slow]} (lento) contra {DOF_NAMES[fast]}:")
-            print(f"    {same}/{len(offs)} de sus cambios ({100*same/len(offs):.0f} %) caen en la "
-                  f"MISMA lectura que un cambio del otro")
-            if nz:
-                print(f"    los {len(nz)} restantes, a {statistics.median(nz):.1f} ms de mediana "
-                      f"(una lectura son {read_ms:.1f} ms; el frame, 30.7)")
-            verdict = ('MISMO FRAME' if same / len(offs) > 0.9 else
-                       'ESCALONADO' if nz and statistics.median(nz) > 2 * read_ms else 'NO CONCLUYENTE')
-            print(f"    → {verdict}")
+            # Desfase CON SIGNO de cada cambio de `a` al cambio más cercano de `b`.
+            # La versión anterior contaba cuántos caían en la misma lectura, y eso
+            # confunde cuantización con desfase: dos DOF que se refrescan con 2 ms
+            # de diferencia casi nunca caen en la misma lectura y sin embargo están
+            # prácticamente sincronizados frente a un frame de 30.7 ms.
+            tb = [t[k] for k in ch[b]]
+            lag = []
+            for k in ch[a]:
+                lag.append((min(tb, key=lambda x: abs(x - t[k])) - t[k]) * 1000)
+            med = _st.median(lag)
+            q1, q3 = _st.quantiles(lag, n=4)[0], _st.quantiles(lag, n=4)[2]
+            near = 100 * sum(1 for v in lag if abs(v) < frame_ms / 4) / len(lag)
+            print(f"  {DOF_NAMES[b]} respecto a {DOF_NAMES[a]}  (n={len(lag)}):")
+            print(f"    desfase mediana {med:+.2f} ms   cuartiles {q1:+.2f} / {q3:+.2f}")
+            print(f"    {near:.0f} % dentro de 1/4 de frame · lectura {read_ms:.2f} ms · "
+                  f"frame {frame_ms:.1f} ms")
+            frac = abs(med) / frame_ms
+            print(f"    → desfase = {100*frac:.0f} % del frame: " +
+                  ("SINCRONIZADOS a efectos de control" if frac < 0.15 else
+                   "ESCALONADO, hay que compensarlo"))
     return 0
 
 

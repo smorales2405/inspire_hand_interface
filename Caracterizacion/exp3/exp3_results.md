@@ -1070,6 +1070,91 @@ no en la fuerza**.
 
 ---
 
+## E3.6c — Modo 2 (pulgar + índice + medio) · **el tercer dedo cambia la física, no solo la magnitud**
+
+**Mismo objeto que E3.6b a propósito:** la bola de espuma. Así los dos modos se
+diferencian **solo en el número de dedos**, y cualquier cambio es atribuible a
+haber añadido el medio. Con la mandarina cambiarían dos variables a la vez.
+
+36 trials, 0 abortos, objeto retenido al terminar. Escalones dimensionados por la
+respuesta de cada dedo (pulgar 12 unidades, índice 4, medio 3), `F₀ = 250 g`.
+
+### La matriz
+
+| Mueve | Sentido | → Pulgar | → Índice | → Medio |
+|---|---|---|---|---|
+| Pulgar | cerrar | — | +9 % | +20 % |
+| Pulgar | abrir | — | +47 % | +44 % |
+| Índice | cerrar | +8 % | — | **−38 %** |
+| Índice | abrir | +2 % | — | **−16 %** |
+| Medio | cerrar | +7 % | **−37 %** | — |
+| Medio | abrir | +3 % | **−9 %** | — |
+
+**Índice y medio se acoplan con signo NEGATIVO.** No es ruido: el signo es opuesto
+al de la diagonal en **6/6, 6/6, 6/6 y 5/6** trials. Cuando uno aprieta más, el
+otro recibe menos. El pulgar, que se opone a los dos, los acopla en positivo.
+
+### Por qué: el tercer dedo inmoviliza el objeto
+
+Seguimiento subpíxel del logo impreso, con el suelo de ruido medido en el mismo
+registro. Dos medidas independientes del modo 2 —ráfaga en 4K a 1 Hz y vídeo a
+10 Hz— y la del modo 1 sobre la misma bola:
+
+| | Traslación por escalón | Ruido | Relación |
+|---|---|---|---|
+| **Modo 1** (2 dedos) | **0.462 mm** | 0.054 mm | **8.6×** |
+| **Modo 2** (3 dedos, 4K a 1 Hz) | 0.093 mm | 0.050 mm | 1.9× |
+| **Modo 2** (3 dedos, vídeo a 10 Hz) | **0.099 mm** | 0.081 mm | **1.2×** |
+
+Con dos dedos el objeto se desplazaba **casi tanto como avanzaba el dedo**
+(0.46 contra 0.45–0.60 mm). Con tres, **no se mueve**: 0.10 mm, en el suelo de
+ruido, cinco veces menos.
+
+> **Y eso encadena las dos matrices en una sola explicación.** Con el objeto libre
+> (modo 1), empujar un dedo lo **mueve**, así que el otro contacto apenas se
+> comprime: acoplamiento débil y positivo. Con el objeto inmovilizado (modo 2),
+> empujar un dedo **no puede moverlo**, así que la carga tiene que ir a alguna
+> parte — y se **redistribuye** entre índice y medio, que comparten la misma
+> reacción del pulgar. De ahí el signo negativo.
+
+### Lo que fija para el regulador
+
+**El modo 2 exige control coordinado; el modo 1 no.** Es la respuesta al criterio
+del plan, y es distinta para cada modo:
+
+- **Modo 1:** cruce 14–34 %, todo positivo. Dos lazos independientes funcionan mal
+  pero no se pelean; el problema es que gastan su acción moviendo el objeto.
+- **Modo 2:** cruce hasta 47 %, y **negativo entre índice y medio**. Dos lazos de
+  fuerza independientes sobre esos dos dedos **se pelean de frente**: subir la
+  consigna de uno baja la fuerza real del otro, que responde subiendo, que baja la
+  del primero. No es lentitud, es realimentación positiva en el lazo del error.
+
+> **La coordenada de control del modo 2 no es «fuerza de cada dedo».** Índice y
+> medio comparten un solo grado de libertad de carga frente al pulgar: lo que hay
+> que regular es **la suma** (la fuerza de agarre, contra el pulgar) y **el
+> reparto** entre ellos, que es lo que decide si el objeto se ladea. Regularlos
+> como dos fuerzas independientes es pedirle al lazo que resuelva un sistema
+> sobredeterminado.
+
+**La asimetría abrir/cerrar se repite.** El pulgar acopla 44–47 % abriendo contra
+9–20 % cerrando, igual que en el modo 1. Consistente con que sea la fricción
+estática la que sostiene el desequilibrio: al aflojar, se libera.
+
+### Anotaciones de banco
+
+- **El medio llega el último y por dependencia geométrica.** Tocó a 6.78 s contra
+  6.16 del índice y 6.60 del pulgar. Es la restricción de §2 del plan hecha dato:
+  el medio solo alcanza el objeto una vez que el índice está en su sitio.
+- **Añadir el medio descarga al índice.** Al establecer el agarre con la misma
+  `--f-grasp`, el índice quedó en 73 g en modo 2 contra 127–195 g en modo 1.
+- **La mandarina se deslizó y hubo que cambiar de objeto.** Con `--f-grasp 150`
+  los tres dedos la soltaron: pesa ~120 g y su cáscara encerada tiene mucha menos
+  fricción que la espuma, así que 150 g de normal dejaban la fricción disponible
+  justo en el peso. No fue mala colocación: **el umbral de agarre depende del
+  objeto**, y para ella hace falta ~300 g.
+
+---
+
 ## Síntesis — la especificación del regulador PI que sale del Exp 3
 
 Todo lo de arriba, reducido a lo que hay que escribir en el código del lazo. Cada
@@ -1265,7 +1350,7 @@ pueden tratarse como simultáneos.
 | E3.4 + E3.5 · pulgar | ✔ (17 ciclos, 32 → 42 °C) |
 | E3.6a sincronía | ✔ — desfase 1.9 ms (6 % del frame): sincronizados |
 | E3.6b pinza pulgar+índice | ✔ (2 tandas, 55 trials, bola de espuma) |
-| E3.6c pinza pulgar+índice+medio | pendiente |
+| E3.6c pinza pulgar+índice+medio | ✔ (36 trials, misma bola que E3.6b) |
 | E3.1/E3.3/E3.4/E3.5 · **medio** | no medidas — solo hacen falta si el modo 2 entra en alcance |
 
 **Los dos DOF obligatorios del regulador (índice y pulgar) están completos.** La

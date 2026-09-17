@@ -19,6 +19,8 @@ sin él ninguna cifra de desplazamiento significa nada.
 from __future__ import annotations
 
 import argparse
+import csv
+import os
 import sys
 
 try:
@@ -43,33 +45,64 @@ def subpixel(surf, loc):
     return x + out[0], y + out[1]
 
 
-def track(path, tpl_box, search_box, every, min_corr, fps):
+def _frames(path, every):
+    """Genera (t, imagen). Acepta un vídeo o una CARPETA de fotos de una ráfaga.
+
+    La ráfaga en fotos existe porque a 4K el vídeo pesa ~7 MB/s: una tanda de
+    cuatro minutos no cabe. Y no hace falta velocidad — los escalones duran
+    segundos, así que 1 Hz de fotos a plena resolución bate a 30 fps recortados.
+    """
+    if os.path.isdir(path):
+        files = sorted(f for f in os.listdir(path) if f.lower().endswith(('.jpg', '.png')))
+        if not files:
+            raise SystemExit(f"{path} no tiene fotos")
+        stamps = {}
+        for name in os.listdir(path):                    # el CSV que deja camara.py
+            if name.endswith('_frames.csv'):
+                with open(os.path.join(path, name)) as fh:
+                    for r in csv.DictReader(fh):
+                        stamps[r['fichero']] = float(r['t_unix'])
+        t0 = min(stamps.values()) if stamps else 0.0
+        for k, f in enumerate(files):
+            if k % every:
+                continue
+            t = stamps.get(f, None)
+            yield (t - t0 if t is not None else float(k)), cv2.imread(os.path.join(path, f))
+        return
     cap = cv2.VideoCapture(path)
     n = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     if n <= 0:
         raise SystemExit(f"no se pudo leer {path}")
-    cap.set(cv2.CAP_PROP_POS_FRAMES, int(n * 0.35))
-    ok, ref = cap.read()
-    if not ok:
-        raise SystemExit("no se pudo leer el fotograma de referencia")
-    ty0, ty1, tx0, tx1 = tpl_box
-    tpl = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)[ty0:ty1, tx0:tx1]
-    sy0, sy1, sx0, sx1 = search_box
-    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-    rows, i = [], 0
+    i = 0
     while True:
         ok, fr = cap.read()
         if not ok:
             break
         if i % every == 0:
-            g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)[sy0:sy1, sx0:sx1]
-            surf = cv2.matchTemplate(g, tpl, cv2.TM_CCOEFF_NORMED)
-            _, mx, _, loc = cv2.minMaxLoc(surf)
-            if mx >= min_corr:
-                sx, sy = subpixel(surf, loc)
-                rows.append((i / fps, sx, sy, mx))
+            yield i, fr
         i += 1
     cap.release()
+
+
+def track(path, tpl_box, search_box, every, min_corr, fps):
+    seq = list(_frames(path, every))
+    if not seq:
+        raise SystemExit("sin fotogramas")
+    ref = seq[len(seq) // 3][1]
+    ty0, ty1, tx0, tx1 = tpl_box
+    tpl = cv2.cvtColor(ref, cv2.COLOR_BGR2GRAY)[ty0:ty1, tx0:tx1]
+    sy0, sy1, sx0, sx1 = search_box
+    is_dir = os.path.isdir(path)
+    rows = []
+    for k, fr in seq:
+        if fr is None:
+            continue
+        g = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)[sy0:sy1, sx0:sx1]
+        surf = cv2.matchTemplate(g, tpl, cv2.TM_CCOEFF_NORMED)
+        _, mx, _, loc = cv2.minMaxLoc(surf)
+        if mx >= min_corr:
+            sx, sy = subpixel(surf, loc)
+            rows.append((k if is_dir else k / fps, sx, sy, mx))
     return np.array(rows)
 
 
@@ -86,7 +119,7 @@ def ptp_windows(t, x, y, win_s):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description="Seguimiento subpíxel del objeto agarrado.")
-    p.add_argument('video')
+    p.add_argument('video', help='fichero de vídeo o CARPETA con la ráfaga de fotos')
     p.add_argument('--tpl', required=True, metavar='y0,y1,x0,x1',
                    help='recuadro de la plantilla: un rasgo SOLIDARIO con el objeto '
                         '(un logo impreso va perfecto)')

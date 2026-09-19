@@ -20,25 +20,35 @@ Un proceso, un hilo, **un cliente Modbus**. Sin PyQt. `time.perf_counter()`.
 
 ## Estado
 
-- **A1 · andamiaje, seguridad y detectores** — código listo, verificado contra una
-  mano simulada. **Pendiente de las compuertas con hardware.**
+- **A1 · andamiaje, seguridad y detectores** — ✔ **cerrado**, las cuatro compuertas
+  pasadas con hardware.
 - A2–A5 y Parte B: ver el plan.
 
-## Los dos niveles de novedad, y por qué hacen falta los dos
+## Cuándo avanza el control
 
-La mano publica estado cada ~30.7 ms **se lea a la tasa que se lea**. Integrar
-sobre lecturas repetidas inflaría `Ki` en la proporción entre tasa de sondeo y de
-refresco. Por eso el lazo distingue:
+La mano publica estado cada ~30.7 ms **por DOF** y **los seis van escalonados**
+(E3.6a midió 1.9 ms entre índice y pulgar). No hay un «frame» común que detectar:
+mirar si el bloque de 6 cambió **sobrecuenta** — se midieron 46–51 Hz contra los
+32.6 reales, porque el bloque cambia cada vez que se actualiza cualquiera de los
+seis.
 
-- **`frame`** — el bloque de 6 DOF cambió: llegó estado nuevo. Es lo que dispara el
-  control. Fiable: con seis DOF algo casi siempre cambia. Medido contra el mock:
-  **32.7 Hz**, que es exactamente la tasa de publicación.
-- **`fresca_f[d]` / `fresca_p[d]`** — ese dedo concreto trae valor nuevo. Dice si
-  aporta información, pero **subestima**: si el entero se repite entre dos frames
-  cuenta como no fresco, y con ruido de ±1–2 g eso pasa ~1 de cada 4 veces
-  (medido: 24–28 Hz por DOF contra 32.7 de frames). Para `POS` la subestimación es
-  total y esperada — con un solo dedo moviéndose, el `POS` de los demás no cambia
-  nunca.
+Lo que sí es fiable es el valor de **ese** DOF, con una salvedad medida en banco:
+
+| | cambios de fuerza | intervalo mediano |
+|---|---|---|
+| Sin carga | 6–11 Hz | **60.0 ms** = 2 × 30.7 |
+| Con carga (330–1077 g) | **28.3 Hz** | **30.4 ms** |
+
+Los intervalos son **múltiplos exactos del periodo**: el dedo publica siempre, pero
+si el entero se repite la lectura parece «no fresca». Bajo carga —el régimen del
+regulador— apenas pasa; en vacío, uno de cada dos frames.
+
+Por eso `Disparador` avanza el control con **cambio de valor O plazo agotado**
+(40 ms). El cambio da la cadencia natural de ~30 ms; el plazo evita que el lazo se
+pare cuando el valor se repite, porque **un valor repetido no es información vieja,
+es el valor actual**. Lo que no puede hacerse es integrar varias veces dentro del
+mismo frame: eso es lo que inflaría `Ki`. Medido en vacío: **27 Hz de disparo**,
+65–74 % de ellos por plazo.
 
 ## Los dos detectores de resbalón
 

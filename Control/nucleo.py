@@ -125,12 +125,12 @@ class Lector:
             self._dt.append(t - self._t_ant)
         self._t_ant = t
 
-        # FRAME: el bloque entero cambió. Es la deteccion fiable de "llegó estado
-        # nuevo", porque con seis DOF algo casi siempre se mueve aunque un dedo
-        # concreto repita su entero. La frescura POR DOF de abajo dice si ESE dedo
-        # trae informacion, y subestima: con ruido de ±1-2 g el valor coincide entre
-        # frames consecutivos ~1 de cada 4 veces. Para disparar el control se usa el
-        # frame; para decidir si un dedo aporta, su frescura.
+        # "Frame" de bloque: SOBRECUENTA y es solo diagnostico. Se penso como la
+        # deteccion fiable de "llego estado nuevo", suponiendo que la mano publica
+        # los 6 DOF a la vez. **No lo hace**: E3.6a midio 1.9 ms de desfase entre
+        # indice y pulgar, asi que el bloque cambia cada vez que se actualiza
+        # CUALQUIERA de los seis y la tasa sale inflada (51 Hz medidos contra 32.6
+        # de publicacion). El disparo del control va por DOF, con `Disparador`.
         frame = (p is not None and p != self._prev_bloque_p) or \
                 (f is not None and f != self._prev_bloque_f)
         if p is not None:
@@ -172,6 +172,54 @@ class Lector:
                 {d: self.n_frescas_f[d] / T for d in dofs},
                 {d: self.n_frescas_p[d] / T for d in dofs},
                 jit)
+
+
+class Disparador:
+    """Decide cuándo el control puede avanzar para un DOF concreto.
+
+    Medido en banco, y con la mano publicando cada 30.7 ms por DOF:
+
+    | | cambios de fuerza | intervalo mediano |
+    |---|---|---|
+    | sin carga | 6–11 Hz | **60.0 ms** = 2 × 30.7 |
+    | con carga (330–1077 g) | **28.3 Hz** | **30.4 ms** |
+
+    Los intervalos son múltiplos exactos del periodo: el dedo publica siempre, pero
+    si el entero se repite la lectura parece «no fresca». Bajo carga —el régimen
+    del regulador— apenas ocurre; sin carga pasa uno de cada dos frames.
+
+    Por eso el disparo es **cambio de valor O tiempo agotado**: el cambio da la
+    cadencia natural de 30 ms, y el plazo evita que el lazo se quede parado cuando
+    el valor se repite. Un valor repetido no es información vieja: es el valor
+    actual. Lo que no puede hacerse es integrar VARIAS veces dentro del mismo
+    frame, que es lo que inflaría `Ki`.
+    """
+
+    def __init__(self, dof, plazo_s=0.040):
+        self.dof, self.plazo = dof, plazo_s
+        self.t_ultimo = None
+        self.n_cambio = 0
+        self.n_plazo = 0
+
+    def toca(self, t, fresca_f):
+        if self.t_ultimo is None:
+            self.t_ultimo = t
+            return True, 0.0, 'inicio'
+        dt = t - self.t_ultimo
+        if fresca_f[self.dof]:
+            self.t_ultimo = t
+            self.n_cambio += 1
+            return True, dt, 'cambio'
+        if dt >= self.plazo:
+            self.t_ultimo = t
+            self.n_plazo += 1
+            return True, dt, 'plazo'
+        return False, dt, ''
+
+    def resumen(self, T):
+        n = self.n_cambio + self.n_plazo
+        return (f"{n/T:.1f} Hz de disparo · {self.n_cambio} por cambio, "
+                f"{self.n_plazo} por plazo ({100*self.n_plazo/max(n,1):.0f} %)")
 
 
 # ── seguridad ─────────────────────────────────────────────────────────────
@@ -416,5 +464,8 @@ def argumentos_comunes(p):
     p.add_argument('--escape-g', type=float, default=60.0)
     p.add_argument('--escape-frac', type=float, default=0.35)
     p.add_argument('--tara-espera', type=float, default=10.0)
+    p.add_argument('--disparo-plazo', type=float, default=0.040,
+                   help='si la fuerza del DOF no cambia en este plazo, el control avanza '
+                        'igual: un valor repetido es el valor actual, no informacion vieja')
     p.add_argument('--outdir', default=os.path.join(_HERE, 'data'))
     return p

@@ -30,7 +30,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 
 from nucleo import (                                         # noqa: E402
-    Lector, Guarda, DetectorResbalon, DetectorEscape, Tara, Bitacora,
+    Lector, Guarda, Disparador, DetectorResbalon, DetectorEscape, Tara, Bitacora,
     abrir_mano, conectar, vector, argumentos_comunes,
     NDOF, ANGLE_SET, ANGLE_ACT, FORCE_SET, SPEED_SET, DOF_NAMES,
 )
@@ -51,6 +51,8 @@ class Contexto:
         self.escape = DetectorEscape(dofs, args.escape_g, args.escape_frac,
                                      args.resbalon_ventana)
         self.tara = Tara(args.tara_espera)
+        # el control avanza por DOF, no por "frame" de bloque: ver Disparador
+        self.disp = {d: Disparador(d, args.disparo_plazo) for d in dofs}
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.bit = Bitacora(os.path.join(args.outdir, f'a1_{etiqueta}_{ts}.csv'))
         self.cmds = {}
@@ -115,6 +117,8 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
             ctx.eventos.append(('escape', t - ctx.t0, e))
             print("  ⚠ EL OBJETO SE ESCAPA · cae la fuerza en todos los dedos y POS "
                   "no retrocede  → apretar o abortar")
+        for d in ctx.dofs:
+            ctx.disp[d].toca(t, ff)
         ctx.registra(t, p, f, c, fp, ff, frame, ev)
         if actuador:
             actuador(ctx, t, p, f, ff)
@@ -126,10 +130,15 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
 
 def informe_tasas(ctx):
     son, fr, ff, fpp, jit = ctx.lector.tasas(ctx.dofs)
+    T = max(time.perf_counter() - ctx.lector.t_ini, 1e-6)
     print(f"\n  sondeo {son:7.1f} Hz · jitter (p10–p90) {jit:.1f} ms · "
           f"{ctx.lector.n_lecturas} lecturas")
-    print(f"  FRAMES  {fr:7.1f} Hz   ← la mano publica a ~32.6 Hz; esto es lo que "
-          f"dispara el control")
+    print(f"  DISPARO DEL CONTROL (por DOF, cambio o plazo de "
+          f"{ctx.args.disparo_plazo*1000:.0f} ms):")
+    for d in ctx.dofs:
+        print(f"    {DOF_NAMES[d]:<16}{ctx.disp[d].resumen(T)}")
+    print(f"  bloque cambiado {fr:7.1f} Hz  ← SOBRECUENTA: es la unión de 6 DOF "
+          f"escalonados, no un frame")
     print(f"  {'DOF':<16}{'fuerza fresca':>15}{'POS fresca':>13}")
     for d in ctx.dofs:
         print(f"  {DOF_NAMES[d]:<16}{ff[d]:>12.1f} Hz{fpp[d]:>10.1f} Hz")

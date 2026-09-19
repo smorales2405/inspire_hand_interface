@@ -29,3 +29,6 @@ Thumbs.db
 
 # Vídeos de las pruebas: ~2.3 MB/s a 1080p. Las fotos sí se versionan.
 Caracterizacion/imagenes/pruebas/*.mp4
+
+# Bitácoras del regulador: se regeneran en cada tanda
+Control/data/*.csv

@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import statistics
 import time
 from datetime import datetime
 
@@ -30,7 +31,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _HERE)
 
 from nucleo import (                                         # noqa: E402
-    Lector, Guarda, Disparador, DetectorResbalon, DetectorEscape, Tara, Bitacora,
+    Lector, Guarda, Disparador, PI, DetectorResbalon, DetectorEscape, Tara, Bitacora,
     abrir_mano, conectar, vector, argumentos_comunes,
     NDOF, ANGLE_SET, ANGLE_ACT, FORCE_SET, SPEED_SET, DOF_NAMES,
 )
@@ -120,8 +121,8 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
         for d in ctx.dofs:
             ctx.disp[d].toca(t, ff)
         ctx.registra(t, p, f, c, fp, ff, frame, ev)
-        if actuador:
-            actuador(ctx, t, p, f, ff)
+        if actuador and actuador(ctx, t, p, f, ff) is True:
+            break
         if ev and parar_en_evento:
             motivo = f"EVENTO: {ev}"
             break
@@ -296,11 +297,144 @@ def modo_tara(ctx, args):
     return 0 if ok3 else 3
 
 
+
+def _aproxima(ctx, args, d, hasta):
+    """Pre-posición rápida y luego pasos pequeños hasta `hasta` gramos.
+
+    Las dos fases son necesarias: desde la mano abierta hay ~1300 counts hasta el
+    contacto, y a pasos de 2 unidades no se cubren. La pre-posición se detiene
+    ANTES del objeto —de ahí que sea un ángulo medido del sondeo, no un número
+    inventado— y a partir de ahí se entra despacio, que es la política híbrida que
+    el Exp 2 validó para no golpear.
+    """
+    ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+    if args.angulo_aprox is not None:
+        print(f"  pre-posición rápida de {DOF_NAMES[d]} a ANGLE_SET {args.angulo_aprox}")
+        ctx.hand.write_block(SPEED_SET, [args.vel_aprox] * NDOF)
+        ctx.lee_comandos()
+        ctx.manda({d: args.angulo_aprox})
+        bucle(ctx, args.aprox_s, parar_en_evento=True)
+        # NO releer ANGLE_ACT aquí: es dónde ESTÁ el dedo, no lo que se le pidió. Si
+        # aún no ha llegado, releerlo cancela la pre-posición y lo deja a medias.
+        ctx.cmds[d] = args.angulo_aprox
+    else:
+        ctx.lee_comandos()
+    print(f"  aproximando {DOF_NAMES[d]} hasta {hasta:.0f} g...")
+    ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
+    estado = {'t_prox': 0.0, 'ok': False}
+
+    def rampa(c, t, p, f, ff):
+        if f[d] >= hasta:
+            # CONGELAR donde está, no solo dejar de mandar pasos: el dedo sigue
+            # viajando hacia el último comando y se pasa de largo. Medido: llegaba
+            # a 711 g cuando se le pedía parar en 150.
+            a = c.hand.read_block(ANGLE_ACT)
+            if a:
+                c.manda({d: a[d]})
+            estado['ok'] = True
+            return True
+        if t - c.t0 < estado['t_prox']:
+            return
+        cmd = c.cmds.get(d)
+        if cmd is None or cmd <= 0:
+            return
+        c.manda({d: cmd - args.paso_u})
+        estado['t_prox'] += args.paso_dwell
+
+    bucle(ctx, args.seek_s, rampa, parar_en_evento=True)
+    return estado['ok']
+
+
+def modo_pi(ctx, args):
+    """A2 · lazo SISO de fuerza sobre un dedo, contra el bloque apoyado."""
+    d = args.dof
+    pi = PI(args.kp, args.ki, args.lam, args.banda,
+            args.paso_cierra, args.paso_abre, args.dq_max)
+    print(f"A2 · PI · {DOF_NAMES[d]} → F* = {args.ref:.0f} g")
+    print(f"  Kp={args.kp:.4f}  Ki={args.ki:.4f}  fuga λ={args.lam:.3f}  "
+          f"banda={args.banda:.0f} g  cuanto {args.paso_cierra}↓/{args.paso_abre}↑ u")
+
+    if not _aproxima(ctx, args, d, args.ref * args.frac_aprox):
+        print("  ABORTA: no se alcanzó el contacto de partida")
+        return 3
+    t_ini = time.perf_counter()
+    ctx.disp[d].t_ultimo = None
+    hist = []
+
+    def control(c, t, p, f, ff):
+        toca, dt, por_que = c.disp[d].toca(t, ff)
+        if not toca:
+            return
+        dq, e, P, I = pi.paso(args.ref, f[d], dt)
+        if dq:
+            cmd = c.cmds.get(d)
+            if cmd is not None:
+                # dq > 0 CIERRA, y cerrar es BAJAR ANGLE_SET
+                c.manda({d: max(0, min(1000, cmd - dq))})
+        hist.append((t - t_ini, f[d], e, dq, P, I))
+
+    m = bucle(ctx, args.duracion, control, parar_en_evento=True)
+
+    if not hist:
+        print("  sin muestras de control"); return 3
+    T = [h[0] for h in hist]; F = [h[1] for h in hist]; E = [h[2] for h in hist]
+    cola = [h for h in hist if h[0] >= T[-1] - args.cola_s]
+    ef = [abs(h[2]) for h in cola]
+    pico = max(F)
+    asent = next((h[0] for h in hist
+                  if all(abs(g[2]) <= args.banda for g in hist[hist.index(h):]
+                         if g[0] <= h[0] + 2.0)), None)
+    print(f"\n  {len(hist)} pasos de control en {T[-1]:.0f} s "
+          f"({len(hist)/max(T[-1],1e-6):.1f} Hz) · {pi.n_accion} con acción, "
+          f"{pi.n_banda} dentro de banda")
+    print(f"  pico {pico:.0f} g ({100*(pico-args.ref)/args.ref:+.0f} % sobre F*)")
+    print(f"  error en régimen (últimos {args.cola_s:.0f} s): "
+          f"mediana {statistics.median(ef):.0f} g · máx {max(ef):.0f} g")
+    print(f"  en unidades de cuanto del dedo ({args.banda:.0f} g): "
+          f"{statistics.median(ef)/max(args.banda,1):.2f} × banda")
+    if asent is not None:
+        print(f"  entra en banda a los {asent:.1f} s")
+    if m:
+        print(f"  {m}")
+    return 0
+
+
+def modo_firmware(ctx, args):
+    """Brazo de comparación: la consigna se la damos al FIRMWARE por FORCE_SET y
+    cerramos a v=25 (modo A del Exp 2). Sin lazo."""
+    d = args.dof
+    print(f"A2 · FIRMWARE · {DOF_NAMES[d]} → FORCE_SET = {args.ref:.0f} g, v={args.vel_cierre}")
+    ctx.lee_comandos()
+    ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
+    ctx.hand.write_block(FORCE_SET, [int(args.ref)] * NDOF)
+    ctx.manda({d: args.objetivo_angulo})
+    t_ini = time.perf_counter()
+    hist = []
+
+    def observa(c, t, p, f, ff):
+        hist.append((t - t_ini, f[d]))
+
+    m = bucle(ctx, args.duracion, observa, parar_en_evento=True)
+    if not hist:
+        print("  sin muestras"); return 3
+    T=[h[0] for h in hist]; F=[h[1] for h in hist]
+    cola=[h[1] for h in hist if h[0] >= T[-1]-args.cola_s]
+    print(f"\n  pico {max(F):.0f} g ({100*(max(F)-args.ref)/args.ref:+.0f} % sobre la consigna)")
+    print(f"  en régimen (últimos {args.cola_s:.0f} s): mediana {statistics.median(cola):.0f} g "
+          f"→ error {statistics.median(cola)-args.ref:+.0f} g")
+    # FORCE_SET vuelve a un valor seguro antes de salir
+    ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+    if m:
+        print(f"  {m}")
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Lazo de fuerza · A1 (sin controlador)")
     argumentos_comunes(p)
     p.add_argument('--modo', required=True,
-                   choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara'])
+                   choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara',
+                            'pi', 'firmware'])
     p.add_argument('--pinza', type=int, choices=[1, 2], default=1)
     p.add_argument('--dof', type=int, default=3, help='dedo bajo prueba en los modos de un dedo')
     p.add_argument('--duracion', type=float, default=15.0)
@@ -311,13 +445,31 @@ def main(argv=None):
     p.add_argument('--paso-u', type=int, default=2)
     p.add_argument('--paso-dwell', type=float, default=0.30)
     p.add_argument('--seek-s', type=float, default=120.0)
+    p.add_argument('--ref', type=float, default=250.0, help='consigna F* (g)')
+    p.add_argument('--kp', type=float, default=0.02)
+    p.add_argument('--ki', type=float, default=0.0)
+    p.add_argument('--lam', type=float, default=0.98, help='fuga del integrador (<1)')
+    p.add_argument('--banda', type=float, default=90.0,
+                   help='banda muerta. Al menos el cuanto del dedo: ~20 g pulgar, ~90 g índice')
+    p.add_argument('--paso-cierra', type=int, default=5)
+    p.add_argument('--paso-abre', type=int, default=3)
+    p.add_argument('--dq-max', type=int, default=20)
+    p.add_argument('--angulo-aprox', type=int, default=None,
+                   help='ANGLE_SET de pre-posición, JUSTO ANTES del objeto. Sale del '
+                        'sondeo de contacto; para el índice con block1, 456')
+    p.add_argument('--vel-aprox', type=int, default=300)
+    p.add_argument('--aprox-s', type=float, default=4.0)
+    p.add_argument('--frac-aprox', type=float, default=0.6,
+                   help='fracción de F* a la que se deja el contacto antes de activar el lazo')
+    p.add_argument('--cola-s', type=float, default=10.0, help='ventana de régimen permanente')
     p.add_argument('--contacto-min', type=float, default=80.0,
                    help='resbalón: fuerza mínima para considerar que ya hay contacto')
     p.add_argument('--aplicar', action='store_true', help='tara: aplicarla de verdad')
     args = p.parse_args(argv)
 
     dofs = MODOS[args.pinza]
-    if args.modo in ('passthrough', 'guarda', 'resbalon') and args.dof not in dofs:
+    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware') \
+            and args.dof not in dofs:
         dofs = [args.dof] + [d for d in dofs if d != args.dof]
 
     hand = conectar(args)
@@ -331,7 +483,8 @@ def main(argv=None):
     rc = 1
     try:
         fn = {'tasas': modo_tasas, 'passthrough': modo_passthrough,
-              'guarda': modo_guarda, 'resbalon': modo_resbalon, 'tara': modo_tara}[args.modo]
+              'guarda': modo_guarda, 'resbalon': modo_resbalon, 'tara': modo_tara,
+              'pi': modo_pi, 'firmware': modo_firmware}[args.modo]
         rc = fn(ctx, args)
         return rc
     except KeyboardInterrupt:

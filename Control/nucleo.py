@@ -469,3 +469,63 @@ def argumentos_comunes(p):
                         'igual: un valor repetido es el valor actual, no informacion vieja')
     p.add_argument('--outdir', default=os.path.join(_HERE, 'data'))
     return p
+
+
+# ── el controlador ────────────────────────────────────────────────────────
+class PI:
+    """PI con fuga, banda muerta y cuantización asimétrica.
+
+    Las tres particularidades no son adornos: cada una responde a algo medido.
+
+    **Fuga en el integrador (`lam` < 1), no guarda de posición.** E3.4 midió que la
+    fuerza decae 5–10 % en los primeros segundos y **se agota**, y que el actuador
+    no cede (0 a −2 counts). Un integrador sin fuga perseguiría indefinidamente una
+    caída que ya paró, y acabaría caminando el dedo hacia dentro del objeto.
+
+    **Banda muerta del tamaño del cuanto del dedo.** E3.2 midió que el incremento
+    mínimo fiable son **5 unidades cerrando y 3 abriendo**, y que eso vale ~20 g en
+    el pulgar pero **60–90 g en el índice**. Pedir al lazo una precisión mejor que
+    su cuanto es pedirle que oscile: sin banda muerta, cada corrección se pasa y la
+    siguiente corrige de vuelta.
+
+    **Cuantización asimétrica.** El mismo escalón no vale en los dos sentidos: bajo
+    carga el dedo devuelve más recorrido del que toma (índice a 1000 g: 2.23
+    counts/unidad abriendo contra 1.38 cerrando).
+
+    **Planta dominada por el retardo** (`L/τ ≈ 1`, E3.3): subir `Kp` no acelera el
+    lazo, lo hace oscilar. La sintonía empieza con P puro y sube despacio.
+    """
+
+    def __init__(self, kp, ki, lam=0.98, banda=0.0,
+                 paso_cierra=5, paso_abre=3, dq_max=20):
+        self.kp, self.ki, self.lam, self.banda = kp, ki, lam, banda
+        self.paso_cierra, self.paso_abre, self.dq_max = paso_cierra, paso_abre, dq_max
+        self.I = 0.0
+        self.e = 0.0
+        self.n_banda = 0
+        self.n_accion = 0
+
+    def reinicia(self):
+        self.I = 0.0
+
+    def paso(self, ref, medida, dt):
+        """Devuelve (Δq en unidades de comando, e, P, I). Δq>0 CIERRA."""
+        e = ref - medida
+        self.e = e
+        if abs(e) <= self.banda:
+            # Dentro de la banda no se actúa, y el integrador tampoco crece: si
+            # siguiera integrando, al salir de la banda saldría con un empujón.
+            self.I *= self.lam
+            self.n_banda += 1
+            return 0, e, 0.0, self.I
+        P = self.kp * e
+        self.I = self.lam * self.I + self.ki * e * dt
+        u = P + self.I
+        # cuantización: por debajo del cuanto del sentido, no se manda nada
+        cuanto = self.paso_cierra if u > 0 else self.paso_abre
+        if abs(u) < cuanto:
+            return 0, e, P, self.I
+        dq = int(round(u))
+        dq = max(-self.dq_max, min(self.dq_max, dq))
+        self.n_accion += 1
+        return dq, e, P, self.I

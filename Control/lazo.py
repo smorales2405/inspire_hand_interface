@@ -45,7 +45,9 @@ class Contexto:
 
     def __init__(self, hand, args, dofs, etiqueta):
         self.hand, self.args, self.dofs = hand, args, dofs
-        self.hold = {5: args.rot}
+        # --rot -1: no anclar. El indice se caracterizo sin ancla, y A2 compara
+        # contra esas medidas, asi que la condicion debe ser la misma.
+        self.hold = {} if args.rot < 0 else {5: args.rot}
         self.lector = Lector(hand, args.aux_every)
         self.guarda = Guarda(args, dofs)
         self.resbalon = DetectorResbalon(dofs, args.resbalon_counts, args.resbalon_ventana)
@@ -349,7 +351,7 @@ def modo_pi(ctx, args):
     """A2 · lazo SISO de fuerza sobre un dedo, contra el bloque apoyado."""
     d = args.dof
     pi = PI(args.kp, args.ki, args.lam, args.banda,
-            args.paso_cierra, args.paso_abre, args.dq_max)
+            args.paso_cierra, args.paso_abre, args.dq_max, args.refractario)
     print(f"A2 · PI · {DOF_NAMES[d]} → F* = {args.ref:.0f} g")
     print(f"  Kp={args.kp:.4f}  Ki={args.ki:.4f}  fuga λ={args.lam:.3f}  "
           f"banda={args.banda:.0f} g  cuanto {args.paso_cierra}↓/{args.paso_abre}↑ u")
@@ -365,7 +367,7 @@ def modo_pi(ctx, args):
         toca, dt, por_que = c.disp[d].toca(t, ff)
         if not toca:
             return
-        dq, e, P, I = pi.paso(args.ref, f[d], dt)
+        dq, e, P, I = pi.paso(args.ref, f[d], dt, t)
         if dq:
             cmd = c.cmds.get(d)
             if cmd is not None:
@@ -386,7 +388,7 @@ def modo_pi(ctx, args):
                          if g[0] <= h[0] + 2.0)), None)
     print(f"\n  {len(hist)} pasos de control en {T[-1]:.0f} s "
           f"({len(hist)/max(T[-1],1e-6):.1f} Hz) · {pi.n_accion} con acción, "
-          f"{pi.n_banda} dentro de banda")
+          f"{pi.n_banda} en banda, {pi.n_espera} esperando refractario")
     print(f"  pico {pico:.0f} g ({100*(pico-args.ref)/args.ref:+.0f} % sobre F*)")
     print(f"  error en régimen (últimos {args.cola_s:.0f} s): "
           f"mediana {statistics.median(ef):.0f} g · máx {max(ef):.0f} g")
@@ -454,6 +456,10 @@ def main(argv=None):
     p.add_argument('--paso-cierra', type=int, default=5)
     p.add_argument('--paso-abre', type=int, default=3)
     p.add_argument('--dq-max', type=int, default=20)
+    p.add_argument('--refractario', type=float, default=0.20,
+                   help='espera tras cada accion antes de decidir la siguiente. La planta '
+                        'asienta en ~111 ms (E3.3); sin esto el lazo encadena escalones '
+                        'antes de ver el efecto del primero')
     p.add_argument('--angulo-aprox', type=int, default=None,
                    help='ANGLE_SET de pre-posición, JUSTO ANTES del objeto. Sale del '
                         'sondeo de contacto; para el índice con block1, 456')
@@ -478,8 +484,9 @@ def main(argv=None):
         return 1
     ctx = Contexto(hand, args, dofs, args.modo)
     print(f"  DOF implicados: {', '.join(DOF_NAMES[d] for d in dofs)} · "
-          f"rotación anclada en ANGLE_SET {args.rot}")
-    report_hold(hand, ctx.hold, 6, 3.0, args.vel_abrir)
+          + (f"rotación anclada en ANGLE_SET {args.rot}" if ctx.hold else "rotación SIN anclar"))
+    if ctx.hold:
+        report_hold(hand, ctx.hold, 6, 3.0, args.vel_abrir)
     rc = 1
     try:
         fn = {'tasas': modo_tasas, 'passthrough': modo_passthrough,

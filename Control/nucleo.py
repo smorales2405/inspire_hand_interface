@@ -441,8 +441,9 @@ def argumentos_comunes(p):
     p.add_argument('--device-id', type=int, default=1)
     p.add_argument('--timeout', type=float, default=1.0)
     p.add_argument('--rot', type=int, default=0,
-                   help='ANGLE_SET de la rotación del pulgar. OBLIGATORIO anclarla: sin '
-                        'ello el pulgar describe otra trayectoria')
+                   help='ANGLE_SET de la rotación del pulgar. Obligatorio anclarla en todo '
+                        'lo que toque el PULGAR: sin ello describe otra trayectoria. Usa -1 '
+                        'para NO anclar, que es como se caracterizó el índice solo (E3.1-E3.5)')
     p.add_argument('--aux-every', type=int, default=8, help='cada cuántas lecturas se lee CURRENT')
     p.add_argument('--vel-cierre', type=int, default=25)
     p.add_argument('--vel-abrir', type=int, default=300)
@@ -494,12 +495,27 @@ class PI:
 
     **Planta dominada por el retardo** (`L/τ ≈ 1`, E3.3): subir `Kp` no acelera el
     lazo, lo hace oscilar. La sintonía empieza con P puro y sube despacio.
+
+    Periodo REFRACTARIO tras cada accion. No estaba en el diseno inicial y la
+    primera tanda en hardware lo exigio: el lazo decide cada ~35 ms pero la fuerza
+    tarda L + tau ~ 100 ms en responder y ~111 ms en asentar (E3.3). Sin esperar,
+    el controlador encadena tres o cuatro escalones ANTES de ver el efecto del
+    primero, y con un cuanto de ~80 g por escalon eso son 300 g ya comprometidos:
+    medido, pico de 476 g contra una consigna de 250 (+90 %), y el sobreimpulso
+    disparo el detector de resbalon.
+
+    No se arregla bajando Kp --el cuanto minimo del dedo pone un suelo a lo que
+    cada accion vale-- sino esperando a que la accion se vea. Con la planta
+    asentando en 111 ms, ~200 ms de refractario deja ver el resultado completo.
     """
 
     def __init__(self, kp, ki, lam=0.98, banda=0.0,
-                 paso_cierra=5, paso_abre=3, dq_max=20):
+                 paso_cierra=5, paso_abre=3, dq_max=20, refractario=0.20):
         self.kp, self.ki, self.lam, self.banda = kp, ki, lam, banda
         self.paso_cierra, self.paso_abre, self.dq_max = paso_cierra, paso_abre, dq_max
+        self.refractario = refractario
+        self.t_accion = None
+        self.n_espera = 0
         self.I = 0.0
         self.e = 0.0
         self.n_banda = 0
@@ -508,10 +524,17 @@ class PI:
     def reinicia(self):
         self.I = 0.0
 
-    def paso(self, ref, medida, dt):
+    def paso(self, ref, medida, dt, t=None):
         """Devuelve (Δq en unidades de comando, e, P, I). Δq>0 CIERRA."""
         e = ref - medida
         self.e = e
+        # Refractario: mientras la accion anterior no haya dado su resultado no se
+        # decide nada. El integrador tampoco avanza: integrar aqui seria contar el
+        # mismo error varias veces mientras la planta aun no ha respondido.
+        if (t is not None and self.t_accion is not None
+                and t - self.t_accion < self.refractario):
+            self.n_espera += 1
+            return 0, e, 0.0, self.I
         if abs(e) <= self.banda:
             # Dentro de la banda no se actúa, y el integrador tampoco crece: si
             # siguiera integrando, al salir de la banda saldría con un empujón.
@@ -528,4 +551,6 @@ class PI:
         dq = int(round(u))
         dq = max(-self.dq_max, min(self.dq_max, dq))
         self.n_accion += 1
+        if t is not None:
+            self.t_accion = t
         return dq, e, P, self.I

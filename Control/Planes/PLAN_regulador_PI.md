@@ -223,14 +223,30 @@ solo si hay muestra fresca:
   primer indicio de oscilación, retrocede, y recién entonces añade `Ki`. Bitácora.
 - Sintoniza en **índice** y en **pulgar** por separado; `F* = 250` y `450 g`.
 
+> **El índice no puede ganar esta compuerta a `F* = 250`, y está medido.** Su
+> ganancia depende del punto de trabajo: a ~150 g un escalón de cierre de 3 u
+> mueve la fuerza **+1, +4, −4, +1, +1, −2 g** (nada, el paso se absorbe en la
+> holgura), mientras que a ~357 g el mismo paso vale **+66 g**. O sea: a 250 g el
+> dedo está en zona muerta y el PI no puede afinar hacia arriba, y donde sí
+> responde la resolución es ~60 g. El pulgar (~20 g por cuanto) es el dedo con
+> resolución para esta consigna. Esto es justo el caso de uso del estimador de
+> A4: la ganancia no es constante del dedo, es función del punto de trabajo.
+
 **Compuerta A2 — protocolo intercalado (§8), N ≥ 10 por brazo:**
 - **Brazo A (firmware):** consigna por `FORCE_SET`, modo A a `v = 25`.
 - **Brazo B (lazo):** misma consigna con el PI.
 
-Métricas: sobreimpulso, asentamiento, **error en régimen tras 60 s**, corriente.
-**Criterio:** el lazo mantiene `F*` donde el firmware decae 5–10 % — y lo hace
-**consumiendo corriente**, que es la prueba directa de que hay par activo donde
-antes había 0 mA.
+Métricas: sobreimpulso, asentamiento, **error en régimen tras 60 s**.
+**Criterio:** el lazo mantiene `F*` donde el firmware decae 5–10 %.
+
+> ~~y lo hace **consumiendo corriente**, que es la prueba directa de que hay par
+> activo donde antes había 0 mA~~ — **retirado, y medido por qué.** El índice
+> consume 31–92 mA moviéndose y **exactamente 0 mA sosteniendo 160 g**: la mano
+> retiene por fricción de una transmisión no retrodrivable. Un PI que manda
+> posiciones y se detiene acaba a 0 mA igual que el firmware, así que el criterio
+> no es alcanzable para **ninguno** de los dos brazos y no separa nada. La
+> ventaja del lazo sólo puede estar en dónde se para y en volver a corregir
+> cuando la fuerza deriva. Ver `../regulador_results.md`, «bloque piloto».
 
 > **Sé honesto con el cuanto.** Si la resolución del dedo es 90 g y `F* = 250`, un
 > criterio de ±10 % (25 g) es **físicamente inalcanzable**. Reporta el error en

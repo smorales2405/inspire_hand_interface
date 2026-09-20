@@ -23,6 +23,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import csv
+import random
 import statistics
 import time
 from datetime import datetime
@@ -59,6 +61,7 @@ class Contexto:
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.bit = Bitacora(os.path.join(args.outdir, f'a1_{etiqueta}_{ts}.csv'))
         self.cmds = {}
+        self.dof_control = None      # lo fija el modo que regula; ver bucle()
         self.t0 = time.perf_counter()
         self.eventos = []
 
@@ -83,7 +86,10 @@ class Contexto:
             POS_T=g(p, 4), POS_I=g(p, 3), POS_M=g(p, 2) if 2 in self.dofs else '',
             cmd_T=self.cmds.get(4, ''), cmd_I=self.cmds.get(3, ''),
             cmd_M=self.cmds.get(2, '') if 2 in self.dofs else '',
-            I_mA=g(c, self.dofs[0]), evento=evento)
+            # el DOF que se regula, no dofs[0]: registrar el pulgar en una tanda
+            # de indice daba 0 mA en TODAS las filas, incluida la aproximacion
+            I_mA=g(c, self.dof_control if self.dof_control is not None else self.dofs[0]),
+            evento=evento)
 
 
 def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
@@ -97,18 +103,26 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
     """
     t_fin = time.perf_counter() + duracion
     motivo = None
+    t_temp = 0.0
+    temps = None
     while time.perf_counter() < t_fin:
         t, p, f, c, fp, ff, frame = ctx.lector.muestra()
         if not (p and f):
             continue
         ev = ''
-        temps = None
+        # La temperatura SI se vigila: la guarda la soportaba pero nadie se la
+        # daba. Cada 5 s, que es lento comparado con la inercia termica y no
+        # cuesta un viaje Modbus por iteracion.
+        if t - t_temp > 5.0:
+            temps = ctx.hand.read_temps()
+            t_temp = t
         m = ctx.guarda.revisa(f, c, temps)
         if m:
             motivo = f"GUARDA: {m}"
+            print(f"  ⛔ GUARDA · {m}")
             ctx.registra(t, p, f, c, fp, ff, frame, 'guarda')
             break
-        r = ctx.resbalon.actualiza(t, p, ctx.cmds)
+        r = ctx.resbalon.actualiza(t, p, ctx.cmds, f, ctx.args.contacto_min)
         if r:
             ev = f"resbalon_actuador dof={r['dof']} {r['counts']:+.0f}counts"
             ctx.eventos.append(('resbalon', t - ctx.t0, r))
@@ -120,8 +134,12 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
             ctx.eventos.append(('escape', t - ctx.t0, e))
             print("  ⚠ EL OBJETO SE ESCAPA · cae la fuerza en todos los dedos y POS "
                   "no retrocede  → apretar o abortar")
+        # El disparo de `dof_control` es del ACTUADOR: `toca()` muta `t_ultimo`,
+        # asi que consumirlo aqui le entregaria dt = 0 (matando a Ki) y le
+        # ocultaria los disparos por plazo. Los demas DOF se cuentan aqui.
         for d in ctx.dofs:
-            ctx.disp[d].toca(t, ff)
+            if d != ctx.dof_control:
+                ctx.disp[d].toca(t, ff)
         ctx.registra(t, p, f, c, fp, ff, frame, ev)
         if actuador and actuador(ctx, t, p, f, ff) is True:
             break
@@ -175,7 +193,7 @@ def modo_passthrough(ctx, args):
     estado = {'i': 0, 't_prox': 0.0}
 
     def actuador(c, t, p, f, ff):
-        if t - c.t0 < estado['t_prox']:
+        if t < estado['t_prox']:
             return
         if estado['i'] >= len(pasos):
             return
@@ -246,7 +264,7 @@ def modo_resbalon(ctx, args):
         if f[d] >= args.objetivo:
             estado['alcanzado'] = True
             return
-        if t - c.t0 < estado['t_prox']:
+        if t < estado['t_prox']:
             return
         cmd = c.cmds.get(d)
         if cmd is None or cmd <= 0:
@@ -323,9 +341,15 @@ def _aproxima(ctx, args, d, hasta):
         ctx.lee_comandos()
     print(f"  aproximando {DOF_NAMES[d]} hasta {hasta:.0f} g...")
     ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
-    estado = {'t_prox': 0.0, 'ok': False}
+    # El dwell se cuenta desde que arranca ESTA rampa. Medirlo contra `ctx.t0`
+    # (inicio de la tanda) deja `t_prox` muy por detras de `t`, y la rampa suelta
+    # de golpe tantos pasos como segundos lleve la tanda: inofensivo en una tanda
+    # de un solo trial, un golpe contra el objeto en la sexta de una intercalada.
+    estado = {'t_prox': None, 'ok': False}
 
     def rampa(c, t, p, f, ff):
+        if estado['t_prox'] is None:
+            estado['t_prox'] = t
         if f[d] >= hasta:
             # CONGELAR donde está, no solo dejar de mandar pasos: el dedo sigue
             # viajando hacia el último comando y se pasa de largo. Medido: llegaba
@@ -335,7 +359,7 @@ def _aproxima(ctx, args, d, hasta):
                 c.manda({d: a[d]})
             estado['ok'] = True
             return True
-        if t - c.t0 < estado['t_prox']:
+        if t < estado['t_prox']:
             return
         cmd = c.cmds.get(d)
         if cmd is None or cmd <= 0:
@@ -360,6 +384,7 @@ def modo_pi(ctx, args):
         print("  ABORTA: no se alcanzó el contacto de partida")
         return 3
     t_ini = time.perf_counter()
+    ctx.dof_control = d
     ctx.disp[d].t_ultimo = None
     hist = []
 
@@ -431,12 +456,172 @@ def modo_firmware(ctx, args):
     return 0
 
 
+
+def _trial_firmware(ctx, args):
+    """Brazo A: la consigna la ejecuta el FIRMWARE por FORCE_SET, cierre a v=25.
+
+    Comparte con el brazo B la MISMA pre-posicion rapida. Sin ella el firmware
+    arranca desde la mano abierta y se gasta parte del trial viajando, asi que lo
+    que se compararia es quien llega antes y no quien sostiene la consigna.
+    """
+    d = args.dof
+    if args.angulo_aprox is not None:
+        ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+        ctx.hand.write_block(SPEED_SET, [args.vel_aprox] * NDOF)
+        ctx.lee_comandos()
+        ctx.manda({d: args.angulo_aprox})
+        bucle(ctx, args.aprox_s, parar_en_evento=True)
+        ctx.cmds[d] = args.angulo_aprox
+    else:
+        ctx.lee_comandos()
+    ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
+    ctx.hand.write_block(FORCE_SET, [int(args.ref)] * NDOF)
+    ctx.manda({d: args.objetivo_angulo})
+    t0 = time.perf_counter()
+    h = []
+
+    def obs(c, t, p, f, ff):
+        h.append((t - t0, f[d], c.lector.cur[d] if c.lector.cur[d] is not None else 0))
+
+    bucle(ctx, args.hold_s, obs, parar_en_evento=True)
+    ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+    return h
+
+
+def _trial_lazo(ctx, args):
+    """Brazo B: la consigna la sostiene el LAZO."""
+    d = args.dof
+    pi = PI(args.kp, args.ki, args.lam, args.banda,
+            args.paso_cierra, args.paso_abre, args.dq_max, args.refractario)
+    if not _aproxima(ctx, args, d, args.ref * args.frac_aprox):
+        return None
+    ctx.dof_control = d
+    ctx.disp[d].t_ultimo = None
+    t0 = time.perf_counter()
+    h = []
+
+    def ctl(c, t, p, f, ff):
+        toca, dt, _ = c.disp[d].toca(t, ff)
+        if toca:
+            dq, e, P, I = pi.paso(args.ref, f[d], dt, t)
+            if dq:
+                cmd = c.cmds.get(d)
+                if cmd is not None:
+                    c.manda({d: max(0, min(1000, cmd - dq))})
+        h.append((t - t0, f[d], c.lector.cur[d] if c.lector.cur[d] is not None else 0))
+
+    bucle(ctx, args.hold_s, ctl, parar_en_evento=True)
+    return h
+
+
+def _metricas(h, args):
+    if not h or len(h) < 20:
+        return None
+    T = [x[0] for x in h]; F = [x[1] for x in h]; I = [x[2] for x in h]
+    cola = [x for x in h if x[0] >= T[-1] - args.cola_s]
+    return dict(pico=max(F), err_reg=statistics.median([x[1] for x in cola]) - args.ref,
+                err_abs=abs(statistics.median([x[1] for x in cola]) - args.ref),
+                I_med=statistics.median([x[2] for x in cola]), n=len(h))
+
+
+def modo_comparar(ctx, args):
+    """A2 · protocolo intercalado: los dos brazos en UNA tanda, orden aleatorizado
+    por bloques balanceados, misma tara y mismo montaje.
+
+    Dos tandas separadas del mismo dedo, objeto y pose difirieron en un factor 2
+    por deriva del cero entre tandas (Exp 2). Comparar entre tandas no vale.
+    """
+    d = args.dof
+    # Aleatorizacion POR BLOQUES: se baraja DENTRO de cada par, no el conjunto
+    # entero. Barajar el conjunto balanceado deja rachas —la primera tanda salio
+    # L L L L L F— y una racha carga cualquier deriva lenta (la temperatura subio
+    # 36→38 °C en seis trials) sobre el brazo que toco agrupado. Con bloques de
+    # dos, cada par lleva uno de cada y el equilibrio es local, no solo global.
+    rnd = random.Random(args.seed)
+    orden = []
+    for _ in range(args.pares):
+        par = ['firmware', 'lazo']
+        rnd.shuffle(par)
+        orden += par
+    print(f"A2 · INTERCALADO · {DOF_NAMES[d]} · F* = {args.ref:.0f} g · "
+          f"{args.pares} pares · orden {' '.join(o[0].upper() for o in orden)}")
+
+    idx = os.path.join(args.outdir, f'a2_intercalado_dof{d}_F{int(args.ref)}.csv')
+    nuevo_f = not os.path.exists(idx)
+    res = {'firmware': [], 'lazo': []}
+    with open(idx, 'a', newline='') as fh:
+        w = csv.writer(fh)
+        if nuevo_f:
+            w.writerow(['bloque', 'n', 'brazo', 'pico', 'err_reg', 'I_med',
+                        'temp', 'n_muestras', 'tarado', 'nota'])
+        for k, brazo in enumerate(orden, 1):
+            abrir_mano(ctx.hand, args, ctx.hold)
+            # Cada trial arranca limpio: si no, el timeout de la guarda corre desde
+            # el inicio de la TANDA y la historia de los detectores cruza la
+            # apertura, que parece un retroceso de POS de 11 counts.
+            ctx.guarda.t0 = time.perf_counter()
+            ctx.guarda.cur_alta = 0
+            ctx.resbalon.reinicia()
+            ctx.escape.reinicia()
+            ctx.dof_control = None
+            ctx.tara.marca_suelta()
+            print(f"\n[{k}/{len(orden)}] {brazo.upper()} · esperando "
+                  f"{args.tara_espera:.0f} s para tarar (E3.5)...")
+            time.sleep(args.tara_espera + 0.5)
+            # una sola muestra puede ser ruido; la mediana de unas cuantas, no
+            mu = []
+            while len(mu) < 5:
+                _t, _p, _f, _c, _fp, _ff, _fr = ctx.lector.muestra()
+                if _f:
+                    mu.append(_f)
+            f = [int(statistics.median([m[d] for m in mu])) for d in range(NDOF)]
+            ok, por_que = ctx.tara.aplica(ctx.hand, f, ctx.dofs)
+            if not ok:
+                print(f"  tara rechazada: {por_que}")
+            temps = ctx.hand.read_temps()
+            # segundo reinicio, ya con el dedo en reposo: el primero (tras abrir)
+            # deja dentro de la ventana el propio viaje de apertura
+            ctx.resbalon.reinicia(); ctx.escape.reinicia()
+            ctx.guarda.t0 = time.perf_counter()
+            h = _trial_firmware(ctx, args) if brazo == 'firmware' else _trial_lazo(ctx, args)
+            m = _metricas(h, args) if h else None
+            if m is None:
+                # se registra igual: un trial abortado que desaparece del indice
+                # deja un N que no se puede auditar
+                print("  trial sin datos utilizables — queda anotado como abortado")
+                w.writerow([args.bloque, k, brazo, '', '', '',
+                            temps[d] if temps else '', 0,
+                            'si' if ok else 'no', 'abortado'])
+                fh.flush()
+                continue
+            res[brazo].append(m)
+            w.writerow([args.bloque, k, brazo, f"{m['pico']:.0f}",
+                        f"{m['err_reg']:+.0f}", f"{m['I_med']:.0f}",
+                        temps[d] if temps else '', m['n'],
+                        'si' if ok else 'no', ''])
+            fh.flush()
+            print(f"  pico {m['pico']:4.0f} g · error en régimen {m['err_reg']:+5.0f} g · "
+                  f"I {m['I_med']:3.0f} mA · {temps[d] if temps else '?'} °C")
+
+    print(f"\n  índice: {idx}")
+    for b in ('firmware', 'lazo'):
+        v = res[b]
+        if not v:
+            continue
+        e = [x['err_abs'] for x in v]
+        print(f"  {b:9s} n={len(v)} · |error| mediana {statistics.median(e):5.1f} g "
+              f"(rango {min(e):.0f}–{max(e):.0f}) · pico mediana "
+              f"{statistics.median([x['pico'] for x in v]):5.0f} g · "
+              f"I {statistics.median([x['I_med'] for x in v]):.0f} mA")
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Lazo de fuerza · A1 (sin controlador)")
     argumentos_comunes(p)
     p.add_argument('--modo', required=True,
                    choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara',
-                            'pi', 'firmware'])
+                            'pi', 'firmware', 'comparar'])
     p.add_argument('--pinza', type=int, choices=[1, 2], default=1)
     p.add_argument('--dof', type=int, default=3, help='dedo bajo prueba en los modos de un dedo')
     p.add_argument('--duracion', type=float, default=15.0)
@@ -468,13 +653,17 @@ def main(argv=None):
     p.add_argument('--frac-aprox', type=float, default=0.6,
                    help='fracción de F* a la que se deja el contacto antes de activar el lazo')
     p.add_argument('--cola-s', type=float, default=10.0, help='ventana de régimen permanente')
+    p.add_argument('--pares', type=int, default=3, help='pares firmware/lazo por invocación')
+    p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
+    p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
+    p.add_argument('--seed', type=int, default=1)
     p.add_argument('--contacto-min', type=float, default=80.0,
                    help='resbalón: fuerza mínima para considerar que ya hay contacto')
     p.add_argument('--aplicar', action='store_true', help='tara: aplicarla de verdad')
     args = p.parse_args(argv)
 
     dofs = MODOS[args.pinza]
-    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware') \
+    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar') \
             and args.dof not in dofs:
         dofs = [args.dof] + [d for d in dofs if d != args.dof]
 
@@ -491,7 +680,8 @@ def main(argv=None):
     try:
         fn = {'tasas': modo_tasas, 'passthrough': modo_passthrough,
               'guarda': modo_guarda, 'resbalon': modo_resbalon, 'tara': modo_tara,
-              'pi': modo_pi, 'firmware': modo_firmware}[args.modo]
+              'pi': modo_pi, 'firmware': modo_firmware,
+              'comparar': modo_comparar}[args.modo]
         rc = fn(ctx, args)
         return rc
     except KeyboardInterrupt:

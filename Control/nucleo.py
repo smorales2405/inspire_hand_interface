@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import csv
 import os
+import statistics
 import sys
 import time
 from collections import deque
@@ -297,7 +298,23 @@ class DetectorResbalon:
         self.cmd_hist = {d: deque() for d in dofs}      # (t, comando)
         self.eventos = []
 
-    def actualiza(self, t, p, cmds):
+    def reinicia(self):
+        """Olvida la historia. Entre trials la mano se abre, y ese recorrido de
+        POS leido a traves de la ventana parece un retroceso contra el comando."""
+        for d in self.dofs:
+            self.hist[d].clear(); self.cmd_hist[d].clear()
+
+    def actualiza(self, t, p, cmds, f=None, minimo=0.0):
+        # ARMADO SOLO EN CONTACTO. La firma que busca este detector —POS retrocede
+        # contra su propio comando— la cumple trivialmente cualquier dedo que aun
+        # venga viajando del comando anterior. Sin carga no hay nada de lo que
+        # protegerse: el actuador no puede ceder contra una fuerza que no existe.
+        # Mientras no haya contacto se olvida la historia, para que la ventana
+        # entre limpia en cuanto lo haya.
+        if f is not None and minimo > 0 and max(abs(f[d]) for d in self.dofs) < minimo:
+            for d in self.dofs:
+                self.hist[d].clear(); self.cmd_hist[d].clear()
+            return None
         if not p:
             return None
         for d in self.dofs:
@@ -309,7 +326,14 @@ class DetectorResbalon:
                 self.cmd_hist[d].popleft()
             if len(self.hist[d]) < 5:
                 continue
-            retroceso = self.hist[d][0][1] - self.hist[d][-1][1]     # POS bajando
+            # MEDIANA de los extremos, no la muestra suelta de cada punta. Una
+            # sola lectura mala basta para fabricar un resbalon: en la compuerta
+            # A2 una muestra aislada dio POS 988 entre vecinas de 851 y aborto un
+            # trial de 60 s. Un resbalon real dura ~0.5 s y ~50 counts, asi que
+            # sobrevive de sobra a promediar las puntas.
+            k = max(1, min(5, len(self.hist[d]) // 2))
+            vals = [v for _, v in self.hist[d]]
+            retroceso = statistics.median(vals[:k]) - statistics.median(vals[-k:])
             if retroceso * CIERRA_POS < self.counts:
                 continue
             # ¿se le pidió abrir? entonces no es resbalón, es obediencia
@@ -338,6 +362,10 @@ class DetectorEscape:
         self.caida, self.frac, self.pos_counts = caida_g, frac, pos_counts
         self.hist = {d: deque() for d in dofs}          # (t, fuerza, pos)
         self.eventos = []
+
+    def reinicia(self):
+        for d in self.dofs:
+            self.hist[d].clear()
 
     def actualiza(self, t, p, f):
         if not (p and f):
@@ -390,8 +418,12 @@ class Tara:
             falta = self.espera - (time.perf_counter() - self.t_suelta)
             if falta > 0:
                 return False, f"faltan {falta:.0f} s desde la última suelta (E3.5)"
-        if f and any(abs(f[d]) > self.umbral for d in dofs):
-            cargados = [f"{DOF_NAMES[d]} {f[d]} g" for d in dofs if abs(f[d]) > self.umbral]
+        # Solo cuenta la carga POSITIVA. Una yema en contacto empuja, y eso lee
+        # positivo; un valor negativo no puede ser contacto, es el cero corrido
+        # —justo lo que la tara existe para quitar—. Con `abs()` la politica se
+        # mordia la cola: el indice a -45 g bloqueaba la tara que lo corregia.
+        if f and any(f[d] > self.umbral for d in dofs):
+            cargados = [f"{DOF_NAMES[d]} {f[d]} g" for d in dofs if f[d] > self.umbral]
             return False, f"hay carga en las yemas: {', '.join(cargados)}"
         return True, "ok"
 

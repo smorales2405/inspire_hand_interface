@@ -1,0 +1,5 @@
+bloque,n,brazo,pico,err_reg,I_med,temp,n_muestras,tarado,nota
+piloto,1,lazo,260,-14,0,44,12297,si,
+piloto,2,firmware,297,-37,0,44,12011,si,
+piloto,3,firmware,302,-8,0,44,12032,si,
+piloto,4,lazo,205,-57,0,44,12206,si,

@@ -32,3 +32,7 @@ Caracterizacion/imagenes/pruebas/*.mp4
 
 # Bitácoras del regulador: se regeneran en cada tanda
 Control/data/*.csv
+# ...salvo los INDICES por trial, que son el RESULTADO y pesan <1 KB. Las
+# bitacoras crudas si quedan fuera: el lazo registra a ~400 Hz durante minutos y
+# una sola tanda de la compuerta A2 son 30 MB, contra 1.2 MB de todo el repo.
+!Control/data/a2_intercalado_*.csv

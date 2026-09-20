@@ -22,7 +22,11 @@ Un proceso, un hilo, **un cliente Modbus**. Sin PyQt. `time.perf_counter()`.
 
 - **A1 · andamiaje, seguridad y detectores** — ✔ **cerrado**, las cuatro compuertas
   pasadas con hardware.
-- A2–A5 y Parte B: ver el plan.
+- **A2 · lazo SISO de fuerza** — ✔ **cerrado en el pulgar** a `F* = 250 g`:
+  protocolo intercalado, N = 10 por brazo, error en régimen **11 g contra 25 g**
+  del firmware (p = 0.0074). **No cerrado en el índice**, y está medido por qué:
+  a 250 g ese dedo está en zona muerta. Ver `regulador_results.md`.
+- A3–A5 y Parte B: ver el plan.
 
 ## Cuándo avanza el control
 

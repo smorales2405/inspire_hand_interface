@@ -1,0 +1,7 @@
+bloque,n,brazo,pico,err_reg,I_med,temp,n_muestras,tarado,nota
+a,1,lazo,242,-19,0,36,24223,si,
+a,2,lazo,255,-5,0,36,23956,si,
+a,3,lazo,239,-21,0,36,24319,si,
+a,4,lazo,256,-4,0,38,24330,si,
+a,5,lazo,255,-4,0,38,24195,si,
+a,6,firmware,273,-35,0,38,24442,si,

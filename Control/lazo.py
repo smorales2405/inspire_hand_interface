@@ -61,7 +61,10 @@ class Contexto:
         ts = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.bit = Bitacora(os.path.join(args.outdir, f'a1_{etiqueta}_{ts}.csv'))
         self.cmds = {}
-        self.dof_control = None      # lo fija el modo que regula; ver bucle()
+        # CONJUNTO, no un solo DOF: en A3 se regulan dos dedos y cada uno es
+        # dueño de su disparo. Con un escalar, el segundo lazo volveria a recibir
+        # dt = 0 — el mismo bug que dejo Ki muerto en A2.
+        self.dof_control = set()     # lo fija el modo que regula; ver bucle()
         self.t0 = time.perf_counter()
         self.eventos = []
 
@@ -88,7 +91,7 @@ class Contexto:
             cmd_M=self.cmds.get(2, '') if 2 in self.dofs else '',
             # el DOF que se regula, no dofs[0]: registrar el pulgar en una tanda
             # de indice daba 0 mA en TODAS las filas, incluida la aproximacion
-            I_mA=g(c, self.dof_control if self.dof_control is not None else self.dofs[0]),
+            I_mA=g(c, min(self.dof_control) if self.dof_control else self.dofs[0]),
             evento=evento)
 
 
@@ -138,7 +141,7 @@ def bucle(ctx, duracion, actuador=None, parar_en_evento=True):
         # asi que consumirlo aqui le entregaria dt = 0 (matando a Ki) y le
         # ocultaria los disparos por plazo. Los demas DOF se cuentan aqui.
         for d in ctx.dofs:
-            if d != ctx.dof_control:
+            if d not in ctx.dof_control:
                 ctx.disp[d].toca(t, ff)
         ctx.registra(t, p, f, c, fp, ff, frame, ev)
         if actuador and actuador(ctx, t, p, f, ff) is True:
@@ -384,7 +387,7 @@ def modo_pi(ctx, args):
         print("  ABORTA: no se alcanzó el contacto de partida")
         return 3
     t_ini = time.perf_counter()
-    ctx.dof_control = d
+    ctx.dof_control = {d}
     ctx.disp[d].t_ultimo = None
     hist = []
 
@@ -535,7 +538,7 @@ def _trial_lazo(ctx, args):
     _prepara_soporte(ctx, args)
     if not _aproxima(ctx, args, d, args.ref * args.frac_aprox):
         return None
-    ctx.dof_control = d
+    ctx.dof_control = {d}
     ctx.disp[d].t_ultimo = None
     t0 = time.perf_counter()
     h = []
@@ -633,7 +636,7 @@ def modo_comparar(ctx, args):
             ctx.guarda.cur_alta = 0
             ctx.resbalon.reinicia()
             ctx.escape.reinicia()
-            ctx.dof_control = None
+            ctx.dof_control = set()
             ctx.tara.marca_suelta()
             print(f"\n[{k}/{len(orden)}] {brazo.upper()} · esperando "
                   f"{args.tara_espera:.0f} s para tarar (E3.5)...")
@@ -706,12 +709,149 @@ def modo_comparar(ctx, args):
     return 0
 
 
+def modo_pinza(ctx, args):
+    """A3 · pinza real: apriete y balance sobre DOS dedos, con desacoplo medido.
+
+    Los dedos NO son independientes: en la bola de espuma, mover el indice
+    arrastra al pulgar un **75 %**, y al reves un 44 %. Tratarlos como dos lazos
+    SISO haria que cada uno peleara contra la correccion del otro. Por eso el PI
+    trabaja en FUERZA y su salida se pasa por J^-1, la inversa de la matriz de
+    acoplamiento medida en ESTE montaje.
+
+        J = [ dF_pulgar/dcmd_pulgar   dF_pulgar/dcmd_indice ]
+            [ dF_indice/dcmd_pulgar   dF_indice/dcmd_indice ]
+
+    `J` es de la pareja objeto+pose, no del robot: hay que volver a medirla si
+    cambia cualquiera de los dos.
+    """
+    T, I = 4, 3
+    if T not in ctx.dofs or I not in ctx.dofs:
+        print("  ABORTA: la pinza necesita pulgar e indice (--pinza 1)"); return 3
+    jtt, jti, jit, jii = args.j_tt, args.j_ti, args.j_it, args.j_ii
+    det = jtt * jii - jti * jit
+    if abs(det) < 1e-6:
+        print("  ABORTA: matriz de acoplamiento singular"); return 3
+    # dcmd = J^-1 · dF
+    inv = ((jii / det, -jti / det), (-jit / det, jtt / det))
+    # UNA colocacion, VARIAS consignas. Al salir del proceso la mano se abre
+    # —politica de seguridad innegociable— asi que cada invocacion cuesta una
+    # recolocacion a mano. Encadenando los tramos dentro de la misma tanda, un
+    # solo agarre da la caracterizacion entera de los dos ejes.
+    if args.secuencia:
+        tramos = []
+        for par in args.secuencia.split(','):
+            a_, b_ = par.split(':')
+            tramos.append((float(a_), float(b_)))
+    else:
+        tramos = [(args.ref, args.ref_balance)]
+    print(f"A3 · PINZA · {len(tramos)} tramo(s) de {args.tramo_s:.0f} s: "
+          + "  ".join(f"[{a_:.0f}, {b_:+.0f}]" for a_, b_ in tramos))
+    ref_T = tramos[0][0] + tramos[0][1] / 2.0
+    ref_I = tramos[0][0] - tramos[0][1] / 2.0
+    print(f"  J = [{jtt:5.1f} {jti:5.1f} ; {jit:5.1f} {jii:5.1f}]  det={det:.1f}  "
+          f"κ≈{args.kappa if args.kappa else 0:.0f}" if args.kappa else
+          f"  J = [{jtt:5.1f} {jti:5.1f} ; {jit:5.1f} {jii:5.1f}]  det={det:.1f}")
+
+    t, p, f, c, fp, ff, fr = ctx.lector.muestra()
+    while not f:
+        t, p, f, c, fp, ff, fr = ctx.lector.muestra()
+    if min(f[T], f[I]) < args.contacto_min:
+        print(f"  ABORTA: sin contacto en los dos dedos (pulgar {f[T]} g, "
+              f"indice {f[I]} g < --contacto-min {args.contacto_min:.0f}). "
+              f"La bola debe estar ya sujeta: este modo NO abre la mano.")
+        return 3
+    print(f"  partida: pulgar {f[T]} g · indice {f[I]} g · "
+          f"desequilibrio {f[T] - f[I]:+d} g")
+    ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+    ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
+    ctx.lee_comandos()
+    ctx.dof_control = {T, I}
+    for d in (T, I):
+        ctx.disp[d].t_ultimo = None
+    pi = {T: PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+                args.paso_abre, args.dq_max, args.refractario),
+          I: PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+                args.paso_abre, args.dq_max, args.refractario)}
+    t_ini = time.perf_counter()
+    hist = []
+    st = {'k': 0, 'rT': ref_T, 'rI': ref_I, 't_tramo': 0.0}
+    perdido = {'si': False}
+
+    def control(c2, t, p2, f2, ff2):
+        # SE NOS ESCAPA: con la bola en el aire, que cualquiera de los dos dedos
+        # baje del umbral de contacto significa que la estamos soltando. El
+        # DetectorEscape no cubre esto —el dedo esta OBEDECIENDO un comando de
+        # abrir, no cediendo— y sin esta guarda la primera tanda siguio 36 s mas
+        # con la mano vacia.
+        if min(f2[T], f2[I]) < args.contacto_min:
+            perdido['si'] = True
+            print(f"  ⛔ PERDIENDO EL OBJETO · pulgar {f2[T]} g, indice {f2[I]} g "
+                  f"< {args.contacto_min:.0f} g")
+            return True
+        # cada dedo es dueño de SU disparo; basta con que uno traiga dato nuevo
+        tT, dtT, _ = c2.disp[T].toca(t, ff2)
+        tI, dtI, _ = c2.disp[I].toca(t, ff2)
+        if not (tT or tI):
+            return
+        # cambio de tramo
+        k = min(int((t - t_ini) / args.tramo_s), len(tramos) - 1)
+        if k != st['k']:
+            st['k'] = k
+            ap, ba = tramos[k]
+            st['rT'] = ap + ba / 2.0
+            st['rI'] = ap - ba / 2.0
+            print(f"  → tramo {k+1}: apriete {ap:.0f} g, balance {ba:+.0f} g")
+        eT, eI = st['rT'] - f2[T], st['rI'] - f2[I]
+        # el PI pide CAMBIO DE FUERZA; J^-1 lo traduce a comando
+        uT = pi[T].fuerza_pedida(eT, dtT if tT else 0.0, t)
+        uI = pi[I].fuerza_pedida(eI, dtI if tI else 0.0, t)
+        dT = inv[0][0] * uT + inv[0][1] * uI
+        dI = inv[1][0] * uT + inv[1][1] * uI
+        # ESCALAR, no recortar por separado. Recortar un dedo y no el otro cambia
+        # la DIRECCION de la correccion en el espacio de fuerzas y deshace el
+        # desacoplo. Escalando los dos por el mismo factor se conserva.
+        mx = max(abs(dT), abs(dI))
+        if mx > args.dq_max:
+            k = args.dq_max / mx
+            dT *= k; dI *= k
+        for d, dq_f, pid in ((T, dT, pi[T]), (I, dI, pi[I])):
+            dq = pid.cuantiza(dq_f, t)
+            if dq:
+                cmd = c2.cmds.get(d)
+                if cmd is not None:
+                    c2.manda({d: max(0, min(1000, cmd - dq))})
+        hist.append((t - t_ini, f2[T], f2[I], eT, eI, st['k']))
+
+    m = bucle(ctx, args.duracion, control, parar_en_evento=True)
+    if not hist:
+        print("  sin muestras de control"); return 3
+    if perdido['si']:
+        print("  ABORTADO al perder el contacto"); 
+    T_ = [h[0] for h in hist]
+    print(f"\n  {len(hist)} pasos en {T_[-1]:.0f} s ({len(hist)/max(T_[-1],1e-6):.1f} Hz)")
+    print(f"  {'tramo':>5}  {'apriete':>22}  {'balance':>22}")
+    for k, (ap, ba) in enumerate(tramos):
+        seg = [h for h in hist if h[5] == k]
+        if len(seg) < 20:
+            continue
+        cola = [h for h in seg if h[0] >= seg[-1][0] - args.cola_s]
+        a_ini = statistics.median([(h[1] + h[2]) / 2 for h in seg[:20]])
+        b_ini = statistics.median([h[1] - h[2] for h in seg[:20]])
+        a_fin = statistics.median([(h[1] + h[2]) / 2 for h in cola])
+        b_fin = statistics.median([h[1] - h[2] for h in cola])
+        print(f"  {k+1:>5}  {a_ini:6.0f}→{a_fin:4.0f} (obj {ap:3.0f}, err {a_fin-ap:+4.0f})"
+              f"  {b_ini:+6.0f}→{b_fin:+4.0f} (obj {ba:+4.0f}, err {b_fin-ba:+4.0f})")
+    if m:
+        print(f"  {m}")
+    return 0
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description="Lazo de fuerza · A1 (sin controlador)")
     argumentos_comunes(p)
     p.add_argument('--modo', required=True,
                    choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara',
-                            'pi', 'firmware', 'comparar'])
+                            'pi', 'firmware', 'comparar', 'pinza'])
     p.add_argument('--pinza', type=int, choices=[1, 2], default=1)
     p.add_argument('--dof', type=int, default=3, help='dedo bajo prueba en los modos de un dedo')
     p.add_argument('--duracion', type=float, default=15.0)
@@ -747,6 +887,17 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--secuencia', default=None,
+                   help='tramos "apriete:balance,apriete:balance,..." en UNA sola '
+                        'tanda; al salir la mano se abre y se pierde el objeto')
+    p.add_argument('--tramo-s', type=float, default=20.0, help='segundos por tramo')
+    p.add_argument('--ref-balance', type=float, default=0.0,
+                   help='F_pulgar - F_indice deseado; 0 = reparto simetrico')
+    p.add_argument('--j-tt', type=float, default=5.4, help='dF_pulgar/dcmd_pulgar (MEDIDO, por montaje)')
+    p.add_argument('--j-ti', type=float, default=9.5, help='dF_pulgar/dcmd_indice')
+    p.add_argument('--j-it', type=float, default=2.4, help='dF_indice/dcmd_pulgar')
+    p.add_argument('--j-ii', type=float, default=12.6, help='dF_indice/dcmd_indice')
+    p.add_argument('--kappa', type=float, default=None, help='solo informativo')
     p.add_argument('--soporte', type=int, default=None,
                    help='ANGLE_SET de los 4 dedos de soporte; pre-flexionarlos deja margen de perturbar')
     p.add_argument('--perturba-u', type=int, default=0,
@@ -759,7 +910,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     dofs = MODOS[args.pinza]
-    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar') \
+    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar', 'pinza') \
             and args.dof not in dofs:
         dofs = [args.dof] + [d for d in dofs if d != args.dof]
 
@@ -777,7 +928,8 @@ def main(argv=None):
         fn = {'tasas': modo_tasas, 'passthrough': modo_passthrough,
               'guarda': modo_guarda, 'resbalon': modo_resbalon, 'tara': modo_tara,
               'pi': modo_pi, 'firmware': modo_firmware,
-              'comparar': modo_comparar}[args.modo]
+              'comparar': modo_comparar,
+              'pinza': modo_pinza}[args.modo]
         rc = fn(ctx, args)
         return rc
     except KeyboardInterrupt:

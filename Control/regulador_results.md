@@ -484,3 +484,131 @@ una muestra y sigue abortando una sobrecarga sostenida.
 
 Es el **tercer** fallo de la misma familia (POS 988 en la compuerta A2, 3187 g
 aquí): toda comparación muestra-a-muestra contra un umbral necesita persistencia.
+
+---
+
+## A3 · medida previa en la pinza sobre la bola de espuma (7 cm)
+
+Matriz de acoplamiento medida **sin abrir la mano** (lo que se mide son
+variaciones, así que una deriva de cero constante no afecta). Escalones de 5 u,
+partiendo de un agarre estable puesto a mano:
+
+| comando | ΔF pulgar | ΔF índice | acoplamiento |
+|---|---|---|---|
+| **Pulgar** cierra | **5.4 g/u** | 2.4 g/u | **44 %** |
+| **Índice** cierra | 9.5 g/u | **12.6 g/u** | **75 %** |
+
+```
+J = [ 5.4   9.5 ]     det = 45.2     κ ≈ 6
+    [ 2.4  12.6 ]
+```
+
+Tres consecuencias:
+
+- **El acoplamiento es mucho mayor que el de E3.6** (14–34 % en modo 1) y es
+  **asimétrico**: mover el índice arrastra al pulgar un 75 %, al revés sólo 44 %.
+- **κ ≈ 6**: apriete y balance no cuestan lo mismo. La dirección de balance es la
+  débil, y pedirle precisión sale ~6× más caro que al apriete.
+- **El índice vuelve a ser el dedo basto**: 12.6 g/u contra 5.4 del pulgar, o sea
+  un cuanto de **63 g** contra **27 g** con el escalón mínimo de 5 u.
+
+> **Una predicción mía que la medida tumbó.** Dije que la espuma daría resolución
+> más fina por ser compliante: un objeto blando debería dar pocos gramos por
+> unidad de comando. Falso. El pulgar da **5.4 g/u sobre la bola** contra **4.6
+> g/u sobre `block1`**, y el índice 12.6. La bola de 7 cm es **más** rígida por
+> unidad de comando, no menos — con ese diámetro, un grado de flexión comprime
+> mucha más espuma que el contacto de arista contra el bloque.
+
+### La posición NO determina la fuerza
+
+Lo más importante, y sale de la histéresis del barrido:
+
+| | ANGLE pulgar / índice | POS pulgar / índice | F pulgar | F índice |
+|---|---|---|---|---|
+| Antes | 697 / 683 | 557 / 759 | 141 g | **289 g** |
+| Después | 698 / 683 | 556 / 759 | 169 g | **86 g** |
+
+**Los mismos ángulos y el mismo `POS` dan 203 g menos en el índice.** La bola se
+reacomodó dentro de la pinza y no volvió. Es, por un lado, el argumento más
+directo a favor del control de fuerza que hay en todo el experimento: un agarre
+repetido *por posición* no es reproducible *en fuerza*.
+
+Por otro lado impone una condición al protocolo de A3: **los trials no se pueden
+re-establecer mandando ángulos**. Hay que re-agarrar con aproximación por fuerza
+en cada trial, como hace `_aproxima`.
+
+---
+
+## A3 · primer lazo de dos ejes sobre la bola (apriete / balance)
+
+Cuatro consignas encadenadas en **una sola colocación** (`--secuencia`), porque al
+salir del proceso la mano se abre y la bola se cae: cada invocación cuesta una
+recolocación a mano.
+
+| tramo | apriete | balance |
+|---|---|---|
+| `[150, 0]` | 115 → **140** g (err −10) | −32 → **−24** g (err −24) |
+| `[150, +60]` | 140 → **146** g (err −4) | +35 → **+42** g (err −18) |
+| `[150, −60]` | 158 → **150** g (err +0) | −34 → **−36** g (err +24) |
+| `[220, 0]` | 180 → 196 g (err −24) | −104 → −35 g (err −35) | **inestable** |
+
+**El balance es un grado de libertad real, no una casualidad.** Pedir `+60` da
+`+42`; pedir `−60` da `−36`. El signo y el orden de magnitud siguen a la consigna,
+que es lo que había que demostrar: la pinza no se reparte sola, se la manda.
+
+**El error residual del balance (~20–25 g) es de banda muerta, no de control.**
+24 g de balance son ±12 g por dedo, dentro de la banda de 24 g: el lazo deja de
+corregir porque se le dijo que dejara de corregir. Bajar la banda es ahora viable
+—antes no, porque un comando por debajo del cuanto se tiraba y el lazo se
+estancaba; con el acumulador de resto ya no se pierde.
+
+> **Otra prediccion mia que la medida tumbo.** Dije que el balance quedaria
+> limitado a la granularidad del dedo basto (~63 g del indice). Llego a 7 g en la
+> primera tanda y a 18–24 g aqui. El motivo es justo lo que compra `J^-1`: el
+> balance **no es tarea exclusiva del indice**, se reparte entre los dos dedos, y
+> el pulgar aporta la resolucion fina con su cuanto de 27 g. Dos lazos SISO
+> independientes si habrian heredado el limite del dedo mas basto.
+
+### A 220 g el lazo oscila, y se sabe por que
+
+El tramo 4 se corto con un supuesto resbalon del indice (+16 counts). No lo era:
+
+| t | F pulgar | F indice | POS indice | cmd indice |
+|---|---|---|---|---|
+| 60.37 | 125 | 232 | 754 | 683 |
+| 60.92 | 153 | **291** | 761 | 682 |
+| 61.21 | **235** | 247 | 752 | 686 |
+| 61.49 | 232 | **158** | 745 | 690 |
+
+Comandos cazando 683↔690 y fuerzas barriendo ±60 g: **el lazo es inestable ahi**.
+El `POS` moviendose fue consecuencia, no causa.
+
+La causa es la de siempre en esta mano: **`J` depende del punto de trabajo**. Se
+midio alrededor de 140–290 g; a 220 g de apriete los dedos estan mas rigidos, la
+ganancia real supera a la de la matriz fija y el lazo se pasa de ganancia. Es el
+tercer sitio donde aparece lo mismo (el indice contra `block1`, el pulgar contra
+la bola, y ahora la pinza), y es **exactamente el caso de uso del estimador de
+A4**: `J` no es una constante del robot, es funcion del punto de trabajo y del
+objeto.
+
+### Un modo de fallo nuevo, propio del control acoplado
+
+La primera tanda **solto la bola en 3.6 s**: `cmd_pulgar` fue de 698 a 1000 y
+`cmd_indice` no se movio ni una vez en 40 s. `J^-1` pedia ~3.8 u al indice, por
+debajo de su cuanto de 5, asi que se cuantizaba a cero todos los ciclos mientras
+la componente del pulgar si pasaba.
+
+**Aplicar medio par desacoplado es peor que no aplicar nada.** La solucion decia
+«abre el pulgar *y* cierra el indice»; hacer solo lo primero empuja en direccion
+contraria, y cada iteracion empeoraba el error. En un lazo SISO quedarte bajo el
+cuanto solo te deja quieto; en uno acoplado **te manda al reves**.
+
+Dos arreglos: **acumulador de resto** en `PI.cuantiza` (lo que no llega al cuanto
+se guarda para el ciclo siguiente, verificado en banco: 22.8 u pedidas → 23
+entregadas) y **guarda de perdida de objeto** en el modo pinza. El
+`DetectorEscape` no cubria esto, y con razon: el pulgar estaba **obedeciendo** una
+orden de abrir, no cediendo. Sin esa distincion no hay detector que lo pille.
+
+Ademas, al recortar por `dq_max` hay que **escalar el par entero**, no cada dedo
+por separado: recortar uno y no el otro cambia la direccion de la correccion en el
+espacio de fuerzas y deshace el desacoplo.

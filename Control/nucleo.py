@@ -562,6 +562,7 @@ class PI:
         self.paso_cierra, self.paso_abre, self.dq_max = paso_cierra, paso_abre, dq_max
         self.refractario = refractario
         self.t_accion = None
+        self.resid = 0.0
         self.n_espera = 0
         self.I = 0.0
         self.e = 0.0
@@ -570,6 +571,56 @@ class PI:
 
     def reinicia(self):
         self.I = 0.0
+        self.resid = 0.0
+
+    def fuerza_pedida(self, e, dt, t=None):
+        """Ley de control en FUERZA: devuelve los gramos de correccion pedidos.
+
+        En la pinza la salida no se puede cuantizar aqui: primero hay que pasarla
+        por J^-1 para repartirla entre los dos dedos, porque cada comando mueve
+        las DOS fuerzas. Cuantizar antes del desacoplo redondearia la correccion
+        en el eje equivocado.
+        """
+        self.e = e
+        if (t is not None and self.t_accion is not None
+                and t - self.t_accion < self.refractario):
+            self.n_espera += 1
+            return 0.0
+        if abs(e) <= self.banda:
+            self.I *= self.lam
+            self.n_banda += 1
+            return 0.0
+        P = self.kp * e
+        self.I = self.lam * self.I + self.ki * e * dt
+        return P + self.I
+
+    def cuantiza(self, u_cmd, t=None):
+        """De correccion continua EN COMANDO a un escalon entero, o cero.
+
+        El cuanto es asimetrico porque el dedo devuelve mas recorrido del que
+        toma (E3.2), y por debajo del cuanto el dedo sencillamente no se mueve:
+        mandar medio escalon es mandar nada.
+
+        ACUMULA EL RESTO. Descartar lo que no llega al cuanto es letal en la
+        pinza: `J^-1` reparte la correccion entre los dos dedos, y si la del
+        indice (~3.8 u) cae siempre por debajo de su cuanto (5 u) mientras la
+        del pulgar si pasa, se aplica MEDIO par desacoplado. La primera tanda de
+        A3 hizo justo eso: el pulgar abrio de 698 a 1000 en 3.6 s, el indice no
+        se movio ni una vez, y la bola se cayo. Acumulando, cada dedo acaba
+        dando su escalon y la proporcion del par se respeta en promedio.
+        """
+        self.resid += u_cmd
+        cuanto = self.paso_cierra if self.resid > 0 else self.paso_abre
+        if abs(self.resid) < cuanto:
+            return 0
+        dq = int(round(self.resid))
+        dq = max(-self.dq_max, min(self.dq_max, dq))
+        self.resid -= dq                      # lo que no cupo se guarda
+        if dq:
+            self.n_accion += 1
+            if t is not None:
+                self.t_accion = t
+        return dq
 
     def paso(self, ref, medida, dt, t=None):
         """Devuelve (Δq en unidades de comando, e, P, I). Δq>0 CIERRA."""

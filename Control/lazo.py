@@ -792,6 +792,7 @@ def modo_pinza(ctx, args):
     # accion pendiente de evaluar: (t, POS, F) antes del escalon
     pend = {'t': None, 'p': None, 'f': None}
     n_fallback = [0]
+    n_solo_pulgar = [0]
     perdido = {'si': False}
 
     def control(c2, t, p2, f2, ff2):
@@ -868,6 +869,26 @@ def modo_pinza(ctx, args):
             inv = inv_fijo
             dT = inv[0][0] * uT + inv[0][1] * uI
             dI = inv[1][0] * uT + inv[1][1] * uI
+        # SELECCION DE ACCION. Si el paso que le toca al indice no llega a su
+        # cuanto, forzarlo igual —acumulando el resto hasta disparar 5 u— mete
+        # 60-90 g de golpe y se pasa: es lo que hacia oscilar al lazo con banda
+        # fina. Mejor que el PULGAR, que es el dedo con resolucion, haga lo que
+        # pueda solo: proyeccion por minimos cuadrados de la correccion pedida
+        # sobre la direccion que el pulgar genera por si mismo.
+        #
+        # No es lo mismo que subirle la banda al indice: ahi el par se quedaba
+        # quieto con los dos errores pequeños y un error de COORDENADA grande.
+        # Aqui el objetivo sigue siendo el de coordenadas y solo cambia QUIEN lo
+        # persigue.
+        if args.selec_accion and abs(dI) < args.paso_cierra:
+            aT_ = (est.K[0][0] * rT, est.K[1][0] * rT) if est is not None \
+                else (jtt, jit)
+            na = aT_[0] * aT_[0] + aT_[1] * aT_[1]
+            if na > 1e-9:
+                dT = (aT_[0] * uT + aT_[1] * uI) / na
+            dI = 0.0
+            pi[I].resid = 0.0          # sin acumular: el indice NO va a actuar
+            n_solo_pulgar[0] += 1
         # ESCALAR, no recortar por separado. Recortar un dedo y no el otro cambia
         # la DIRECCION de la correccion en el espacio de fuerzas y deshace el
         # desacoplo. Escalando los dos por el mismo factor se conserva.
@@ -911,6 +932,8 @@ def modo_pinza(ctx, args):
         if args.banda_coord > 0:
             print(f"        bandas finales: apriete {pi_s.banda:.0f} g · "
                   f"balance {pi_b.banda:.0f} g")
+        if args.selec_accion:
+            print(f"        {n_solo_pulgar[0]} correcciones SOLO con el pulgar")
         elif args.banda_auto > 0:
             print(f"        banda final: pulgar {pi[T].banda:.0f} g · "
                   f"indice {pi[I].banda:.0f} g")
@@ -962,6 +985,10 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--selec-accion', action='store_true',
+                   help='si el paso del indice no llega a su cuanto, corrige con '
+                        'el PULGAR solo (minimos cuadrados) en vez de acumular '
+                        'hasta disparar una rafaga que se pasa')
     p.add_argument('--banda-coord', type=float, default=0.0,
                    help='k: banda muerta en coordenadas (apriete, balance), '
                         'dimensionada por el menor cambio que el PAR puede '

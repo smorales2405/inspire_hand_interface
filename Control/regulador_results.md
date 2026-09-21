@@ -788,3 +788,53 @@ fino y otro basto. Queda como el siguiente paso, no implementado.
 > que la querian mejorar fallaron por la misma causa no vista, y en los dos casos
 > la prediccion se hizo **antes** y la medida la tumbo. La banda fija se queda
 > como configuracion por defecto.
+
+### Tercer intento: seleccion de accion. Tambien falla, y por el modo de fallo ya documentado
+
+Idea: si el paso que `J^-1` le pide al indice no llega a su cuanto, no forzarlo
+—acumular hasta disparar 5 u mete 60–90 g de golpe— sino dejar que el **pulgar**,
+que es el dedo con resolucion, haga lo que pueda solo (minimos cuadrados sobre la
+direccion que el pulgar genera). En banco el argumento se sostiene: el escalon
+minimo del pulgar mueve el apriete 19.8 g y el balance 7.2, contra 80.3 y −118 del
+indice — entre 4 y 16 veces mas fino.
+
+| tramo | balance A4 | balance seleccion |
+|---|---|---|
+| `[150, 0]` | −18 | **−32** |
+| `[150, +60]` | −5 | **−118** |
+| `[150, −60]` | +1 | +16 |
+| `[220, 0]` | −11 | +10 |
+
+**3750 correcciones solo-pulgar de 3750 pasos: el indice no se movio ni una vez en
+82 s.** El criterio (`|dI| < 5 u`) se cumple SIEMPRE en regimen, porque la
+solucion desacoplada casi nunca pide un paso entero al indice; y encima el codigo
+limpiaba su acumulador, asi que la demanda no servida nunca llegaba a dispararlo.
+
+Es **el modo de fallo de A3 otra vez** —medio par desacoplado, el indice
+congelado— y con la consecuencia ya conocida: el pulgar solo genera correcciones
+en **una sola direccion** del plano (apriete, balance), asi que no puede seguir
+una consigna de balance arbitraria. El tramo 2 pidio +60 y dio −58.
+
+### Balance de los tres intentos
+
+| configuracion | balance por tramo |
+|---|---|
+| **A4, banda fija 24** | **−18 / −5 / +1 / −11** |
+| banda por dedo | −7 / **+46** / +5 / +2 |
+| banda en coordenadas | aborto a 1.4 s, oscilacion |
+| seleccion de accion | −32 / **−118** / +16 / +10 |
+
+**La configuracion de A4 con banda fija sigue siendo la mejor**, y los tres
+intentos de mejorarla han fallado. No son tres fallos distintos: los tres
+reparten mal el trabajo entre un dedo fino y uno basto, y en los tres el
+mecanismo que lo rompe estaba ya medido y documentado antes de intentarlo.
+
+Lo que queda claro es la forma del problema, no su solucion: **el indice tiene que
+actuar de vez en cuando —el pulgar solo no abarca el plano— pero cada vez que
+actua mete 60–118 g**. Cualquier arreglo tiene que gestionar ESE compromiso, y
+ni estrechar la banda ni suprimir al indice lo hacen. Una linea plausible, no
+probada, es dejar que la demanda del indice **se acumule sin limpiarla** mientras
+el pulgar hace el ajuste fino, y anticipar el efecto de la rafaga del indice en la
+correccion del pulgar para que no se sume al sobreimpulso.
+
+`--selec-accion` queda en el codigo, **desactivada por defecto**.

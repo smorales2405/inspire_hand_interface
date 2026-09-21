@@ -518,6 +518,25 @@ class EstimadorRLS:
         self.n_uso += 1
         return True
 
+    def banda(self, i, paso, ratio, k=0.5, minimo=8.0):
+        """Banda muerta dimensionada por la ganancia ESTIMADA, no por constante.
+
+        Si el menor cambio de fuerza que el dedo puede producir es
+        `paso × K_ii × ratio`, el mejor error que puede garantizar es la MITAD de
+        eso: siempre se puede quedar a medio escalon. Pedirle menos es pedirle que
+        oscile. Y como `K` es funcion del objeto y del punto de trabajo, la banda
+        tambien tiene que serlo.
+
+        Medido: el mismo controlador que sobre la espuma quiere ~24 g, sobre el
+        cubo de PLA necesita ~60 —ahi el indice movia 148 g con 6 unidades— y con
+        la banda fija oscilaba. Esto es el *scheduling continuo* que pide el plan,
+        aplicado a la banda en vez de a la ganancia del PI.
+
+        El suelo evita que una ganancia estimada baja deje la banda por debajo del
+        ruido de fuerza (±1-2 g medidos).
+        """
+        return max(minimo, k * paso * abs(self.K[i][i]) * abs(ratio))
+
     def det(self):
         return self.K[0][0] * self.K[1][1] - self.K[0][1] * self.K[1][0]
 

@@ -822,6 +822,10 @@ def modo_pinza(ctx, args):
             dF = (f2[T] - pend['f'][0], f2[I] - pend['f'][1])
             est.actualiza(dp, dF)
             pend['t'] = None
+        if est is not None and args.banda_auto > 0:
+            # la banda la dimensiona la ganancia estimada, por dedo
+            pi[T].banda = est.banda(0, args.paso_cierra, rT, args.banda_auto)
+            pi[I].banda = est.banda(1, args.paso_cierra, rI, args.banda_auto)
         if est is not None:
             iK = est.inversa()
             if iK is None:
@@ -877,6 +881,11 @@ def modo_pinza(ctx, args):
               f"  {b_ini:+6.0f}→{b_fin:+4.0f} (obj {ba:+4.0f}, err {b_fin-ba:+4.0f})")
     if est is not None:
         print(f"  RLS · K final (g/count) = {est}")
+        if args.banda_auto > 0:
+            print(f"        banda final: pulgar {pi[T].banda:.0f} g · "
+                  f"indice {pi[I].banda:.0f} g  (arrancaron en "
+                  f"{est.banda(0,args.paso_cierra,rT,args.banda_auto):.0f}/"
+                  f"{est.banda(1,args.paso_cierra,rI,args.banda_auto):.0f})")
         print(f"        {est.n_uso} actualizaciones · {est.n_congelado} congeladas "
               f"por poco movimiento · {n_fallback[0]} caidas al prior")
     if m:
@@ -925,6 +934,10 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--banda-auto', type=float, default=0.0,
+                   help='k: la banda pasa a ser k x escalon_minimo x ganancia '
+                        'ESTIMADA, por dedo. 0.5 = medio escalon, el mejor error '
+                        'que el dedo puede garantizar. Requiere --rls')
     p.add_argument('--rls', action='store_true',
                    help='estima J en linea (A4) en vez de usar la matriz fija')
     p.add_argument('--rls-lam', type=float, default=0.97, help='olvido del RLS')

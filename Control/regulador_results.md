@@ -676,3 +676,69 @@ sintetico: sin objeto la ganancia real **es** casi cero, el estimador lo aprendi
 veces** en vez de invertir algo casi singular y mandar correcciones disparatadas.
 Hay ademas un chequeo de diagonal positiva: cerrar un dedo no puede bajar su
 propia fuerza, y si la estimacion dice eso, se fue.
+
+---
+
+## Banda adaptativa por dedo · idea con una prediccion cumplida y otra falsada
+
+Regla: `banda_i = 0.5 × escalon_minimo × K_ii × counts_por_unidad`. El argumento
+es que si el menor cambio de fuerza que un dedo puede producir es Δ, el mejor
+error que puede garantizar es Δ/2, y como `K` depende del objeto y del punto de
+trabajo, la banda tambien debe depender.
+
+**Antes hubo que tumbar la premisa con la que la propuse.** Afirme que sobre el
+cubo de PLA el cuanto del indice era ~76 g, tres veces la banda, y que por eso
+oscilaba. Falso: lo saque de **una sola transicion** de una tanda abortada
+(389 → 241 g en 6 u = 24.7 g/u). Replayando las bitacoras, la mediana sobre 17
+acciones da **12.2 g/u en el cubo contra 14.0-14.2 en la bola** — el cubo es
+incluso algo mas blando por unidad de comando. En aquella transicion **el cubo
+giro a la vez**: con 12.2 g/u, 6 unidades explican 73 g de la caida y los otros
+75 fueron el objeto moviendose. Le atribui a la ganancia lo que era el objeto
+escapandose.
+
+Resultado en hardware sobre la bola, contra A4 (banda fija 24), mismo arranque:
+
+| tramo | apriete A4 → auto | balance A4 → auto |
+|---|---|---|
+| `[150, 0]` | +1 → +4 | **−18 → −7** ✔ prediccion cumplida |
+| `[150, +60]` | +5 → **−20** | **−5 → +46** ✘ |
+| `[150, −60]` | −0 → +4 | +1 → +5 |
+| `[220, 0]` | −18 → **+2** ✔ | −11 → **+2** ✔ |
+
+La prediccion concreta —bajar la banda del pulgar de 24 a 12 mejora el residual
+de banda muerta del tramo 1— **se cumplio**: −18 → −7 g. Y el tramo 4 mejoro en
+los dos ejes.
+
+**Pero el tramo 2 se rompio**, y el informe da la causa: la banda del indice salio
+**70 g**, asi que un error de balance de 46 g cae dentro de ella y el lazo deja de
+corregir, legitimamente.
+
+### El error conceptual: la banda no vive en el espacio de los dedos
+
+La regla dimensiona por dedo, con el cuanto de cada uno. Pero A3 ya habia medido
+que **el balance no es tarea de un solo dedo**: `J^-1` lo reparte y el pulgar fino
+carga la precision que el indice basto no da. Sizar la banda del indice por su
+propio cuanto es demasiado conservador — **la pareja puede hacerlo mejor que el
+peor de sus dedos**, y de hecho lo hacia con la banda fija.
+
+Lo correcto es poner la banda en las coordenadas que importan, **apriete y
+balance**, dimensionada por el menor cambio que el PAR puede producir en cada una:
+
+```
+db(pulgar solo)  = (K_TT − K_IT)·rT·paso      db(indice solo) = (K_TI − K_II)·rI·paso
+ds(pulgar solo)  = ½(K_TT + K_IT)·rT·paso     ds(indice solo) = ½(K_TI + K_II)·rI·paso
+banda = 0.5 × min(|·| de las acciones disponibles)
+```
+
+Con la `K` de esta tanda eso da **~4 g de banda de balance** (moviendo solo el
+pulgar) en vez de los 70 del indice: un factor 17, y explica por que la banda fija
+de 24 se comportaba mejor que la "adaptativa".
+
+> **Aviso sobre la estabilidad de la estimacion.** `K_II` salio **15.92** en esta
+> tanda contra **8.14** en la de A4. Con 8 actualizaciones la estimacion baila
+> casi un factor 2 entre tandas, y una banda derivada de ella hereda ese baile
+> directamente en el comportamiento. Esto es un argumento para mas excitacion, o
+> para suavizar la banda en el tiempo, antes de fiarse de ella.
+
+`--banda-auto` queda en el codigo **desactivada por defecto**: es una idea con una
+prediccion cumplida y una falsada, no una mejora validada.

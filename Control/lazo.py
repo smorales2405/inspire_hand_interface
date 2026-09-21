@@ -457,6 +457,41 @@ def modo_firmware(ctx, args):
 
 
 
+SOPORTE = [0, 1, 2, 3]      # menique, anular, medio, indice: sostienen el bloque
+
+
+def _prepara_soporte(ctx, args):
+    """Pre-flexiona el soporte para que quede margen de perturbar.
+
+    La autoridad es de un solo sentido: flexionar carga el pulgar (+56 g en 32 u,
+    medido), extender apenas descarga (-23 g en 45 u, y satura) porque el bloque
+    no baja con los dedos que se retiran — lo retiene la friccion del pulgar. Con
+    el soporte en reposo (1000) no habria hacia donde flexionar.
+    """
+    if args.soporte is None:
+        return
+    ctx.hand.write_block(SPEED_SET, [args.vel_aprox] * NDOF)
+    ctx.manda({d: args.soporte for d in SOPORTE})
+    bucle(ctx, 2.0, parar_en_evento=False)
+
+
+def _perturbador(ctx, args, hist):
+    """Devuelve un callback que aplica el escalon UNA vez, a `--perturba-t`.
+
+    Identico en los dos brazos: es la perturbacion, no el tratamiento.
+    """
+    estado = {'hecho': False, 't': None}
+
+    def aplica(t_rel):
+        if estado['hecho'] or args.perturba_u <= 0:
+            return
+        if t_rel >= args.perturba_t:
+            ctx.manda({d: args.soporte - args.perturba_u for d in SOPORTE})
+            estado['hecho'] = True
+            estado['t'] = t_rel
+    return aplica, estado
+
+
 def _trial_firmware(ctx, args):
     """Brazo A: la consigna la ejecuta el FIRMWARE por FORCE_SET, cierre a v=25.
 
@@ -465,6 +500,7 @@ def _trial_firmware(ctx, args):
     que se compararia es quien llega antes y no quien sostiene la consigna.
     """
     d = args.dof
+    _prepara_soporte(ctx, args)
     if args.angulo_aprox is not None:
         ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
         ctx.hand.write_block(SPEED_SET, [args.vel_aprox] * NDOF)
@@ -479,11 +515,14 @@ def _trial_firmware(ctx, args):
     ctx.manda({d: args.objetivo_angulo})
     t0 = time.perf_counter()
     h = []
+    pert, est = _perturbador(ctx, args, h)
 
     def obs(c, t, p, f, ff):
+        pert(t - t0)
         h.append((t - t0, f[d], c.lector.cur[d] if c.lector.cur[d] is not None else 0))
 
     bucle(ctx, args.hold_s, obs, parar_en_evento=True)
+    ctx.t_pert = est['t']
     ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
     return h
 
@@ -493,6 +532,7 @@ def _trial_lazo(ctx, args):
     d = args.dof
     pi = PI(args.kp, args.ki, args.lam, args.banda,
             args.paso_cierra, args.paso_abre, args.dq_max, args.refractario)
+    _prepara_soporte(ctx, args)
     if not _aproxima(ctx, args, d, args.ref * args.frac_aprox):
         return None
     ctx.dof_control = d
@@ -500,7 +540,10 @@ def _trial_lazo(ctx, args):
     t0 = time.perf_counter()
     h = []
 
+    pert, est = _perturbador(ctx, args, h)
+
     def ctl(c, t, p, f, ff):
+        pert(t - t0)
         toca, dt, _ = c.disp[d].toca(t, ff)
         if toca:
             dq, e, P, I = pi.paso(args.ref, f[d], dt, t)
@@ -511,17 +554,39 @@ def _trial_lazo(ctx, args):
         h.append((t - t0, f[d], c.lector.cur[d] if c.lector.cur[d] is not None else 0))
 
     bucle(ctx, args.hold_s, ctl, parar_en_evento=True)
+    ctx.t_pert = est['t']
     return h
 
 
 def _metricas(h, args):
     if not h or len(h) < 20:
         return None
-    T = [x[0] for x in h]; F = [x[1] for x in h]; I = [x[2] for x in h]
+    T = [x[0] for x in h]; F = [x[1] for x in h]
     cola = [x for x in h if x[0] >= T[-1] - args.cola_s]
-    return dict(pico=max(F), err_reg=statistics.median([x[1] for x in cola]) - args.ref,
-                err_abs=abs(statistics.median([x[1] for x in cola]) - args.ref),
-                I_med=statistics.median([x[2] for x in cola]), n=len(h))
+    f_fin = statistics.median([x[1] for x in cola])
+    m = dict(pico=max(F), err_reg=f_fin - args.ref, err_abs=abs(f_fin - args.ref),
+             I_med=statistics.median([x[2] for x in cola]), n=len(h),
+             f_base=None, salto=None, recup=None, resid=None)
+    if args.perturba_u > 0 and T[-1] > args.perturba_t + 5:
+        tp = args.perturba_t
+        antes = [x[1] for x in h if tp - 5 <= x[0] < tp]
+        desp = [x[1] for x in h if tp <= x[0] <= tp + 3]
+        if antes and desp:
+            # LA PERTURBACION ES EL ESCALON DE `--perturba-u`, identico por
+            # construccion en los dos brazos. El salto de FUERZA no lo es: es ya
+            # parte de la RESPUESTA, porque el lazo empieza a abrir dentro de la
+            # ventana. Normalizar por el premiaba al que reacciona rapido con un
+            # divisor mas pequeño (piloto: +33 g el lazo contra +83 g el firmware,
+            # del mismo escalon de 32 u).
+            m['f_base'] = statistics.median(antes)
+            m['salto'] = max(desp) - m['f_base']
+            # Lo que se compara es si VUELVE A SU PROPIA LINEA DE BASE. Medirlo
+            # contra F* mezclaria el rechazo de la perturbacion con el error en
+            # regimen que el brazo ya arrastraba antes de perturbarlo.
+            m['resid'] = f_fin - m['f_base']
+            if abs(m['salto']) >= 10:
+                m['recup'] = 1.0 - abs(m['resid']) / abs(m['salto'])
+    return m
 
 
 def modo_comparar(ctx, args):
@@ -546,14 +611,19 @@ def modo_comparar(ctx, args):
     print(f"A2 · INTERCALADO · {DOF_NAMES[d]} · F* = {args.ref:.0f} g · "
           f"{args.pares} pares · orden {' '.join(o[0].upper() for o in orden)}")
 
-    idx = os.path.join(args.outdir, f'a2_intercalado_dof{d}_F{int(args.ref)}.csv')
+    # El sufijo de perturbacion NO es cosmetico: sin el, una tanda con escalon
+    # se anexaria al indice de la compuerta A2 sin perturbacion y mezclaria dos
+    # experimentos distintos en el mismo fichero.
+    suf = f'_pert{args.perturba_u}' if args.perturba_u > 0 else ''
+    idx = os.path.join(args.outdir, f'a2_intercalado_dof{d}_F{int(args.ref)}{suf}.csv')
     nuevo_f = not os.path.exists(idx)
     res = {'firmware': [], 'lazo': []}
     with open(idx, 'a', newline='') as fh:
         w = csv.writer(fh)
         if nuevo_f:
             w.writerow(['bloque', 'n', 'brazo', 'pico', 'err_reg', 'I_med',
-                        'temp', 'n_muestras', 'tarado', 'nota'])
+                        'temp', 'n_muestras', 'tarado', 'nota',
+                        'f_base', 'salto', 'resid', 'recup'])
         for k, brazo in enumerate(orden, 1):
             abrir_mano(ctx.hand, args, ctx.hold)
             # Cada trial arranca limpio: si no, el timeout de la guarda corre desde
@@ -591,17 +661,26 @@ def modo_comparar(ctx, args):
                 print("  trial sin datos utilizables — queda anotado como abortado")
                 w.writerow([args.bloque, k, brazo, '', '', '',
                             temps[d] if temps else '', 0,
-                            'si' if ok else 'no', 'abortado'])
+                            'si' if ok else 'no', 'abortado', '', '', '', ''])
                 fh.flush()
                 continue
             res[brazo].append(m)
             w.writerow([args.bloque, k, brazo, f"{m['pico']:.0f}",
                         f"{m['err_reg']:+.0f}", f"{m['I_med']:.0f}",
                         temps[d] if temps else '', m['n'],
-                        'si' if ok else 'no', ''])
+                        'si' if ok else 'no', '',
+                        '' if m['f_base'] is None else f"{m['f_base']:.0f}",
+                        '' if m['salto'] is None else f"{m['salto']:+.0f}",
+                        '' if m['resid'] is None else f"{m['resid']:+.0f}",
+                        '' if m['recup'] is None else f"{m['recup']:.3f}"])
             fh.flush()
+            extra = ''
+            if m['salto'] is not None:
+                extra = (f" · pico {m['salto']:+.0f} g sobre base {m['f_base']:.0f}"
+                         f" → residual {m['resid']:+.0f} g"
+                         + (f" ({100*m['recup']:.0f} % rechazado)" if m['recup'] is not None else ''))
             print(f"  pico {m['pico']:4.0f} g · error en régimen {m['err_reg']:+5.0f} g · "
-                  f"I {m['I_med']:3.0f} mA · {temps[d] if temps else '?'} °C")
+                  f"I {m['I_med']:3.0f} mA · {temps[d] if temps else '?'} °C{extra}")
 
     print(f"\n  índice: {idx}")
     for b in ('firmware', 'lazo'):
@@ -609,10 +688,21 @@ def modo_comparar(ctx, args):
         if not v:
             continue
         e = [x['err_abs'] for x in v]
-        print(f"  {b:9s} n={len(v)} · |error| mediana {statistics.median(e):5.1f} g "
-              f"(rango {min(e):.0f}–{max(e):.0f}) · pico mediana "
-              f"{statistics.median([x['pico'] for x in v]):5.0f} g · "
-              f"I {statistics.median([x['I_med'] for x in v]):.0f} mA")
+        r = [x['recup'] for x in v if x['recup'] is not None]
+        sa = [x['salto'] for x in v if x['salto'] is not None]
+        linea = (f"  {b:9s} n={len(v)} · |error| mediana {statistics.median(e):5.1f} g "
+                 f"(rango {min(e):.0f}–{max(e):.0f}) · pico mediana "
+                 f"{statistics.median([x['pico'] for x in v]):5.0f} g")
+        rs = [x['resid'] for x in v if x['resid'] is not None]
+        if sa:
+            linea += f" · pico mediano {statistics.median(sa):+.0f} g"
+        if rs:
+            linea += (f" · RESIDUAL mediano {statistics.median(rs):+.0f} g "
+                      f"(rango {min(rs):+.0f}–{max(rs):+.0f})")
+        if r:
+            linea += (f" · RECUPERACIÓN mediana {100*statistics.median(r):.0f} % "
+                      f"(rango {100*min(r):.0f}–{100*max(r):.0f})")
+        print(linea)
     return 0
 
 
@@ -657,6 +747,12 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--soporte', type=int, default=None,
+                   help='ANGLE_SET de los 4 dedos de soporte; pre-flexionarlos deja margen de perturbar')
+    p.add_argument('--perturba-u', type=int, default=0,
+                   help='unidades que se FLEXIONA el soporte como escalon de perturbacion')
+    p.add_argument('--perturba-t', type=float, default=25.0,
+                   help='segundos dentro del sostenimiento a los que entra el escalon')
     p.add_argument('--contacto-min', type=float, default=80.0,
                    help='resbalón: fuerza mínima para considerar que ya hay contacto')
     p.add_argument('--aplicar', action='store_true', help='tara: aplicarla de verdad')

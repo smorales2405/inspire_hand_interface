@@ -352,3 +352,135 @@ compuerta se reporta **también sin él**, y la conclusión no se mueve:
 - **No cubre `F* = 450`** ni la perturbación en marcha: el firmware aquí decae y
   ya está, pero nadie ha empujado el objeto para ver si el lazo **re-corrige**,
   que es la otra mitad de lo que un lazo debería dar.
+
+---
+
+## Perturbación para la re-corrección · el soporte como actuador
+
+En el montaje de A2 (`block1` sobre las falanges, pulgar contra el canto) **no hay
+un segundo dedo oponiéndose**, así que la perturbación no puede venir de apretar
+más: viene de **mover el soporte**. Los cuatro dedos sostienen el bloque y están
+ociosos, así que sirven de actuador de perturbación — repetible, con magnitud
+elegida y **sin manos humanas en la trayectoria**.
+
+Medido con el pulgar regulado a 250 g y el soporte pre-flexionado a 950:
+
+| Flexión del soporte | ΔF en el pulgar | POS del pulgar |
+|---|---|---|
+| −8 u | +4 g (holgura) | +0 |
+| −12 u | +10 g | −1 |
+| −20 u | +26 g | −1 |
+| −28 u | +43 g | −2 |
+| **−32 u** | **+56 g** | **−2** |
+
+≈ **1.75 g por unidad** tras absorber ~8 u de holgura. El `POS` del pulgar no se
+mueve: **el bloque entra contra el dedo**, el dedo no avanza. Eso es justo lo que
+debe ser una perturbación — actúa sobre el objeto, no sobre el actuador regulado.
+
+### La autoridad es de un solo sentido, y eso decide el diseño
+
+El primer intento fue al revés —extender el soporte para **descargar** el pulgar—
+y no funciona:
+
+| | autoridad |
+|---|---|
+| Flexionar (carga) | **+56 g en 32 u**, monótono |
+| Extender (descarga) | **−23 g en 45 u**, y **satura**: −13 g en las primeras 15 u, luego se aplana |
+
+El bloque no baja con los dedos que se retiran porque el pulgar lo retiene por
+fricción. Es la misma histéresis no retrodrivable que ya aparece en todo lo demás.
+Con 23 g de autoridad —apenas la banda muerta— no se puede perturbar nada.
+
+**Consecuencia:** la perturbación es **flexionar el soporte**, y por tanto se prueba
+la re-corrección en el sentido de **fuerza excesiva**: el lazo debe **abrir** para
+volver a `F*`. No es un premio de consolación, es el sentido que más importa para
+la seguridad —un objeto que se aprieta más de lo previsto es como se rompe— y
+además es donde el firmware está **estructuralmente incapacitado**: con
+`FORCE_SET = F*`, en cuanto `FORCE_ACT` lo supera el dedo deja de aceptar
+`ANGLE_SET` **en los dos sentidos**, así que no es que no corrija, es que queda
+**enclavado** en la fuerza alta.
+
+### Métrica
+
+Normalizada por la perturbación medida, no por la nominal:
+
+```
+recuperación = 1 − |error 15 s después del escalón| / |salto de fuerza en el escalón|
+```
+
+El firmware debería dar ~0 por construcción. Sirve igual si algún día la
+perturbación la da una mano humana, que no puede ser repetible: el sensor dice
+cuánto se perturbó.
+
+---
+
+## Re-corrección tras perturbación · **el lazo rechaza el 88 %, el firmware el 10 %**
+
+Protocolo intercalado con escalón de perturbación: soporte pre-flexionado a 950,
+el pulgar regulado a `F* = 250 g`, y a los **25 s** del sostenimiento los cuatro
+dedos de soporte flexionan **32 unidades** y se quedan ahí. Idéntico en los dos
+brazos: es la perturbación, no el tratamiento. N = 10 por brazo, una sola tanda,
+bloques balanceados. `Control/data/a2_intercalado_dof4_F250_pert32.csv`.
+
+| | firmware | lazo PI | p |
+|---|---|---|---|
+| **Residual sobre su propia base, 20 s después** | **+75 g** (rango 60–83) | **+8 g** (rango 2–25) | **0.0088** |
+| Pico de la excursión | +87 g (82–92) | +62 g (48–73) | 0.0027 |
+| Rechazo | **10 %** | **88 %** | |
+
+(Los valores son sin los trials 18 y 19; con los 20, +76.5 contra +7.5 g y
+p = 0.0010.) **Los rangos no se solapan.**
+
+El firmware no es que corrija mal: **no corrige**. Su 10 % es relajación pasiva,
+la misma de E3.4. Y hay una razón estructural: con `FORCE_SET = F*`, en cuanto
+`FORCE_ACT` lo supera el dedo **deja de aceptar `ANGLE_SET` en los dos sentidos**,
+así que queda **enclavado** en la fuerza alta. El lazo vuelve a su línea de base.
+
+### La métrica se corrigió dos veces, y el piloto lo destapó
+
+**No normalizar por el salto de fuerza.** El mismo escalón de 32 u dio +33 g al
+lazo y +83 g al firmware, porque **el lazo ya está abriendo dentro de la ventana
+de medida**: el salto es *respuesta*, no perturbación. Normalizar por él premia al
+que reacciona rápido con un divisor más pequeño. La perturbación es el escalón de
+32 unidades, idéntico por construcción.
+
+**No medir contra `F*`, sino contra la propia base.** Medirlo contra `F*` mezcla
+el rechazo de la perturbación con el error en régimen que el brazo ya arrastraba
+(el firmware parte de ~230 g, no de 250). Y la primera versión acreditaba como
+«recuperación» la relajación pasiva: daba un 55 % a un brazo que no manda nada.
+
+### Geometría real del contacto (verificada por cámara)
+
+`block1` **no está apoyado plano sobre las cuatro falanges**: está de pie,
+inclinado ~20–25°, **acuñado entre dos contactos estrechos** — la punta de la yema
+distal del pulgar contra su **canto superior**, y la falange proximal del
+índice/medio contra el **canto inferior** opuesto. Como se sostiene sobre dos
+líneas, **puede rotar**: la perturbación no lo traslada, lo **bascula** contra la
+punta del pulgar. Eso explica las ~8 u de holgura antes de que la fuerza responda.
+
+Rastreo subpíxel (plantilla: el conector IEC, solidario con el objeto):
+
+| | pico-a-pico |
+|---|---|
+| Sosteniendo, sin perturbar | 0.175 px mediana · **0.395 px máx** |
+| Durante el escalón | **2.83 px máx** — 7× el ruido, ~1 % del ancho del bloque |
+
+> El veredicto automático de `exp3_track_object.py` dijo «0.2×, en el ruido»
+> porque compara **medianas** de ventanas, y esto es **un solo** escalón: casi
+> todas las ventanas caen después de que se asiente. Para un evento único el
+> estadístico es el máximo, no la mediana.
+
+### Una lectura corrupta encadenó dos fallos
+
+En el trial 18 la guarda saltó con **3187 g**, imposible para este sensor. Abortó
+el trial a los 37 s **y** el final abrupto dejó 144 g en la yema, lo que hizo
+**rechazar la tara del trial 19**, que corrió con el cero corrido. Un dato suelto,
+dos trials tocados.
+
+La guarda de fuerza ahora exige **persistencia** (`--fuerza-ciclos`, 3 por
+defecto), igual que ya hacía la de corriente. A ~400 Hz son <10 ms: no compromete
+la seguridad y es inmune al dato suelto. Verificado en banco: ignora el glitch de
+una muestra y sigue abortando una sobrecarga sostenida.
+
+Es el **tercer** fallo de la misma familia (POS 988 en la compuerta A2, 3187 g
+aquí): toda comparación muestra-a-muestra contra un umbral necesita persistencia.

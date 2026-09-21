@@ -90,6 +90,13 @@ def main(argv=None):
            ('error con signo (g)',    lambda r: float(r['err_reg']),      'el firmware deberia decaer'),
            ('pico (g)',               lambda r: float(r['pico']),         'menor mejor'),
            ('corriente en regimen (mA)', lambda r: float(r['I_med']),     'el par activo se paga en corriente')]
+    if any(r.get('recup') for r in filas):
+        met.insert(0, ('RESIDUAL tras la perturbacion (g)',
+                       lambda r: abs(float(r['resid'])),
+                       'cuanto queda SOBRE SU PROPIA BASE 20 s despues; menor mejor'))
+        met.insert(1, ('pico de la excursion (g)',
+                       lambda r: float(r['salto']),
+                       'RESPUESTA, no perturbacion: el lazo ya abre dentro de la ventana'))
 
     for nombre, f, nota in met:
         va = [f(r) for r in g['firmware']]

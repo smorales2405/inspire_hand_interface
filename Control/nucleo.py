@@ -237,15 +237,27 @@ class Guarda:
         self.a, self.dofs = args, dofs
         self.motivo = None
         self.cur_alta = 0
+        self.f_alta = 0
         self.t0 = time.perf_counter()
 
     def revisa(self, f, c, temps=None):
         a = self.a
+        # Exige PERSISTENCIA, como ya hacia la corriente. Una sola lectura
+        # corrupta basta para abortar: en la tanda de perturbacion la guarda
+        # salto con 3187 g —imposible para este sensor— y el final abrupto dejo
+        # carga en la yema, que ademas hizo rechazar la tara del trial siguiente.
+        # A ~400 Hz, 3 muestras son <10 ms: no compromete la seguridad.
         if f:
-            for d in self.dofs:
-                if abs(f[d]) > a.techo_fuerza:
-                    self.motivo = f"{DOF_NAMES[d]}: {f[d]} g > techo {a.techo_fuerza}"
+            alto = [d for d in self.dofs if abs(f[d]) > a.techo_fuerza]
+            if alto:
+                self.f_alta += 1
+                if self.f_alta >= a.fuerza_ciclos:
+                    d = alto[0]
+                    self.motivo = (f"{DOF_NAMES[d]}: {f[d]} g > techo {a.techo_fuerza} "
+                                   f"en {self.f_alta} muestras seguidas")
                     return self.motivo
+            else:
+                self.f_alta = 0
         if c and any(c[d] is not None and c[d] > a.corriente_max for d in self.dofs):
             self.cur_alta += 1
             if self.cur_alta > a.corriente_ciclos:
@@ -487,6 +499,9 @@ def argumentos_comunes(p):
     p.add_argument('--fset-respaldo', type=int, default=700,
                    help='paro del firmware; por encima del techo software')
     p.add_argument('--corriente-max', type=int, default=700)
+    p.add_argument('--fuerza-ciclos', type=int, default=3,
+                   help='muestras seguidas sobre el techo antes de abortar; '
+                        'una lectura corrupta suelta no debe parar una tanda')
     p.add_argument('--corriente-ciclos', type=int, default=25)
     p.add_argument('--temp-max', type=int, default=50)
     p.add_argument('--timeout-s', type=float, default=600.0)

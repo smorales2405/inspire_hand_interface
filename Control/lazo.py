@@ -34,6 +34,7 @@ sys.path.insert(0, _HERE)
 
 from nucleo import (                                         # noqa: E402
     Lector, Guarda, Disparador, PI, DetectorResbalon, DetectorEscape, Tara, Bitacora,
+    EstimadorRLS,
     abrir_mano, conectar, vector, argumentos_comunes,
     NDOF, ANGLE_SET, ANGLE_ACT, FORCE_SET, SPEED_SET, DOF_NAMES,
 )
@@ -731,8 +732,15 @@ def modo_pinza(ctx, args):
     det = jtt * jii - jti * jit
     if abs(det) < 1e-6:
         print("  ABORTA: matriz de acoplamiento singular"); return 3
-    # dcmd = J^-1 · dF
-    inv = ((jii / det, -jti / det), (-jit / det, jtt / det))
+    # dcmd = J^-1 · dF   (J en g por unidad de comando: el camino fijo de A3)
+    inv_fijo = ((jii / det, -jti / det), (-jit / det, jtt / det))
+    # A4: el estimador trabaja en g por COUNT de POS, porque POS dice lo que el
+    # dedo hizo de verdad. El prior sale de la misma J, dividida por los counts
+    # que da cada unidad de comando (medido: 1.00 pulgar, 1.75 indice).
+    rT, rI = args.pos_por_u_t, args.pos_por_u_i
+    est = EstimadorRLS(((jtt / rT, jti / rI), (jit / rT, jii / rI)),
+                       lam=args.rls_lam, min_pos=args.rls_min_pos,
+                       ridge=args.rls_ridge) if args.rls else None
     # UNA colocacion, VARIAS consignas. Al salir del proceso la mano se abre
     # —politica de seguridad innegociable— asi que cada invocacion cuesta una
     # recolocacion a mano. Encadenando los tramos dentro de la misma tanda, un
@@ -775,6 +783,9 @@ def modo_pinza(ctx, args):
     t_ini = time.perf_counter()
     hist = []
     st = {'k': 0, 'rT': ref_T, 'rI': ref_I, 't_tramo': 0.0}
+    # accion pendiente de evaluar: (t, POS, F) antes del escalon
+    pend = {'t': None, 'p': None, 'f': None}
+    n_fallback = [0]
     perdido = {'si': False}
 
     def control(c2, t, p2, f2, ff2):
@@ -805,8 +816,27 @@ def modo_pinza(ctx, args):
         # el PI pide CAMBIO DE FUERZA; J^-1 lo traduce a comando
         uT = pi[T].fuerza_pedida(eT, dtT if tT else 0.0, t)
         uI = pi[I].fuerza_pedida(eI, dtI if tI else 0.0, t)
-        dT = inv[0][0] * uT + inv[0][1] * uI
-        dI = inv[1][0] * uT + inv[1][1] * uI
+        # cerrar la accion anterior y dar de comer al estimador
+        if est is not None and pend['t'] is not None and t - pend['t'] >= args.rls_espera:
+            dp = (p2[T] - pend['p'][0], p2[I] - pend['p'][1])
+            dF = (f2[T] - pend['f'][0], f2[I] - pend['f'][1])
+            est.actualiza(dp, dF)
+            pend['t'] = None
+        if est is not None:
+            iK = est.inversa()
+            if iK is None:
+                n_fallback[0] += 1
+                inv = inv_fijo
+                dT = inv[0][0] * uT + inv[0][1] * uI
+                dI = inv[1][0] * uT + inv[1][1] * uI
+            else:
+                # K^-1 da Δpos; Δpos/ratio da el comando
+                dT = (iK[0][0] * uT + iK[0][1] * uI) / rT
+                dI = (iK[1][0] * uT + iK[1][1] * uI) / rI
+        else:
+            inv = inv_fijo
+            dT = inv[0][0] * uT + inv[0][1] * uI
+            dI = inv[1][0] * uT + inv[1][1] * uI
         # ESCALAR, no recortar por separado. Recortar un dedo y no el otro cambia
         # la DIRECCION de la correccion en el espacio de fuerzas y deshace el
         # desacoplo. Escalando los dos por el mismo factor se conserva.
@@ -814,12 +844,16 @@ def modo_pinza(ctx, args):
         if mx > args.dq_max:
             k = args.dq_max / mx
             dT *= k; dI *= k
+        emitido = False
         for d, dq_f, pid in ((T, dT, pi[T]), (I, dI, pi[I])):
             dq = pid.cuantiza(dq_f, t)
             if dq:
                 cmd = c2.cmds.get(d)
                 if cmd is not None:
                     c2.manda({d: max(0, min(1000, cmd - dq))})
+                    emitido = True
+        if emitido and est is not None and pend['t'] is None:
+            pend['t'] = t; pend['p'] = (p2[T], p2[I]); pend['f'] = (f2[T], f2[I])
         hist.append((t - t_ini, f2[T], f2[I], eT, eI, st['k']))
 
     m = bucle(ctx, args.duracion, control, parar_en_evento=True)
@@ -841,6 +875,10 @@ def modo_pinza(ctx, args):
         b_fin = statistics.median([h[1] - h[2] for h in cola])
         print(f"  {k+1:>5}  {a_ini:6.0f}→{a_fin:4.0f} (obj {ap:3.0f}, err {a_fin-ap:+4.0f})"
               f"  {b_ini:+6.0f}→{b_fin:+4.0f} (obj {ba:+4.0f}, err {b_fin-ba:+4.0f})")
+    if est is not None:
+        print(f"  RLS · K final (g/count) = {est}")
+        print(f"        {est.n_uso} actualizaciones · {est.n_congelado} congeladas "
+              f"por poco movimiento · {n_fallback[0]} caidas al prior")
     if m:
         print(f"  {m}")
     return 0
@@ -887,6 +925,17 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--rls', action='store_true',
+                   help='estima J en linea (A4) en vez de usar la matriz fija')
+    p.add_argument('--rls-lam', type=float, default=0.97, help='olvido del RLS')
+    p.add_argument('--rls-min-pos', type=float, default=5.0,
+                   help='counts de Σ|Δpos| por debajo de los cuales se CONGELA')
+    p.add_argument('--rls-ridge', type=float, default=5e-3)
+    p.add_argument('--rls-espera', type=float, default=0.40,
+                   help='segundos tras la accion antes de medir su efecto')
+    p.add_argument('--pos-por-u-t', type=float, default=1.00,
+                   help='counts de POS por unidad de comando, pulgar (MEDIDO)')
+    p.add_argument('--pos-por-u-i', type=float, default=1.75, help='idem indice')
     p.add_argument('--secuencia', default=None,
                    help='tramos "apriete:balance,apriete:balance,..." en UNA sola '
                         'tanda; al salir la mano se abre y se pierde el objeto')

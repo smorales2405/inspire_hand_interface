@@ -612,3 +612,67 @@ orden de abrir, no cediendo. Sin esa distincion no hay detector que lo pille.
 Ademas, al recortar por `dq_max` hay que **escalar el par entero**, no cada dedo
 por separado: recortar uno y no el otro cambia la direccion de la correccion en el
 espacio de fuerzas y deshace el desacoplo.
+
+---
+
+## A4 · estimador de ganancia en linea (RLS)
+
+RLS de `ΔF` contra **`Δpos`**, no contra `Δcmd`: un comando que no se ejecuta
+—holgura, saturacion, dedo aun viajando— haria concluir ganancia **cero** justo
+cuando la ganancia es alta. `POS` dice lo que el dedo hizo de verdad. Sin
+escalones de sondeo, como pide el plan: se aprende de las acciones del lazo.
+
+Conversion de unidades, medida sobre la bitacora de A3: **`Δpos/Δcmd` = −1.00
+counts/u en el pulgar y −1.75 en el indice** (negativo porque `POS` crece con la
+flexion y `ANGLE_SET` decrece). Con eso la `J` de banco se convierte en el prior
+en g/count.
+
+### Validado en frio antes de tocar hardware
+
+Replayando la bitacora de A3 (15695 filas, incluida la oscilacion), el estimador
+va del prior `[5.40 5.43 ; 2.40 7.20]` a `[4.68 1.05 ; 3.00 10.54]`, y **detecta
+el endurecimiento que causo la inestabilidad**: en el tramo 4, con el apriete
+subiendo 154 → 224 → 241 g, la ganancia propia del pulgar pasa de 3.84 a 4.68 y
+el determinante de 38 a 46.
+
+> **La excitacion es marginal, y eso decide el diseño.** La correlacion entre
+> `Δpos_pulgar` y `Δpos_indice` sale **−0.84**: el lazo casi siempre abre uno y
+> cierra el otro, asi que las columnas son casi colineales y **las cruzadas
+> apenas son identificables** — `k_TI` cayo de 5.43 a ~1.0 con solo 16 muestras
+> utiles en 61 s. Por eso el ridge es **anisotropo**: la diagonal se estima libre
+> (cada dedo domina su propia fuerza, bien excitada) y las cruzadas quedan atadas
+> al prior diez veces mas fuerte.
+
+### Resultado en hardware
+
+Misma secuencia que A3, mismo montaje, agarre inicial casi identico (86/124 g
+contra 85/124 g):
+
+| tramo | apriete A3 → **A4** | balance A3 → **A4** |
+|---|---|---|
+| `[150, 0]` | −10 → **+1** | −24 → **−18** |
+| `[150, +60]` | −4 → **+5** | −18 → **−5** |
+| `[150, −60]` | +0 → **−0** | +24 → **+1** |
+| `[220, 0]` | −24, **oscilaba** | −18, **estable** |
+
+**El tramo que con matriz fija se descontrolo y se corto a los 61 s corre ahora
+los 82 s enteros sin un solo evento.** Y el balance sigue la consigna casi
+exactamente: pedir +60 da **+55**, pedir −60 da **−59**.
+
+`K` final: `[4.46 2.44 ; 1.13 9.01]`, det 37.45, con **6 actualizaciones**, 0
+congeladas y **0 caidas al prior**.
+
+> **Una sola tanda por condicion.** El contraste del tramo 4 es cualitativo y
+> grande (oscila / no oscila) y la mejora del balance es consistente en los tres
+> tramos, pero esto **no** es todavia el protocolo intercalado. Para afirmarlo con
+> p hace falta alternar matriz fija y RLS en la misma tanda, y eso choca con que
+> cada invocacion suelta la bola al salir.
+
+### Los cortafuegos, ejercitados de verdad
+
+La prueba de humo con la **mano vacia** los valido mejor que cualquier test
+sintetico: sin objeto la ganancia real **es** casi cero, el estimador lo aprendio
+(det → 0.90), el chequeo de condicionamiento lo cazo y el lazo **cayo al prior 75
+veces** en vez de invertir algo casi singular y mandar correcciones disparatadas.
+Hay ademas un chequeo de diagonal positiva: cerrar un dedo no puede bajar su
+propia fuerza, y si la estimacion dice eso, se fue.

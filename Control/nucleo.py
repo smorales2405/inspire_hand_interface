@@ -348,9 +348,13 @@ class DetectorResbalon:
             retroceso = statistics.median(vals[:k]) - statistics.median(vals[-k:])
             if retroceso * CIERRA_POS < self.counts:
                 continue
-            # ¿se le pidió abrir? entonces no es resbalón, es obediencia
+            # ¿se le pidió abrir EN ALGUN MOMENTO de la ventana? entonces no es
+            # resbalon, es obediencia con retardo. Comparar solo el primer comando
+            # con el ultimo no basta: si el lazo abre y revierte dentro de la
+            # ventana, el neto es cero y el POS bajando parece un resbalon. Paso
+            # en el cubo de PLA —cmd 702→708→702 en 0.28 s— y aborto la tanda.
             cmds_v = [c for _, c in self.cmd_hist[d] if c is not None]
-            if len(cmds_v) >= 2 and cmds_v[-1] > cmds_v[0]:          # ANGLE_SET subió = abrir
+            if len(cmds_v) >= 2 and max(cmds_v) - cmds_v[0] >= 2:    # ANGLE_SET subio = abrir
                 continue
             ev = dict(t=t, dof=d, counts=retroceso, ventana=self.ventana)
             self.eventos.append(ev)
@@ -447,6 +451,93 @@ class Tara:
         time.sleep(1.5)
         self.n += 1
         return True, "tarada"
+
+
+class EstimadorRLS:
+    """Minimos cuadrados recursivos de la matriz de ganancia de la pinza.
+
+        [ΔF_T]   [k_TT  k_TI] [Δpos_T]
+        [ΔF_I] = [k_IT  k_II] [Δpos_I]
+
+    **Contra `Δpos`, no contra `Δcmd`.** Un comando que no se ejecuta —holgura,
+    saturacion, el dedo aun viajando— haria concluir ganancia cero justo cuando
+    la ganancia es alta. `POS` dice lo que el dedo hizo de verdad.
+
+    **Sin escalones de sondeo**, como pide el plan: se aprende de las acciones del
+    propio lazo. El precio es que la excitacion no esta garantizada, y de ahi las
+    dos protecciones:
+
+    - **Congelar con poco movimiento.** Si `Σ|Δpos| < min_pos`, la muestra es
+      ruido dividido por casi cero. Medido en banco: el 15 % de las acciones dan
+      `Δpos = 0` y el 38 % menos de 3 counts.
+    - **Regularizacion hacia el prior.** Si los dos dedos se mueven siempre en la
+      misma proporcion, las columnas son colineales y las cruzadas NO son
+      identificables. El ridge mantiene la estimacion pegada a la `J` medida en
+      banco en vez de dejarla irse por un modo no excitado.
+    """
+
+    def __init__(self, prior, lam=0.98, min_pos=5.0, ridge=1e-3, p0=10.0,
+                 ridge_cruz=None):
+        self.K = [list(prior[0]), list(prior[1])]      # [[kTT,kTI],[kIT,kII]]
+        self.prior = [list(prior[0]), list(prior[1])]
+        self.lam, self.min_pos, self.ridge = lam, min_pos, ridge
+        # RIDGE ANISOTROPO. Replayando A3, la correlacion entre Δpos_pulgar y
+        # Δpos_indice sale -0.84: el lazo casi siempre abre uno y cierra el otro,
+        # asi que las columnas son casi colineales y las CRUZADAS apenas son
+        # identificables (la estimacion de k_TI cayo de 5.43 a ~1.0 con 16
+        # muestras). La diagonal si esta bien excitada. Por eso las cruzadas se
+        # atan al prior mucho mas fuerte que la diagonal.
+        self.ridge_cruz = ridge * 10 if ridge_cruz is None else ridge_cruz
+        self.P = [[p0, 0.0], [0.0, p0]]                # covarianza compartida
+        self.n_uso = 0
+        self.n_congelado = 0
+
+    def actualiza(self, dpos, dF):
+        """Una accion: dpos=(ΔPOS_T, ΔPOS_I), dF=(ΔF_T, ΔF_I)."""
+        x0, x1 = dpos
+        if abs(x0) + abs(x1) < self.min_pos:
+            self.n_congelado += 1
+            return False
+        P, lam = self.P, self.lam
+        # ganancia de Kalman: g = P x / (lam + x' P x)
+        Px = (P[0][0] * x0 + P[0][1] * x1, P[1][0] * x0 + P[1][1] * x1)
+        den = lam + x0 * Px[0] + x1 * Px[1]
+        if den <= 1e-9:
+            return False
+        g = (Px[0] / den, Px[1] / den)
+        for i in range(2):                              # una fila por dedo
+            pred = self.K[i][0] * x0 + self.K[i][1] * x1
+            err = dF[i] - pred
+            for j in range(2):
+                self.K[i][j] += g[j] * err
+                r = self.ridge if i == j else self.ridge_cruz
+                self.K[i][j] += r * (self.prior[i][j] - self.K[i][j])
+        for i in range(2):
+            for j in range(2):
+                P[i][j] = (P[i][j] - g[i] * Px[j]) / lam
+        self.n_uso += 1
+        return True
+
+    def det(self):
+        return self.K[0][0] * self.K[1][1] - self.K[0][1] * self.K[1][0]
+
+    def sano(self):
+        """Una diagonal no positiva es fisicamente imposible —cerrar un dedo no
+        puede bajar su propia fuerza— y significa que la estimacion se fue."""
+        return self.K[0][0] > 0.1 and self.K[1][1] > 0.1
+
+    def inversa(self, det_min=1e-3):
+        """J^-1, o None si esta mal condicionada: invertir algo casi singular
+        manda correcciones enormes en la direccion equivocada."""
+        d = self.det()
+        if abs(d) < det_min or not self.sano():
+            return None
+        return ((self.K[1][1] / d, -self.K[0][1] / d),
+                (-self.K[1][0] / d, self.K[0][0] / d))
+
+    def __str__(self):
+        return (f"[{self.K[0][0]:6.2f} {self.K[0][1]:6.2f} ; "
+                f"{self.K[1][0]:6.2f} {self.K[1][1]:6.2f}]  det={self.det():7.2f}")
 
 
 # ── bitácora ──────────────────────────────────────────────────────────────

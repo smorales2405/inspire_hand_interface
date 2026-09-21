@@ -489,6 +489,12 @@ class EstimadorRLS:
         # atan al prior mucho mas fuerte que la diagonal.
         self.ridge_cruz = ridge * 10 if ridge_cruz is None else ridge_cruz
         self.P = [[p0, 0.0], [0.0, p0]]                # covarianza compartida
+        # Umbral de singularidad RELATIVO al prior, no absoluto: `det` escala con
+        # el cuadrado de las ganancias, asi que un numero fijo vale para un objeto
+        # y no para otro. Con la mano vacia el det se hundio a 0.08 y un umbral de
+        # 1e-3 lo dejo pasar; lo unico que evito el disparate fue el recorte por
+        # dq_max, que es una red, no un criterio.
+        self.det_min = 0.05 * abs(prior[0][0] * prior[1][1] - prior[0][1] * prior[1][0])
         self.n_uso = 0
         self.n_congelado = 0
 
@@ -537,6 +543,35 @@ class EstimadorRLS:
         """
         return max(minimo, k * paso * abs(self.K[i][i]) * abs(ratio))
 
+    def bandas_coord(self, paso, rT, rI, k=0.5, minimo=4.0):
+        """Bandas muertas en las coordenadas que importan: (apriete, balance).
+
+        Dimensionar POR DEDO es demasiado conservador, y esta medido: el balance
+        no es tarea de un solo dedo —`J^-1` lo reparte y el pulgar fino carga la
+        precision que el indice basto no da—, asi que **la pareja puede hacerlo
+        mejor que el peor de sus dedos**. Sizar la banda del indice por su propio
+        cuanto dio 70 g y rompio el seguimiento del balance; con la banda fija de
+        24 g el mismo lazo lo hacia bien.
+
+        Lo correcto es el menor cambio que el PAR puede producir en cada
+        coordenada, que es el minimo sobre las acciones minimas disponibles:
+
+            mover solo el pulgar   → ds = ½(K_TT + K_IT)·rT·paso
+                                     db =  (K_TT − K_IT)·rT·paso
+            mover solo el indice   → ds = ½(K_TI + K_II)·rI·paso
+                                     db =  (K_TI − K_II)·rI·paso
+
+        Con la `K` de la bola eso da ~4 g de banda de balance moviendo solo el
+        pulgar, contra los 70 del indice: un factor 17.
+        """
+        dsT = 0.5 * (self.K[0][0] + self.K[1][0]) * abs(rT) * paso
+        dbT = (self.K[0][0] - self.K[1][0]) * abs(rT) * paso
+        dsI = 0.5 * (self.K[0][1] + self.K[1][1]) * abs(rI) * paso
+        dbI = (self.K[0][1] - self.K[1][1]) * abs(rI) * paso
+        ds = min(abs(dsT), abs(dsI))
+        db = min(abs(dbT), abs(dbI))
+        return (max(minimo, k * ds), max(minimo, k * db))
+
     def det(self):
         return self.K[0][0] * self.K[1][1] - self.K[0][1] * self.K[1][0]
 
@@ -545,11 +580,11 @@ class EstimadorRLS:
         puede bajar su propia fuerza— y significa que la estimacion se fue."""
         return self.K[0][0] > 0.1 and self.K[1][1] > 0.1
 
-    def inversa(self, det_min=1e-3):
+    def inversa(self, det_min=None):
         """J^-1, o None si esta mal condicionada: invertir algo casi singular
         manda correcciones enormes en la direccion equivocada."""
         d = self.det()
-        if abs(d) < det_min or not self.sano():
+        if abs(d) < (self.det_min if det_min is None else det_min) or not self.sano():
             return None
         return ((self.K[1][1] / d, -self.K[0][1] / d),
                 (-self.K[1][0] / d, self.K[0][0] / d))

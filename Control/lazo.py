@@ -780,6 +780,12 @@ def modo_pinza(ctx, args):
                 args.paso_abre, args.dq_max, args.refractario),
           I: PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
                 args.paso_abre, args.dq_max, args.refractario)}
+    # Ley de control EN COORDENADAS (apriete, balance) cuando se pide banda-coord.
+    # La cuantizacion se queda por dedo, que es donde vive el cuanto de verdad.
+    pi_s = PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+              args.paso_abre, args.dq_max, 0.0)
+    pi_b = PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+              args.paso_abre, args.dq_max, 0.0)
     t_ini = time.perf_counter()
     hist = []
     st = {'k': 0, 'rT': ref_T, 'rI': ref_I, 't_tramo': 0.0}
@@ -813,16 +819,37 @@ def modo_pinza(ctx, args):
             st['rI'] = ap - ba / 2.0
             print(f"  → tramo {k+1}: apriete {ap:.0f} g, balance {ba:+.0f} g")
         eT, eI = st['rT'] - f2[T], st['rI'] - f2[I]
-        # el PI pide CAMBIO DE FUERZA; J^-1 lo traduce a comando
-        uT = pi[T].fuerza_pedida(eT, dtT if tT else 0.0, t)
-        uI = pi[I].fuerza_pedida(eI, dtI if tI else 0.0, t)
+        dt_ = max(dtT if tT else 0.0, dtI if tI else 0.0)
+        if args.banda_coord > 0 and est is not None:
+            pi_s.banda, pi_b.banda = est.bandas_coord(
+                args.paso_cierra, rT, rI, args.banda_coord)
+        if args.banda_coord > 0:
+            # error en (apriete, balance) y banda muerta AHI, no por dedo
+            e_s = (eT + eI) / 2.0
+            e_b = eT - eI
+            u_s = pi_s.fuerza_pedida(e_s, dt_)
+            u_b = pi_b.fuerza_pedida(e_b, dt_)
+            uT = u_s + u_b / 2.0
+            uI = u_s - u_b / 2.0
+            # el refractario es del ACTUADOR, asi que sigue siendo por dedo
+            for d, pid in ((T, pi[T]), (I, pi[I])):
+                if (pid.t_accion is not None
+                        and t - pid.t_accion < pid.refractario):
+                    if d == T:
+                        uT = 0.0
+                    else:
+                        uI = 0.0
+        else:
+            # el PI pide CAMBIO DE FUERZA; J^-1 lo traduce a comando
+            uT = pi[T].fuerza_pedida(eT, dtT if tT else 0.0, t)
+            uI = pi[I].fuerza_pedida(eI, dtI if tI else 0.0, t)
         # cerrar la accion anterior y dar de comer al estimador
         if est is not None and pend['t'] is not None and t - pend['t'] >= args.rls_espera:
             dp = (p2[T] - pend['p'][0], p2[I] - pend['p'][1])
             dF = (f2[T] - pend['f'][0], f2[I] - pend['f'][1])
             est.actualiza(dp, dF)
             pend['t'] = None
-        if est is not None and args.banda_auto > 0:
+        if est is not None and args.banda_auto > 0 and args.banda_coord <= 0:
             # la banda la dimensiona la ganancia estimada, por dedo
             pi[T].banda = est.banda(0, args.paso_cierra, rT, args.banda_auto)
             pi[I].banda = est.banda(1, args.paso_cierra, rI, args.banda_auto)
@@ -881,11 +908,12 @@ def modo_pinza(ctx, args):
               f"  {b_ini:+6.0f}→{b_fin:+4.0f} (obj {ba:+4.0f}, err {b_fin-ba:+4.0f})")
     if est is not None:
         print(f"  RLS · K final (g/count) = {est}")
-        if args.banda_auto > 0:
+        if args.banda_coord > 0:
+            print(f"        bandas finales: apriete {pi_s.banda:.0f} g · "
+                  f"balance {pi_b.banda:.0f} g")
+        elif args.banda_auto > 0:
             print(f"        banda final: pulgar {pi[T].banda:.0f} g · "
-                  f"indice {pi[I].banda:.0f} g  (arrancaron en "
-                  f"{est.banda(0,args.paso_cierra,rT,args.banda_auto):.0f}/"
-                  f"{est.banda(1,args.paso_cierra,rI,args.banda_auto):.0f})")
+                  f"indice {pi[I].banda:.0f} g")
         print(f"        {est.n_uso} actualizaciones · {est.n_congelado} congeladas "
               f"por poco movimiento · {n_fallback[0]} caidas al prior")
     if m:
@@ -934,6 +962,10 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--banda-coord', type=float, default=0.0,
+                   help='k: banda muerta en coordenadas (apriete, balance), '
+                        'dimensionada por el menor cambio que el PAR puede '
+                        'producir en cada una. Sustituye a --banda-auto')
     p.add_argument('--banda-auto', type=float, default=0.0,
                    help='k: la banda pasa a ser k x escalon_minimo x ganancia '
                         'ESTIMADA, por dedo. 0.5 = medio escalon, el mejor error '

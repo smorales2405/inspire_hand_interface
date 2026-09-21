@@ -742,3 +742,49 @@ de 24 se comportaba mejor que la "adaptativa".
 
 `--banda-auto` queda en el codigo **desactivada por defecto**: es una idea con una
 prediccion cumplida y una falsada, no una mejora validada.
+
+### Y la version en coordenadas tambien falla, por la misma razon de fondo
+
+`banda = 0.5 × min(cambio que el PAR puede producir en esa coordenada)`. En frio
+promete: las bandas salen **estables entre tandas** donde las de por dedo no lo
+eran, precisamente porque la banda de balance la fija la accion *solo-pulgar* y
+la ganancia del pulgar es estable (3.94–4.67) mientras la del indice baila
+(8.14–15.92):
+
+| tanda | por dedo | en coordenadas |
+|---|---|---|
+| A4 bola (`K_II` 8.14) | pulgar 10 / indice 36 | apriete 9 / balance **4** |
+| banda-auto (`K_II` **15.92**) | pulgar 12 / indice **70** | apriete 10 / balance **4** |
+| cubo PLA (`K_II` 9.31) | pulgar 11 / indice 41 | apriete 8 / balance **5** |
+
+**En hardware aborto a 1.4 s.** El lazo oscila desde el arranque: comando del
+indice cazando 684↔690 y fuerza barriendo **±140 g**.
+
+| t | F indice | cmd indice |
+|---|---|---|
+| 0.17 | 140 | 687 |
+| 1.04 | **253** | 684 |
+| 1.29 | **114** | 690 |
+
+Con la banda de balance a 7 g el lazo no para de corregir, y **cada correccion
+arrastra un escalon del indice de 5 u (60–90 g)**, asi que cada una se pasa.
+
+### El error, que es el mismo las dos veces
+
+La regla en coordenadas dice bien **lo que el par puede lograr** —4–7 g de
+balance, *moviendo solo el pulgar*— pero **el controlador no elige esa accion**.
+`J^-1` reparte la correccion entre los dos dedos siempre, asi que toda correccion
+arrastra un escalon basto del indice y el cambio realizado es grueso por fina que
+sea la banda. **Dimensione la banda por la mejor accion disponible mientras el
+controlador no selecciona esa accion.**
+
+Lo que falta no es una tercera regla de banda: es **seleccion de accion**. Cuando
+el residual sea pequeño, mover **solo el pulgar** y dejar el indice quieto. Eso
+convierte el limite teorico en alcanzable, y es lo que hace una pinza con un dedo
+fino y otro basto. Queda como el siguiente paso, no implementado.
+
+> Conviene registrar el patron: **la banda fija de 24 g sigue siendo la mejor de
+> las tres** probadas (A4: balance −18/−5/+1/−11). Las dos reglas "principiadas"
+> que la querian mejorar fallaron por la misma causa no vista, y en los dos casos
+> la prediccion se hizo **antes** y la medida la tumbo. La banda fija se queda
+> como configuracion por defecto.

@@ -710,6 +710,135 @@ def modo_comparar(ctx, args):
     return 0
 
 
+def modo_modo2(ctx, args):
+    """B1 · modo 2 (pulgar + indice + medio), en dos versiones para contrastarlas.
+
+    **`--ingenuo`: tres lazos de fuerza independientes.** Es la version que el plan
+    pide correr para MOSTRAR que se degrada, no para que funcione. Indice y medio
+    se acoplan en NEGATIVO —medido aqui: -45 % y -10 %— asi que subir la consigna
+    de uno baja la fuerza real del otro, que responde subiendo, que baja la del
+    primero: realimentacion positiva en el lazo del error.
+
+    **Por defecto: coordenadas.** Indice y medio comparten un solo grado de
+    libertad de carga frente al pulgar, asi que no se les manda por separado:
+
+      - APRIETE: `F_T` contra `(F_I + F_M)` — la fuerza de agarre.
+      - REPARTO: `F_I - F_M` — evita que el objeto se ladee. Ganancia BAJA: decide
+        el ladeo, no la seguridad del agarre. Su referencia es el reparto
+        REGISTRADO AL AGARRAR, no 50/50: E3.6c midio que añadir el medio descarga
+        el indice, asi que el reparto natural es desigual.
+    """
+    T, I, M = 4, 3, 2
+    if not all(d in ctx.dofs for d in (T, I, M)):
+        print("  ABORTA: el modo 2 necesita pulgar, indice y medio (--pinza 2)"); return 3
+    t0, p0, f0, c0, fp0, ff0, fr0 = ctx.lector.muestra()
+    while not f0:
+        t0, p0, f0, c0, fp0, ff0, fr0 = ctx.lector.muestra()
+    if min(f0[T], f0[I], f0[M]) < args.contacto_min:
+        print(f"  ABORTA: sin contacto en los tres (pulgar {f0[T]}, indice {f0[I]}, "
+              f"medio {f0[M]} g). Este modo NO cierra la mano.")
+        return 3
+    # el reparto natural del agarre, no 50/50
+    rep0 = f0[I] - f0[M] if args.reparto is None else args.reparto
+    print(f"B1 · MODO 2 · {'INGENUO (3 lazos sueltos)' if args.ingenuo else 'COORDENADAS'}"
+          f" · agarre {args.ref:.0f} g")
+    print(f"  partida: pulgar {f0[T]} · indice {f0[I]} · medio {f0[M]} g")
+    print(f"  reparto de referencia (I-M) = {rep0:+.0f} g" + ("" if args.reparto is not None
+          else "  ← el REGISTRADO al agarrar, no 50/50"))
+    ctx.hand.write_block(FORCE_SET, [args.fset_respaldo] * NDOF)
+    ctx.hand.write_block(SPEED_SET, [args.vel_cierre] * NDOF)
+    ctx.lee_comandos()
+    ctx.dof_control = {T, I, M}
+    for d in (T, I, M):
+        ctx.disp[d].t_ultimo = None
+    pi = {d: PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+                args.paso_abre, args.dq_max, args.refractario) for d in (T, I, M)}
+    pi_rep = PI(args.kp_reparto, 0.0, args.lam, args.banda, args.paso_cierra,
+                args.paso_abre, args.dq_max, args.refractario)
+    pi_ap = PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+               args.paso_abre, args.dq_max, args.refractario)
+    t_ini = time.perf_counter()
+    hist = []
+
+    def control(c, t, p, f, ff):
+        tr = t - t_ini
+        toca = any(c.disp[d].toca(t, ff)[0] for d in (T, I, M))
+        if not toca:
+            hist.append((tr, f[T], f[I], f[M])); return
+        # el agarre se reparte entre los dos dedos opuestos al pulgar
+        ref_T = args.ref
+        if args.ingenuo:
+            # TRES lazos sueltos: cada dedo persigue su propia consigna, ignorando
+            # que mover uno mueve a los otros. Es lo que hay que mostrar que falla.
+            refs = {T: ref_T, I: args.ref / 2.0 + rep0 / 2.0,
+                    M: args.ref / 2.0 - rep0 / 2.0}
+            for d in (T, I, M):
+                u = pi[d].fuerza_pedida(refs[d] - f[d], 0.03, t)
+                dq = pi[d].cuantiza(u * args.kq, t)
+                if dq:
+                    cmd = c.cmds.get(d)
+                    if cmd is not None:
+                        c.manda({d: max(0, min(1000, cmd - dq))})
+        else:
+            # APRIETE sobre el pulgar y sobre la SUMA de indice+medio
+            e_ap = args.ref - (f[I] + f[M])
+            u_ap = pi_ap.fuerza_pedida(e_ap, 0.03, t)
+            # REPARTO: ganancia baja, decide el ladeo
+            e_rep = rep0 - (f[I] - f[M])
+            u_rep = pi_rep.fuerza_pedida(e_rep, 0.03, t)
+            emitido = False
+            for d, sg in ((I, +1.0), (M, -1.0)):
+                dq = pi[d].cuantiza((u_ap / 2.0 + sg * u_rep / 2.0) * args.kq, t)
+                if dq:
+                    cmd = c.cmds.get(d)
+                    if cmd is not None:
+                        c.manda({d: max(0, min(1000, cmd - dq))})
+                        emitido = True
+            # EL REFRACTARIO DE LAS COORDENADAS HAY QUE MARCARLO A MANO. `PI` lo
+            # fija dentro de `cuantiza`, y aqui quien cuantiza son los PI de los
+            # DEDOS, no los de apriete/reparto: sin esto su `t_accion` se queda en
+            # None, el refractario no entra nunca y el lazo pide correccion a
+            # 280 Hz en vez de a 5. Medido: el comando del indice barrio 100
+            # unidades con dq_max = 6.
+            if emitido:
+                pi_ap.t_accion = t
+                pi_rep.t_accion = t
+            uT = pi[T].fuerza_pedida(ref_T - f[T], 0.03, t)
+            dqT = pi[T].cuantiza(uT * args.kq, t)
+            if dqT:
+                cmd = c.cmds.get(T)
+                if cmd is not None:
+                    c.manda({T: max(0, min(1000, cmd - dqT))})
+        hist.append((tr, f[T], f[I], f[M]))
+
+    m = bucle(ctx, args.duracion, control, parar_en_evento=True)
+    if len(hist) < 20:
+        print("  sin muestras"); return 3
+    T_ = [h[0] for h in hist]
+    cola = [h for h in hist if h[0] >= T_[-1] - args.cola_s]
+    ini = hist[:40]
+    def res(v, k):
+        return statistics.median([x[k] for x in v])
+    print(f"\n  {len(hist)} pasos en {T_[-1]:.0f} s")
+    print(f"  {'':10} {'inicio':>8} {'final':>8}")
+    for nom, k in (('pulgar', 1), ('indice', 2), ('medio', 3)):
+        print(f"  {nom:10} {res(ini,k):8.0f} {res(cola,k):8.0f} g")
+    ap_i = res(ini,2)+res(ini,3); ap_f = res(cola,2)+res(cola,3)
+    rp_i = res(ini,2)-res(ini,3); rp_f = res(cola,2)-res(cola,3)
+    print(f"  APRIETE (I+M)  {ap_i:6.0f} → {ap_f:6.0f} g  (obj {args.ref:.0f}, "
+          f"err {ap_f-args.ref:+.0f})")
+    print(f"  REPARTO (I-M)  {rp_i:+6.0f} → {rp_f:+6.0f} g  (obj {rep0:+.0f}, "
+          f"err {rp_f-rep0:+.0f})")
+    # ¿diverge o solo degrada? amplitud del reparto en la segunda mitad
+    mitad = [h for h in hist if h[0] >= T_[-1] / 2]
+    rp = [h[2] - h[3] for h in mitad]
+    print(f"  reparto en la 2a mitad: rango {min(rp):+.0f}…{max(rp):+.0f} g "
+          f"(amplitud {max(rp)-min(rp):.0f})")
+    if m:
+        print(f"  {m}")
+    return 0
+
+
 def modo_borde(ctx, args):
     """A5 · el borde superior: subir `F*` hasta el techo y comprobar que, cuando
     el detector dispara, el lazo **AFLOJA en vez de insistir**.
@@ -1034,7 +1163,7 @@ def main(argv=None):
     argumentos_comunes(p)
     p.add_argument('--modo', required=True,
                    choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara',
-                            'pi', 'firmware', 'comparar', 'pinza', 'borde'])
+                            'pi', 'firmware', 'comparar', 'pinza', 'borde', 'modo2'])
     p.add_argument('--pinza', type=int, choices=[1, 2], default=1)
     p.add_argument('--dof', type=int, default=3, help='dedo bajo prueba en los modos de un dedo')
     p.add_argument('--duracion', type=float, default=15.0)
@@ -1070,6 +1199,17 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--ingenuo', action='store_true',
+                   help='modo2: TRES lazos de fuerza sueltos, la version que hay '
+                        'que mostrar que se degrada')
+    p.add_argument('--reparto', type=float, default=None,
+                   help='modo2: consigna de F_I - F_M; por defecto el reparto '
+                        'REGISTRADO al agarrar, que no es 50/50')
+    p.add_argument('--kp-reparto', type=float, default=0.08,
+                   help='modo2: ganancia del lazo de reparto. BAJA a proposito: '
+                        'decide el ladeo, no la seguridad del agarre')
+    p.add_argument('--kq', type=float, default=0.25,
+                   help='modo2: de gramos pedidos a unidades de comando')
     p.add_argument('--ref-max', type=float, default=600.0, help='borde: consigna maxima')
     p.add_argument('--ref-paso', type=float, default=50.0, help='borde: incremento por nivel')
     p.add_argument('--margen', type=float, default=0.15,
@@ -1120,7 +1260,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     dofs = MODOS[args.pinza]
-    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar', 'pinza', 'borde') \
+    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar', 'pinza', 'borde', 'modo2') \
             and args.dof not in dofs:
         dofs = [args.dof] + [d for d in dofs if d != args.dof]
 
@@ -1140,7 +1280,8 @@ def main(argv=None):
               'pi': modo_pi, 'firmware': modo_firmware,
               'comparar': modo_comparar,
               'pinza': modo_pinza,
-              'borde': modo_borde}[args.modo]
+              'borde': modo_borde,
+              'modo2': modo_modo2}[args.modo]
         rc = fn(ctx, args)
         return rc
     except KeyboardInterrupt:

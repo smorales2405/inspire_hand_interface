@@ -875,3 +875,70 @@ Un lazo que insistiera aqui seguiria forzando un mecanismo que ya esta cediendo.
 Que la reaccion correcta sea *aflojar* no es evidente a priori —la intuicion dice
 que si la fuerza cae hay que apretar— y depende por completo de saber **quien**
 esta cediendo. De ahi que los dos detectores sean dos y no uno.
+
+---
+
+## B1 · modo 2: tres lazos sueltos divergen, las coordenadas aguantan
+
+### La matriz 3x3, medida en este montaje (bola de espuma)
+
+| mueve | →pulgar | →indice | →medio | acoplamiento I↔M |
+|---|---|---|---|---|
+| **PULGAR** | +5.93 | +0.87 | +1.67 | — |
+| **INDICE** | +4.67 | **+14.40** | **−6.47** | **−45 %** |
+| **MEDIO** | +4.00 | **−1.27** | **+12.73** | **−10 %** |
+
+**Indice y medio se acoplan en NEGATIVO**, como predecia el plan. El pulgar acopla
+en positivo con los dos (+0.87, +1.67) y ambos le devuelven +4.67 y +4.00. Con el
+objeto inmovilizado por el pulgar, empujar con uno de los dos no lo mueve:
+**redistribuye la carga** al otro.
+
+Las magnitudes no coinciden con E3.6c (−38 %/−37 %, casi simetricas): aqui salen
+**−45 % y −10 %**, mucho mas asimetricas. El signo, que es lo decisivo, si.
+
+> Aviso sobre esta medida: tras el barrido del indice la histeresis fue de −125 g,
+> asi que la fila del medio se midio desde otra configuracion. La matriz no es del
+> todo autoconsistente.
+
+### El contraste
+
+Misma consigna (`agarre 280 g`, `reparto 0`), mismo objeto, mismo hardware:
+
+| | ingenua (3 lazos sueltos) | coordenadas |
+|---|---|---|
+| Duracion | **aborto a 1 s** | **40 s sin un solo evento** |
+| Amplitud del reparto (2ª mitad) | **267 g** | **4 g** |
+| Reparto final | −103 g | **−3 g** |
+| Desenlace | bola caida | sujeta |
+
+**67× menos amplitud.** La traza de la ingenua no deja dudas: indice
+105 → 249 → −2 → 120 g y medio 148 → 106 → 256 → 97, con la amplitud **creciendo**
+(~140 g la primera oscilacion, ~250 la segunda) hasta que el indice pierde el
+contacto y el objeto cae.
+
+> **Correccion de mi propio analisis.** Al ver el producto de las cruzadas
+> (0.45 × 0.10 = 0.045, muy por debajo de 1) dije que la realimentacion positiva
+> «amplificaria pero no tenia por que explotar». Ese calculo **dejaba fuera las
+> ganancias del controlador**: con `kp·kq = 0.075 u/g` y la ganancia propia del
+> indice de 14.4 g/u, **cada lazo individual ya va a 1.08 por iteracion** —en el
+> limite— y el acoplamiento negativo lo tira al otro lado. La premisa del plan era
+> correcta y mi matiz estaba mal.
+
+### Un bug que invalido la primera tanda coordinada
+
+La primera version coordinada tambien oscilaba, pero **por codigo, no por fisica**:
+el comando del indice barrio ~100 unidades con `dq_max = 6`, lo que solo puede
+pasar emitiendo escalones sin parar. Causa: `PI` fija su `t_accion` dentro de
+`cuantiza`, y en el modo 2 quien cuantiza son los PI de los **dedos**, no los de
+apriete/reparto. Asi que el `t_accion` de las coordenadas se quedaba en `None`, su
+refractario no entraba nunca y el lazo pedia correccion a **280 Hz en vez de a 5**.
+
+Es la misma familia que el bug de `dt = 0` de A2: **estado que se escribe en un
+sitio y se lee en otro**. Van dos.
+
+### Lo que esta compuerta NO cubre todavia
+
+- El criterio del plan pide `F_grip` sostenida **60 s**; esta tanda son **40**.
+- **Falta el seguimiento subpixel** que confirme que el objeto no se ladea. Que el
+  reparto este en banda es condicion necesaria, no suficiente: el reparto es una
+  medida de fuerza, no de orientacion.

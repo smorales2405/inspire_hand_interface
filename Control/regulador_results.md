@@ -838,3 +838,40 @@ el pulgar hace el ajuste fino, y anticipar el efecto de la rafaga del indice en 
 correccion del pulgar para que no se sume al sobreimpulso.
 
 `--selec-accion` queda en el codigo, **desactivada por defecto**.
+
+---
+
+## A5 · el borde superior: el lazo afloja en vez de insistir
+
+Hasta ahora el detector de resbalon solo **imprimia** «→ aflojar» y `bucle`
+abortaba la tanda: **la reaccion no estaba implementada**. `--modo borde` la
+implementa y la demuestra.
+
+Rampa de consigna sobre el pulgar contra `block1`, 250 → 600 g en pasos de 50 cada
+12 s, con el techo de la guarda subido a 700 para que sea el **detector** quien
+encuentre el borde y no la red de seguridad.
+
+| t | F pulgar | POS | cmd |
+|---|---|---|---|
+| 78–82 s | 489 g | 861 | 343 |
+| 83.2 s | **557 g** | 864 | 337 (cierra) |
+| 84.5 s | **459 g** | **860** | 331 (**sigue cerrando**) |
+| 85.7 s en adelante | 374 g | 856 | 355 (el lazo **abre**) |
+
+**El comando seguia cerrando mientras la fuerza caia 98 g y `POS` retrocedia.**
+Eso solo puede ser el actuador cediendo: un objeto escapandose no puede hacer
+retroceder al dedo contra su propio comando. Es exactamente la distincion que
+`DetectorResbalon` y `DetectorEscape` existen para hacer, y es la que decide la
+reaccion — **aflojar**, no apretar.
+
+Respuesta del lazo: abrir `2 × paso_abre` de inmediato y bajar la consigna un 15 %
+(550 → 390 g). Resultado:
+
+- cedio a **459 g** (pico 575), dentro del rango 455–745 g ya medido para el borde
+  segun pose, en su extremo inferior;
+- tras aflojar sostuvo **375 g durante 64 s** con **cero resbalones posteriores**.
+
+Un lazo que insistiera aqui seguiria forzando un mecanismo que ya esta cediendo.
+Que la reaccion correcta sea *aflojar* no es evidente a priori —la intuicion dice
+que si la fuerza cae hay que apretar— y depende por completo de saber **quien**
+esta cediendo. De ahi que los dos detectores sean dos y no uno.

@@ -710,6 +710,91 @@ def modo_comparar(ctx, args):
     return 0
 
 
+def modo_borde(ctx, args):
+    """A5 · el borde superior: subir `F*` hasta el techo y comprobar que, cuando
+    el detector dispara, el lazo **AFLOJA en vez de insistir**.
+
+    Hasta ahora el detector solo imprimia «→ aflojar» y `bucle` abortaba la tanda.
+    La reaccion no estaba implementada, y es la que hay que demostrar: un lazo que
+    insiste contra un mecanismo que ya esta cediendo lo fuerza mas.
+
+    Por que aflojar y no apretar: `POS` retrocediendo contra su propio comando
+    significa que quien cede es el ACTUADOR, no el objeto escapandose. Ya se paso
+    del borde, y apretar mas solo profundiza el resbalon. Es la distincion que
+    `DetectorResbalon` y `DetectorEscape` existen para hacer.
+    """
+    d = args.dof
+    pi = PI(args.kp, args.ki, args.lam, args.banda, args.paso_cierra,
+            args.paso_abre, args.dq_max, args.refractario)
+    print(f"A5 · BORDE · {DOF_NAMES[d]} · {args.ref:.0f} → {args.ref_max:.0f} g "
+          f"en pasos de {args.ref_paso:.0f} cada {args.tramo_s:.0f} s")
+    if not _aproxima(ctx, args, d, args.ref * args.frac_aprox):
+        print("  ABORTA: no se alcanzo el contacto de partida"); return 3
+    ctx.dof_control = {d}
+    ctx.disp[d].t_ultimo = None
+    t_ini = time.perf_counter()
+    st = {'ref': args.ref, 't_nivel': 0.0, 'n_ev': len(ctx.eventos),
+          'cedio': None, 'f_cedio': None, 'ev_post': 0}
+    hist = []
+
+    def control(c, t, p, f, ff):
+        tr = t - t_ini
+        # ¿ha cedido? entonces AFLOJAR: abrir ya y bajar la consigna
+        if len(c.eventos) > st['n_ev']:
+            st['n_ev'] = len(c.eventos)
+            if st['cedio'] is None:
+                st['cedio'] = tr
+                st['f_cedio'] = f[d]
+                nueva = f[d] * (1.0 - args.margen)
+                cmd = c.cmds.get(d)
+                if cmd is not None:
+                    # abrir de inmediato, sin esperar al siguiente ciclo del PI
+                    c.manda({d: max(0, min(1000, cmd + 2 * args.paso_abre))})
+                pi.reinicia()
+                print(f"  ⚠ CEDIO a {f[d]:.0f} g (consigna {st['ref']:.0f}) · "
+                      f"aflojando: abro {2*args.paso_abre} u y bajo la consigna "
+                      f"a {nueva:.0f} g")
+                st['ref'] = nueva
+            else:
+                st['ev_post'] += 1
+        # subir la consigna mientras no haya cedido
+        elif st['cedio'] is None and tr - st['t_nivel'] >= args.tramo_s:
+            st['t_nivel'] = tr
+            if st['ref'] < args.ref_max:
+                st['ref'] = min(args.ref_max, st['ref'] + args.ref_paso)
+                print(f"  → consigna {st['ref']:.0f} g  (t={tr:.0f} s, "
+                      f"F={f[d]:.0f} g)")
+        toca, dt, _ = c.disp[d].toca(t, ff)
+        if toca:
+            dq, e, P, I = pi.paso(st['ref'], f[d], dt, t)
+            if dq:
+                cmd = c.cmds.get(d)
+                if cmd is not None:
+                    c.manda({d: max(0, min(1000, cmd - dq))})
+        hist.append((tr, f[d], st['ref'], p[d]))
+
+    # parar_en_evento=False: el evento es LO QUE SE ESTUDIA, no un motivo de aborto
+    m = bucle(ctx, args.duracion, control, parar_en_evento=False)
+    if not hist:
+        print("  sin muestras"); return 3
+    T_ = [h[0] for h in hist]
+    print(f"\n  {len(hist)} pasos en {T_[-1]:.0f} s · pico {max(h[1] for h in hist):.0f} g")
+    if st['cedio'] is None:
+        print(f"  NO cedio hasta {st['ref']:.0f} g. El borde esta por encima: "
+              f"sube --ref-max.")
+        return 0
+    post = [h for h in hist if h[0] > st['cedio'] + 2.0]
+    print(f"  CEDIO a los {st['cedio']:.0f} s con {st['f_cedio']:.0f} g")
+    if post:
+        fp = [h[1] for h in post]
+        print(f"  tras aflojar ({len(post)} muestras, {post[-1][0]-post[0][0]:.0f} s): "
+              f"mediana {statistics.median(fp):.0f} g · consigna {st['ref']:.0f} g")
+        print(f"  resbalones posteriores: {st['ev_post']}"
+              + ("  ← el lazo se estabilizo por debajo del borde"
+                 if st['ev_post'] == 0 else "  ← SIGUE cediendo"))
+    return 0
+
+
 def modo_pinza(ctx, args):
     """A3 · pinza real: apriete y balance sobre DOS dedos, con desacoplo medido.
 
@@ -949,7 +1034,7 @@ def main(argv=None):
     argumentos_comunes(p)
     p.add_argument('--modo', required=True,
                    choices=['tasas', 'passthrough', 'guarda', 'resbalon', 'tara',
-                            'pi', 'firmware', 'comparar', 'pinza'])
+                            'pi', 'firmware', 'comparar', 'pinza', 'borde'])
     p.add_argument('--pinza', type=int, choices=[1, 2], default=1)
     p.add_argument('--dof', type=int, default=3, help='dedo bajo prueba en los modos de un dedo')
     p.add_argument('--duracion', type=float, default=15.0)
@@ -985,6 +1070,10 @@ def main(argv=None):
     p.add_argument('--hold-s', type=float, default=25.0, help='duración de cada trial')
     p.add_argument('--bloque', default='a', help='etiqueta del bloque, para encadenar invocaciones')
     p.add_argument('--seed', type=int, default=1)
+    p.add_argument('--ref-max', type=float, default=600.0, help='borde: consigna maxima')
+    p.add_argument('--ref-paso', type=float, default=50.0, help='borde: incremento por nivel')
+    p.add_argument('--margen', type=float, default=0.15,
+                   help='borde: fraccion que se baja la consigna al ceder')
     p.add_argument('--selec-accion', action='store_true',
                    help='si el paso del indice no llega a su cuanto, corrige con '
                         'el PULGAR solo (minimos cuadrados) en vez de acumular '
@@ -1031,7 +1120,7 @@ def main(argv=None):
     args = p.parse_args(argv)
 
     dofs = MODOS[args.pinza]
-    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar', 'pinza') \
+    if args.modo in ('passthrough', 'guarda', 'resbalon', 'pi', 'firmware', 'comparar', 'pinza', 'borde') \
             and args.dof not in dofs:
         dofs = [args.dof] + [d for d in dofs if d != args.dof]
 
@@ -1050,7 +1139,8 @@ def main(argv=None):
               'guarda': modo_guarda, 'resbalon': modo_resbalon, 'tara': modo_tara,
               'pi': modo_pi, 'firmware': modo_firmware,
               'comparar': modo_comparar,
-              'pinza': modo_pinza}[args.modo]
+              'pinza': modo_pinza,
+              'borde': modo_borde}[args.modo]
         rc = fn(ctx, args)
         return rc
     except KeyboardInterrupt:

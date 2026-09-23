@@ -942,3 +942,34 @@ sitio y se lee en otro**. Van dos.
 - **Falta el seguimiento subpixel** que confirme que el objeto no se ladea. Que el
   reparto este en banda es condicion necesaria, no suficiente: el reparto es una
   medida de fuerza, no de orientacion.
+
+### Compuerta B1 · **cerrada**, los tres criterios
+
+Tanda de 60 s, bola de espuma, modo 2 coordenadas, con la BRIO grabando.
+
+| criterio del plan | resultado |
+|---|---|
+| 1 · `F_grip` sostenida 60 s dentro de banda | **202 → 276 g**, objetivo 280, **error −4 g** ✔ |
+| 2 · el reparto no diverge | **+40 → +10 g**, amplitud en la 2ª mitad **5 g** ✔ |
+| 3 · objeto sin ladearse (subpixel) | **0.54 px de deriva neta en 60 s** ✔ |
+
+El criterio 2 vale por el contraste, no en absoluto: la version ingenua sobre el
+mismo montaje y la misma consigna dio **267 g** de amplitud y tiro la bola en 1 s.
+**67× de diferencia.**
+
+Sobre el criterio 3: la deriva total fueron 0.54 px, y **toda ocurrio en los
+primeros 4 s**, mientras el apriete subia de 202 a 276 g. Entre t=10 y t=60 la
+posicion es constante dentro de **±0.05 px**. El suelo de ruido medido en el
+montaje de `block1` era 0.395 px, asi que esto es inmovil dentro de lo que la
+camara resuelve.
+
+> **Lo que el seguimiento no descarta.** Se rastrea la traslacion del logo, que
+> para una esfera captura cualquier rotacion salvo una **alrededor del eje de
+> vision**; esa se veria como giro del logo, no como desplazamiento. La
+> correlacion se mantuvo por encima de 0.5 en toda la tanda, lo que la hace
+> improbable, pero no esta medida directamente.
+
+Y por que el criterio 3 no es un tramite: **el reparto mide fuerzas, no
+orientacion**. La bola podria girar lentamente con el reparto perfectamente en
+banda y el lazo no se enteraria. Es justo el fallo que nos mordio con el cubo de
+PLA, donde el agarre parecia bueno por fuerza y el objeto rotaba.

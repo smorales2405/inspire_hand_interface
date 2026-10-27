@@ -601,34 +601,76 @@ def modo_comparar(ctx, args):
     por deriva del cero entre tandas (Exp 2). Comparar entre tandas no vale.
     """
     d = args.dof
-    # Aleatorizacion POR BLOQUES: se baraja DENTRO de cada par, no el conjunto
-    # entero. Barajar el conjunto balanceado deja rachas —la primera tanda salio
-    # L L L L L F— y una racha carga cualquier deriva lenta (la temperatura subio
-    # 36→38 °C en seis trials) sobre el brazo que toco agrupado. Con bloques de
-    # dos, cada par lleva uno de cada y el equilibrio es local, no solo global.
+    # Aleatorizacion POR BLOQUES. Se baraja DENTRO de cada bloque, no el conjunto
+    # entero: barajar el conjunto balanceado deja rachas —la primera tanda de A2
+    # salio L L L L L F— y una racha carga cualquier deriva lenta sobre el brazo
+    # que toco agrupado. Cada bloque lleva una repeticion de CADA condicion, asi
+    # que el equilibrio es local y no solo global.
+    #
+    # Una condicion es (brazo, amplitud de perturbacion). Con varias amplitudes
+    # el bloque crece, pero la propiedad que importa -que ninguna condicion se
+    # agrupe en el tiempo- se mantiene.
+    if args.perturba_set:
+        amps = [int(x) for x in args.perturba_set.split(',')]
+    else:
+        amps = [args.perturba_u]
+    cond = [(b, u) for u in amps for b in ('firmware', 'lazo')]
     rnd = random.Random(args.seed)
+
+    def racha(seq):
+        """Trials consecutivos del mismo BRAZO al final de la secuencia."""
+        n = 1
+        for i in range(len(seq) - 1, 0, -1):
+            if seq[i][0] == seq[i - 1][0]:
+                n += 1
+            else:
+                break
+        return n if seq else 0
+
+    # El barajado va RESTRINGIDO. Con el bloque libre, la cola de uno puede
+    # alinearse con la cabeza del siguiente: con 3 amplitudes salia una racha de
+    # 5 trials del mismo brazo, que es justo lo que obligo a abortar y relanzar
+    # la compuerta A2 (una racha carga la deriva lenta sobre un brazo).
     orden = []
     for _ in range(args.pares):
-        par = ['firmware', 'lazo']
-        rnd.shuffle(par)
-        orden += par
+        mejor = None
+        for _ in range(400):
+            blq = list(cond)
+            rnd.shuffle(blq)
+            peor = max((racha(orden + blq[:i + 1]) for i in range(len(blq))),
+                       default=1)
+            if peor <= args.racha_max:
+                mejor = blq
+                break
+            if mejor is None or peor < mejor[1]:
+                mejor = (blq, peor) if not isinstance(mejor, list) else mejor
+        orden += mejor if isinstance(mejor, list) else mejor[0]
     print(f"A2 · INTERCALADO · {DOF_NAMES[d]} · F* = {args.ref:.0f} g · "
-          f"{args.pares} pares · orden {' '.join(o[0].upper() for o in orden)}")
+          f"{len(cond)} condiciones x {args.pares} bloques = {len(orden)} trials")
+    if len(amps) > 1:
+        print(f"  amplitudes de perturbacion: {amps} u  "
+              f"(~{', '.join(f'{1.75*max(0,u-8):.0f}' for u in amps)} g segun el "
+              f"acoplamiento medido: 1.75 g/u tras ~8 u de holgura)")
+    print(f"  orden: {' '.join(f'{b[0].upper()}{u}' for b, u in orden)}")
 
     # El sufijo de perturbacion NO es cosmetico: sin el, una tanda con escalon
     # se anexaria al indice de la compuerta A2 sin perturbacion y mezclaria dos
     # experimentos distintos en el mismo fichero.
-    suf = f'_pert{args.perturba_u}' if args.perturba_u > 0 else ''
+    if args.perturba_set:
+        suf = '_pertset' + args.perturba_set.replace(',', '-')
+    else:
+        suf = f'_pert{args.perturba_u}' if args.perturba_u > 0 else ''
     idx = os.path.join(args.outdir, f'a2_intercalado_dof{d}_F{int(args.ref)}{suf}.csv')
     nuevo_f = not os.path.exists(idx)
     res = {'firmware': [], 'lazo': []}
     with open(idx, 'a', newline='') as fh:
         w = csv.writer(fh)
         if nuevo_f:
-            w.writerow(['bloque', 'n', 'brazo', 'pico', 'err_reg', 'I_med',
-                        'temp', 'n_muestras', 'tarado', 'nota',
+            w.writerow(['bloque', 'n', 'brazo', 'pert_u', 'pico', 'err_reg',
+                        'I_med', 'temp', 'n_muestras', 'tarado', 'nota',
                         'f_base', 'salto', 'resid', 'recup'])
-        for k, brazo in enumerate(orden, 1):
+        for k, (brazo, pert_u) in enumerate(orden, 1):
+            args.perturba_u = pert_u          # la condicion fija la amplitud
             abrir_mano(ctx.hand, args, ctx.hold)
             # Cada trial arranca limpio: si no, el timeout de la guarda corre desde
             # el inicio de la TANDA y la historia de los detectores cruza la
@@ -639,8 +681,8 @@ def modo_comparar(ctx, args):
             ctx.escape.reinicia()
             ctx.dof_control = set()
             ctx.tara.marca_suelta()
-            print(f"\n[{k}/{len(orden)}] {brazo.upper()} · esperando "
-                  f"{args.tara_espera:.0f} s para tarar (E3.5)...")
+            print(f"\n[{k}/{len(orden)}] {brazo.upper()} · perturbacion {pert_u} u "
+                  f"· esperando {args.tara_espera:.0f} s para tarar (E3.5)...")
             time.sleep(args.tara_espera + 0.5)
             # una sola muestra puede ser ruido; la mediana de unas cuantas, no
             mu = []
@@ -663,13 +705,14 @@ def modo_comparar(ctx, args):
                 # se registra igual: un trial abortado que desaparece del indice
                 # deja un N que no se puede auditar
                 print("  trial sin datos utilizables — queda anotado como abortado")
-                w.writerow([args.bloque, k, brazo, '', '', '',
+                w.writerow([args.bloque, k, brazo, pert_u, '', '', '',
                             temps[d] if temps else '', 0,
                             'si' if ok else 'no', 'abortado', '', '', '', ''])
                 fh.flush()
                 continue
+            m['pert_u'] = pert_u
             res[brazo].append(m)
-            w.writerow([args.bloque, k, brazo, f"{m['pico']:.0f}",
+            w.writerow([args.bloque, k, brazo, pert_u, f"{m['pico']:.0f}",
                         f"{m['err_reg']:+.0f}", f"{m['I_med']:.0f}",
                         temps[d] if temps else '', m['n'],
                         'si' if ok else 'no', '',
@@ -687,6 +730,19 @@ def modo_comparar(ctx, args):
                   f"I {m['I_med']:3.0f} mA · {temps[d] if temps else '?'} °C{extra}")
 
     print(f"\n  índice: {idx}")
+    if len(amps) > 1:
+        print(f"\n  CURVA perturbacion → residual (mediana por celda):")
+        print(f"    {'amplitud':>9} {'firmware':>22} {'lazo':>22}")
+        for u in amps:
+            cel = {}
+            for b in ('firmware', 'lazo'):
+                v = [x for x in res[b] if x.get('pert_u') == u and x.get('resid') is not None]
+                cel[b] = (statistics.median([x['resid'] for x in v]),
+                          min(x['resid'] for x in v), max(x['resid'] for x in v),
+                          len(v)) if v else None
+            def fmt(c):
+                return '—' if c is None else f"{c[0]:+5.0f} g ({c[1]:+.0f}…{c[2]:+.0f}, n={c[3]})"
+            print(f"    {u:>7} u {fmt(cel['firmware']):>22} {fmt(cel['lazo']):>22}")
     for b in ('firmware', 'lazo'):
         v = res[b]
         if not v:
@@ -1250,6 +1306,11 @@ def main(argv=None):
     p.add_argument('--kappa', type=float, default=None, help='solo informativo')
     p.add_argument('--soporte', type=int, default=None,
                    help='ANGLE_SET de los 4 dedos de soporte; pre-flexionarlos deja margen de perturbar')
+    p.add_argument('--racha-max', type=int, default=2,
+                   help='trials consecutivos del mismo brazo que se permiten')
+    p.add_argument('--perturba-set', default=None,
+                   help='varias amplitudes "16,28,40": las condiciones pasan a ser '
+                        '(brazo x amplitud) y --pares es el N por condicion')
     p.add_argument('--perturba-u', type=int, default=0,
                    help='unidades que se FLEXIONA el soporte como escalon de perturbacion')
     p.add_argument('--perturba-t', type=float, default=25.0,

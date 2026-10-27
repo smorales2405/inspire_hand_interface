@@ -28,6 +28,19 @@ Un proceso, un hilo, **un cliente Modbus**. Sin PyQt. `time.perf_counter()`.
   a 250 g ese dedo está en zona muerta. Ver `regulador_results.md`.
 - A3–A5 y Parte B: ver el plan.
 
+## Trabajo para el envío a *Mechatronics*
+
+Ver [`../Journal/`](../Journal/). El alcance del artículo es **control de fuerza
+sólo con el pulgar**, así que la columna vertebral es el montaje
+`block1`-en-falanges — el único que no se cae y permite tandas desatendidas.
+
+`--modo comparar` admite ahora **varias amplitudes de perturbación** en una sola
+tanda (`--perturba-set 16,28,40`): las condiciones pasan a ser
+`(brazo × amplitud)` en bloques balanceados, con `--racha-max` acotando los
+trials consecutivos del mismo brazo. Sin esa restricción, con 3 amplitudes salía
+una racha de **5 trials del mismo brazo**, que es lo que obligó a abortar y
+relanzar la compuerta A2.
+
 ## Cuándo avanza el control
 
 La mano publica estado cada ~30.7 ms **por DOF** y **los seis van escalonados**

@@ -41,6 +41,16 @@ trials consecutivos del mismo brazo. Sin esa restricción, con 3 amplitudes sal�
 una racha de **5 trials del mismo brazo**, que es lo que obligó a abortar y
 relanzar la compuerta A2.
 
+**El acoplamiento del soporte hay que medirlo en cada montaje.** Las amplitudes
+16/28/40 u se derivaron de **1.75 g/u**, medido en el montaje original. Al
+desmontar y remontar `block1` (2026-10-27) el acoplamiento cayó a **0.72 g/u** y
+el contacto a 250 g se movió de `ANGLE_SET` ≈ 394 a ≈ 236; esas mismas amplitudes
+darían +7/+18/+29 g, con las dos primeras **por debajo de la banda muerta de
+24 g**. Antes de cada tanda de perturbación hay que volver a medir la curva
+soporte→pulgar y, si hace falta, reasentar el bloque hasta recuperar el contacto
+cerca de `ANGLE` 394. En el artículo la perturbación se especifica en **ΔF
+medido**, no en unidades de comando.
+
 ## Cuándo avanza el control
 
 La mano publica estado cada ~30.7 ms **por DOF** y **los seis van escalonados**
@@ -116,3 +126,6 @@ fuerza sigue existiendo, pero como último recurso.
   sostener carga el cero queda corrido 21–46 g y tarda ~8 s en volver, con signo
   **por DOF** (índice −46 g, pulgar +21 g).
 - **Salida por cualquier vía → la mano se abre.** `try/finally`, sin excepciones.
+- **Tras tocar el montaje, se remide el acoplamiento.** El mismo `block1`
+  remontado dio 0.72 g/u contra 1.75 g/u; una perturbación en unidades de comando
+  no es reproducible entre montajes.

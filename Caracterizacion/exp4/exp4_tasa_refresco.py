@@ -11,7 +11,7 @@ De ahí las condiciones:
 
 | | qué hace | qué mide |
 |---|---|---|
-| `quieto` | todo parado y descargado | el CONTROL: demuestra que aquí no hay rejilla observable |
+| `quieto` | todo parado y descargado | el CONTROL: `POS` no da rejilla, `FORCE` sí |
 | `movimiento` | cada DOF barre despacio, de uno en uno | la rejilla de `POS` por DOF, en vacío |
 | `escalonado` | dos DOF barren a la vez | el desfase entre ellos |
 | `carga` | el pulgar sostiene contra el montaje | la rejilla de `FORCE` bajo carga |
@@ -20,6 +20,12 @@ De ahí las condiciones:
 observa es cada cuánto cambia el entero publicado. Un entero que se repite es
 indistinguible de «no hubo refresco», así que esto acota la rejilla de
 publicación por arriba, no la tasa de muestreo interna.
+
+**Por qué `FORCE` da la rejilla incluso con el dedo quieto.** El registro es un
+entero que sólo se reescribe en un instante de refresco, así que *cualquier*
+cambio suyo —sea señal o ruido cruzando un entero— cae en la rejilla. Los
+intervalos entre cambios siguen siendo múltiplos del periodo aunque la causa sea
+ruido. `POS` no sirve para esto porque con el dedo quieto no cambia nunca.
 """
 from __future__ import annotations
 
@@ -39,8 +45,15 @@ from hand_modbus import (                                    # noqa: E402
 REGS = {'POS': POS_ACT, 'FORCE': FORCE_ACT, 'CURRENT': CURRENT}
 
 
-def sondea(hand, dur, regs=('POS', 'FORCE'), cur_cada=8):
-    """Sondea lo más rápido que deje el Modbus y guarda (t, valores)."""
+def sondea(hand, dur, regs=('POS', 'FORCE'), cur_cada=1):
+    """Sondea lo más rápido que deje el Modbus y guarda (t, valores).
+
+    `cur_cada` > 1 SUBMUESTREA `CURRENT`. Con 3 bloques por iteración el sondeo
+    baja a ~210 Hz, que sigue siendo 6× la rejilla; leyendo uno de cada 8 el
+    muestreo efectivo de `CURRENT` cae a ~39 Hz contra una rejilla de ~32, o sea
+    1.2×, y los intervalos dejan de ser medibles. Medido: asi salia 27.6 ms con
+    60 % de multiplos, contra 30.3 ms y 85 % en `POS` de la misma tanda.
+    """
     t0 = time.perf_counter()
     filas = []
     i = 0
@@ -161,9 +174,15 @@ def main(argv=None):
     p.add_argument('--dofs', default='0,1,2,3,4,5')
     p.add_argument('--dur', type=float, default=30.0, help='segundos por DOF o condicion')
     p.add_argument('--vel', type=int, default=12, help='SPEED_SET del barrido lento')
+    p.add_argument('--hasta', type=int, default=0,
+                   help='ANGLE_SET donde acaba el barrido. Con un montaje puesto '
+                        'hay que pararlo ANTES del contacto o deja de ser "en vacio"')
     p.add_argument('--rot', type=int, default=None,
                    help='ancla la rotacion del pulgar; obligatorio si se toca el pulgar')
     p.add_argument('--fuerza-carga', type=float, default=250.0)
+    p.add_argument('--angulo-min', type=int, default=300,
+                   help='suelo de la rampa de contacto; depende de donde quede el '
+                        'montaje, no es una constante del dedo')
     p.add_argument('--outdir', default=os.path.join(os.path.dirname(__file__), 'data'))
     a = p.parse_args(argv)
     dofs = [int(x) for x in a.dofs.split(',')]
@@ -207,7 +226,7 @@ def main(argv=None):
             for d in dofs:
                 abre()
                 print(f"\n  barriendo {DOF_NAMES[d]} despacio (v={a.vel})...")
-                manda({d: 0}, vel=a.vel)
+                manda({d: a.hasta}, vel=a.vel)
                 filas = sondea(h, a.dur, ('POS', 'FORCE', 'CURRENT'))
                 r = informe(filas, [d], ('POS', 'FORCE', 'CURRENT'),
                             f'{DOF_NAMES[d]} EN MOVIMIENTO, sin carga')
@@ -219,7 +238,7 @@ def main(argv=None):
         elif a.condicion == 'escalonado':
             abre()
             print(f"\n  barriendo {', '.join(DOF_NAMES[d] for d in dofs)} A LA VEZ")
-            manda({d: 0 for d in dofs}, vel=a.vel)
+            manda({d: a.hasta for d in dofs}, vel=a.vel)
             filas = sondea(h, a.dur, ('POS', 'FORCE'))
             res = informe(filas, dofs, ('POS',), 'VARIOS DOF A LA VEZ')
             base = [res[(d, 'POS')][1] for d in dofs if res[(d, 'POS')][1]]
@@ -244,7 +263,7 @@ def main(argv=None):
             abre()
             manda({4: 450}, vel=25); time.sleep(2.5)
             ang = 450
-            while ang > 300:
+            while ang > a.angulo_min:
                 f = statistics.median([h.read_block(FORCE_ACT)[4] for _ in range(7)])
                 if f >= a.fuerza_carga:
                     break
